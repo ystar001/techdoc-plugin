@@ -1,0 +1,104 @@
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "techdoc-plugin"
+version = "0.1.0.dev0"
+description = "TechDoc — AI 기술보고서 생성 Cowork Plugin (Claude Code 네이티브)"
+readme = "README.md"
+license = { text = "Private" }
+requires-python = ">=3.10"
+authors = [
+    { name = "Klaus", email = "ystar001@gmail.com" },
+]
+keywords = [
+    "technical-writing",
+    "report-generation",
+    "korean",
+    "research",
+    "multi-agent",
+    "claude-code-plugin",
+]
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Intended Audience :: Science/Research",
+    "Natural Language :: Korean",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+
+dependencies = [
+    # 데이터 모델 · 스키마 검증
+    "pydantic>=2.5",
+    # 중복 레퍼런스 dedup (제목 유사도 ≥85)
+    "rapidfuzz>=3.5",
+    # 차트 생성 (matplotlib)
+    "matplotlib>=3.8",
+    # 한국어 폰트 지원 (matplotlib용)
+    "kiwisolver>=1.4",
+    # YAML 직렬화 (KeyRef 메타데이터)
+    "pyyaml>=6.0",
+    # 환경 변수 로딩
+    "python-dotenv>=1.0",
+    # HTML 템플릿 렌더링
+    "jinja2>=3.1",
+    # 콘솔 출력 (진행 로그)
+    "rich>=13.0",
+    # PDF 원문 텍스트 추출 (사용자 제공 참고 파일용)
+    "pymupdf>=1.23",
+    # HTTP 클라이언트 (URL fetch)
+    "httpx>=0.27",
+]
+
+[project.optional-dependencies]
+# PDF 출력 (Chromium 기반)
+pdf = [
+    "playwright>=1.40",
+]
+# DOCX 출력
+docx = [
+    "python-docx>=1.1",
+]
+# 전부 설치
+all = [
+    "techdoc-plugin[pdf,docx]",
+]
+# 개발 의존성
+dev = [
+    "pytest>=7.4",
+    "pytest-asyncio>=0.23",
+    "pytest-cov>=4.1",
+    "ruff>=0.2",
+    "mypy>=1.8",
+]
+
+[project.scripts]
+techdoc = "techdoc_core.__main__:main"
+
+[project.urls]
+Homepage = "https://github.com/ystar001/techdoc-plugin"
+Documentation = "https://github.com/ystar001/techdoc-plugin/blob/main/docs"
+Issues = "https://github.com/ystar001/techdoc-plugin/issues"
+
+# ── setuptools 구성 ──
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["techdoc_core*"]
+exclude = ["tests*", "docs*", "scripts*", "commands*", "agents*", "prompts*"]
+
+# ── ruff ──
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "UP", "B", "SIM", "RUF"]
+ignore = ["E501"]  # line-length은 format이 처리
+
+# ── pytest ──
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+asyncio_mode = "auto"

@@ -1,0 +1,46 @@
+{
+  "name": "techdoc-plugin",
+  "version": "0.1.0-dev",
+  "description": "TechDoc — AI 기술보고서 생성 Cowork Plugin. 대학·기업·연구기관 레퍼런스 기반 논문 수준 기술보고서 자동 생성, 별첨 심층분석 포함.",
+  "author": {
+    "name": "Klaus",
+    "email": "ystar001@gmail.com"
+  },
+  "homepage": "https://github.com/ystar001/techdoc-plugin",
+  "license": "Private",
+  "keywords": [
+    "technical-writing",
+    "report-generation",
+    "korean",
+    "research",
+    "multi-agent",
+    "claude-code-plugin"
+  ],
+  "requirements": {
+    "python": ">=3.10",
+    "claude-code": ">=1.0.0"
+  },
+  "commands": [
+    "techdoc",
+    "techdoc-outline",
+    "techdoc-research",
+    "techdoc-write",
+    "techdoc-review",
+    "techdoc-render",
+    "techdoc-resume",
+    "techdoc-rewrite",
+    "techdoc-deepdive",
+    "techdoc-demo",
+    "techdoc-doctor"
+  ],
+  "agents": [
+    "techdoc-researcher",
+    "techdoc-writer",
+    "techdoc-reviewer"
+  ],
+  "scripts": {
+    "install": "pip install -e .",
+    "install-pdf": "pip install -e .[pdf]",
+    "install-all": "pip install -e .[pdf,docx]"
+  }
+}

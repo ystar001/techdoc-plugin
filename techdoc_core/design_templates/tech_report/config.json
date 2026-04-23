@@ -1,0 +1,62 @@
+{
+  "name": "기술보고서",
+  "type_key": "tech_report",
+  "colors": {
+    "primary": "#1B3A5C",
+    "secondary": "#2D6A9F",
+    "accent": "#0891B2",
+    "background": "#FFFFFF",
+    "surface": "#F8FAFC",
+    "text": "#1E293B",
+    "text_secondary": "#64748B",
+    "border": "#E2E8F0",
+    "success": "#059669",
+    "warning": "#D97706",
+    "error": "#DC2626"
+  },
+  "typography": {
+    "heading_font": "Pretendard",
+    "body_font": "Pretendard",
+    "h1_size": "2.0rem",
+    "h2_size": "1.5rem",
+    "h3_size": "1.25rem",
+    "h4_size": "1.1rem",
+    "body_size": "1rem",
+    "small_size": "0.875rem",
+    "line_height": 1.8,
+    "heading_weight": 700,
+    "body_weight": 400
+  },
+  "layout": {
+    "max_width": "210mm",
+    "margin_top": "25mm",
+    "margin_bottom": "25mm",
+    "margin_left": "25mm",
+    "margin_right": "20mm",
+    "section_spacing": "2.5rem",
+    "paragraph_spacing": "1rem"
+  },
+  "cover": {
+    "layout": "4-tier",
+    "elements": ["title", "part", "chapter", "date"],
+    "title_size": "2.4rem",
+    "part_size": "1.6rem",
+    "chapter_size": "1.2rem",
+    "date_size": "1rem"
+  },
+  "components": [
+    "callout",
+    "data-table",
+    "stat-highlight",
+    "key-point",
+    "doc-quote",
+    "comparison-matrix",
+    "timeline",
+    "process-flow",
+    "insight-box",
+    "section-summary",
+    "executive-summary",
+    "sidebar-box",
+    "two-column"
+  ]
+}

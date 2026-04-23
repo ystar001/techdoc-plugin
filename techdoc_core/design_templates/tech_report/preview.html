@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Techdoc — 기술보고서 디자인 프리뷰</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="cover.css">
+    <link rel="stylesheet" href="components.css">
+    <link rel="stylesheet" href="print.css">
+</head>
+<body>
+
+<!-- ══════ 표지 ══════ -->
+<div class="cover-page">
+    <div class="cover-content">
+        <h1 class="cover-title">노지스마트농업 기술분석 보고서 2026</h1>
+        <div class="cover-divider"></div>
+        <p class="cover-part">Part A. 기반 인프라</p>
+        <p class="cover-chapter">1장. 인프라 기술</p>
+    </div>
+    <div class="cover-meta">
+        <p>2026년 4월</p>
+    </div>
+</div>
+
+<!-- ══════ 목차 ══════ -->
+<div class="toc" style="page-break-after: always;">
+    <h2>목차</h2>
+    <ul style="list-style: none; padding: 0;">
+        <li style="padding: 0.6em 0; border-bottom: 1px dotted #cbd5e1;"><a href="#sec1" style="color: #1E293B; text-decoration: none;">1.1 노지 스마트농업 인프라 개요</a></li>
+        <li style="padding: 0.6em 0; border-bottom: 1px dotted #cbd5e1;"><a href="#sec2" style="color: #1E293B; text-decoration: none;">1.2 관개·배수 자동화 시스템</a></li>
+        <li style="padding: 0.6em 0; border-bottom: 1px dotted #cbd5e1;"><a href="#sec3" style="color: #1E293B; text-decoration: none;">1.3 기상 관측 인프라</a></li>
+        <li style="padding: 0.6em 0; border-bottom: 1px dotted #cbd5e1;"><a href="#sec4" style="color: #1E293B; text-decoration: none;">1.4 에지 컴퓨팅 및 현장 데이터 처리</a></li>
+        <li style="padding: 0.6em 0;"><a href="#ref" style="color: #64748B; text-decoration: none;">참고문헌</a></li>
+    </ul>
+</div>
+
+<!-- ══════ 본문 시작 ══════ -->
+
+<div class="doc-section" id="sec1">
+<h2>1.1 노지 스마트농업 인프라 개요</h2>
+
+<p>노지 스마트농업은 ICT 기술을 노지(露地) 환경에 적용하여 농업 생산성과 자원 효율성을 향상시키는 농업 방식이다[REF-001]. 시설원예 스마트팜이 통제된 환경에서 운영되는 것과 달리, 노지 스마트농업은 넓은 면적, 기상 노출, 전력·통신 제약이라는 고유한 기술적 도전과제를 안고 있다.</p>
+
+<!-- Key Point -->
+<div class="key-point">
+    <div class="key-point-title">핵심 포인트: 노지 vs 시설 스마트농업</div>
+    <ul>
+        <li><strong>면적</strong>: 노지 평균 1.5ha vs 시설 평균 0.3ha — 통신·센서 커버리지 5배 차이</li>
+        <li><strong>환경</strong>: 노지는 기상·토양 변동에 직접 노출 — 내구성 설계 필수</li>
+        <li><strong>전력</strong>: 노지는 전력망 미도달 지역 포함 — 독립전원 필요</li>
+    </ul>
+</div>
+
+<!-- Stat Highlight -->
+<div class="stat-highlight">
+    <div class="stat-item">
+        <div class="stat-value">12.3%</div>
+        <div class="stat-label">노지 스마트농업 보급률</div>
+        <div class="stat-source">[REF-001] 농식품부, 2024</div>
+    </div>
+    <div class="stat-item">
+        <div class="stat-value">3,200억</div>
+        <div class="stat-label">노지 스마트농업 투자규모</div>
+        <div class="stat-source">[REF-001] 농식품부, 2024</div>
+    </div>
+    <div class="stat-item">
+        <div class="stat-value">32.1%</div>
+        <div class="stat-label">시설원예 보급률 (비교)</div>
+        <div class="stat-source">[REF-002] 농진청, 2024</div>
+    </div>
+</div>
+
+<!-- Section Summary -->
+<div class="section-summary">
+    <div class="section-summary-title">섹션 요약</div>
+    <ul>
+        <li>노지 스마트농업은 시설원예 대비 기술적 도전과제가 크지만 성장 잠재력이 높음</li>
+        <li>보급률 12.3%로 시설원예(32.1%)의 약 1/3 수준</li>
+        <li>인프라 기술(통신, 전력, 센서)의 발전이 보급 확대의 핵심 선결과제</li>
+    </ul>
+</div>
+</div>
+
+<div class="doc-section" id="sec2">
+<h2>1.2 관개·배수 자동화 시스템</h2>
+
+<h3>시스템 구조 및 주요 구성요소</h3>
+
+<p>관개 자동화 시스템은 센서, 제어기, 밸브, 관수 장치로 구성되며, 토양수분 데이터를 기반으로 실시간 관개량을 조절한다[REF-003]. 점적관수 시스템의 경우 이미터를 통해 작물 근권부에 물을 직접 공급함으로써 기존 지면관개 대비 용수 효율을 40~60% 향상시킨다.</p>
+
+<!-- Process Flow -->
+<div class="process-flow">
+    <div class="process-step"><div class="process-step-title">토양 센서</div>수분·EC 측정</div>
+    <span class="process-arrow">→</span>
+    <div class="process-step"><div class="process-step-title">제어기</div>관개량 결정</div>
+    <span class="process-arrow">→</span>
+    <div class="process-step"><div class="process-step-title">전자밸브</div>구간별 개폐</div>
+    <span class="process-arrow">→</span>
+    <div class="process-step"><div class="process-step-title">이미터</div>정밀 관수</div>
+</div>
+
+<!-- Comparison Matrix -->
+<h3>관개 방식 비교 분석</h3>
+
+<table class="comparison-matrix">
+    <thead>
+        <tr>
+            <th>항목</th>
+            <th>점적관수</th>
+            <th>스프링클러</th>
+            <th>지면관개</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>용수 효율</td>
+            <td>90~95%</td>
+            <td>70~85%</td>
+            <td>40~60%</td>
+        </tr>
+        <tr>
+            <td>초기 비용</td>
+            <td>높음 (ha당 500만원)</td>
+            <td>중간 (ha당 300만원)</td>
+            <td>낮음</td>
+        </tr>
+        <tr>
+            <td>자동화 수준</td>
+            <td>완전 자동화 가능</td>
+            <td>부분 자동화</td>
+            <td>수동</td>
+        </tr>
+        <tr>
+            <td>적합 작물</td>
+            <td>과수, 밭작물</td>
+            <td>곡물, 목초</td>
+            <td>벼 (논)</td>
+        </tr>
+    </tbody>
+</table>
+
+<!-- Callout (사례 박스) -->
+<div class="callout callout-success">
+    <div class="callout-title">적용 사례: 김제 벼 재배 단지 자동 물관리</div>
+    <p><strong>주체:</strong> 전북 김제시 농업기술센터 | <strong>시기:</strong> 2023~2024년</p>
+    <p><strong>규모:</strong> 200ha, 150 농가 참여</p>
+    <p><strong>성과:</strong> 용수 사용량 30% 절감, 수확량 5% 증대, 농가 물관리 노동시간 70% 감소[REF-004]</p>
+</div>
+
+<!-- Data Table -->
+<h3>국가별 정밀관개 기술 수준 비교</h3>
+
+<table class="data-table">
+    <thead>
+        <tr>
+            <th>국가</th>
+            <th>보급률</th>
+            <th>주요 기술</th>
+            <th>대표 기관/기업</th>
+            <th>투자 규모</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>이스라엘</td>
+            <td>85%</td>
+            <td>AI 기반 점적관수</td>
+            <td>Netafim, Rivulis</td>
+            <td>$1.2B (2024)</td>
+        </tr>
+        <tr>
+            <td>미국</td>
+            <td>55%</td>
+            <td>센터피벗 자동화</td>
+            <td>Lindsay, Valmont</td>
+            <td>$3.2B (2024)</td>
+        </tr>
+        <tr>
+            <td>한국</td>
+            <td>12%</td>
+            <td>논 자동물관리</td>
+            <td>농진청, KIST</td>
+            <td>3,200억원 (2024)</td>
+        </tr>
+        <tr>
+            <td>호주</td>
+            <td>40%</td>
+            <td>가뭄 대응 스마트관개</td>
+            <td>CSIRO</td>
+            <td>$0.6B (2024)</td>
+        </tr>
+    </tbody>
+</table>
+
+<!-- Insight Box -->
+<div class="insight-box">
+    <div class="insight-box-title">시사점</div>
+    <p>한국의 노지 관개 자동화 보급률(12%)은 이스라엘(85%), 미국(55%) 대비 현저히 낮은 수준이다. 그러나 논 자동물관리 기술에서는 독자적 경쟁력을 확보하고 있으며, 정부의 스마트농업 확산 정책에 힘입어 향후 빠른 보급 확대가 예상된다[REF-005].</p>
+</div>
+
+<!-- Timeline -->
+<h3>관개 자동화 기술 발전 로드맵</h3>
+
+<div class="timeline">
+    <div class="timeline-item">
+        <div class="timeline-year">2020~2022</div>
+        <div class="timeline-content">기본 센서 기반 관개 제어 보급 시작, 논 자동물관리 시범사업</div>
+    </div>
+    <div class="timeline-item">
+        <div class="timeline-year">2023~2025</div>
+        <div class="timeline-content">AI 기반 관개 스케줄링 도입, 변량 관개(VRI) 실증</div>
+    </div>
+    <div class="timeline-item">
+        <div class="timeline-year">2026~2028</div>
+        <div class="timeline-content">위성-드론-센서 융합 관개, 자율 관개 시스템 상용화</div>
+    </div>
+</div>
+
+<!-- Doc Quote -->
+<div class="doc-quote">
+    "노지 스마트농업의 보급률은 시설원예(32.1%) 대비 12.3%에 그치고 있으며, 특히 관개 자동화 분야에서의 기술 격차 해소가 시급하다."
+    <div class="doc-quote-source">— 농림축산식품부, 「스마트농업 실태조사」, 2024 [REF-001]</div>
+</div>
+
+<!-- Two Column -->
+<h3>도전과제 및 전망</h3>
+
+<div class="two-column">
+    <div>
+        <h4>도전과제</h4>
+        <ul>
+            <li>노후 수리시설과 스마트 관개 호환성 문제</li>
+            <li>고밀도 센서 배치의 경제성</li>
+            <li>소규모 농가의 초기 투자 부담</li>
+        </ul>
+    </div>
+    <div>
+        <h4>향후 전망</h4>
+        <ul>
+            <li>정부 보조금 확대로 보급률 30% 달성 목표 (2028)</li>
+            <li>AI 기반 관개 최적화로 용수 50% 절감 기대</li>
+            <li>기후변화 대응 적응 관개 기술 개발 가속</li>
+        </ul>
+    </div>
+</div>
+
+<!-- Sidebar Box -->
+<div class="sidebar-box">
+    <div class="sidebar-box-title">참고</div>
+    <p>VRI(Variable Rate Irrigation)는 필지 내 구간별로 관개량을 다르게 적용하는 기술로, 토양 특성·작물 생육 상태에 따라 물 공급을 최적화한다.</p>
+</div>
+
+</div>
+
+<!-- ══════ 참고문헌 ══════ -->
+<div id="ref" style="border-top: 2px solid #1B3A5C; margin-top: 3rem; padding-top: 1.5rem;">
+    <h2>참고문헌</h2>
+    <ol style="font-size: 0.9rem; line-height: 1.8;">
+        <li>[REF-001] 농림축산식품부, 「스마트농업 실태조사」, 2024</li>
+        <li>[REF-002] 농촌진흥청, 「스마트 농업기술 보급 현황」, 2024</li>
+        <li>[REF-003] FAO, "Smart Irrigation Technologies for Sustainable Agriculture", 2023</li>
+        <li>[REF-004] 전북 김제시 농업기술센터, 「자동 물관리 시범사업 성과보고」, 2024</li>
+        <li>[REF-005] MarketsandMarkets, "Precision Irrigation Market Report", 2024</li>
+    </ol>
+</div>
+
+</body>
+</html>
