@@ -64,6 +64,7 @@ INCLUDE_ROOTS = (
     "CHANGELOG.md",
     "REQUIREMENTS_TRACEABILITY.md",
     "INSTALL.md",
+    "USAGE.md",
 )
 
 
@@ -123,8 +124,14 @@ def read_version(plugin_root: Path) -> str:
     return data.get("version", "0.0.0")
 
 
-def build(plugin_root: Path, output_dir: Path, version: str | None = None) -> tuple[Path, dict]:
+def build(plugin_root: Path, output_dir: Path, version: str | None = None,
+          flat: bool = True) -> tuple[Path, dict]:
     """배포 아카이브 생성.
+
+    Args:
+        flat: True면 ZIP 최상위에 `.claude-plugin/`이 바로 오도록 (래퍼 폴더 없음).
+              Claude Code `/plugin marketplace add` 표준. 기본값.
+              False면 `techdoc-plugin/` 래퍼 폴더 포함 (수동 배치용).
 
     Returns:
         (archive_path, metadata_dict)
@@ -132,7 +139,8 @@ def build(plugin_root: Path, output_dir: Path, version: str | None = None) -> tu
     ver = version or read_version(plugin_root)
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    archive_name = f"techdoc-plugin-v{ver}.zip"
+    suffix = "" if flat else "-wrapped"
+    archive_name = f"techdoc-plugin-v{ver}{suffix}.zip"
     archive_path = output_dir / archive_name
 
     files = collect_files(plugin_root)
@@ -142,7 +150,8 @@ def build(plugin_root: Path, output_dir: Path, version: str | None = None) -> tu
     total_size = 0
     with zipfile.ZipFile(archive_path, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as zf:
         for f in files:
-            arcname = Path("techdoc-plugin") / f.relative_to(plugin_root)
+            rel = f.relative_to(plugin_root)
+            arcname = rel if flat else Path("techdoc-plugin") / rel
             zf.write(f, arcname=str(arcname))
             total_size += f.stat().st_size
 
@@ -178,6 +187,10 @@ def main() -> int:
     ap.add_argument("--output", default="./dist", help="출력 디렉토리 (기본: ./dist)")
     ap.add_argument("--version", help="버전 오버라이드 (기본: plugin.json 참조)")
     ap.add_argument("--plugin-root", default=".", help="플러그인 루트 (기본: 현재 디렉토리)")
+    ap.add_argument("--wrapped", action="store_true",
+                    help="ZIP에 techdoc-plugin/ 래퍼 폴더 포함 (기본: flat, 권장)")
+    ap.add_argument("--both", action="store_true",
+                    help="flat + wrapped 두 버전 모두 빌드")
     args = ap.parse_args()
 
     plugin_root = Path(args.plugin_root).resolve()
@@ -186,29 +199,40 @@ def main() -> int:
               file=sys.stderr)
         return 1
 
+    builds_to_run = []
+    if args.both:
+        builds_to_run = [True, False]  # flat, wrapped
+    else:
+        builds_to_run = [not args.wrapped]
+
     try:
-        archive_path, metadata = build(plugin_root, Path(args.output), args.version)
+        results = []
+        for flat in builds_to_run:
+            archive_path, metadata = build(plugin_root, Path(args.output), args.version, flat=flat)
+            results.append((archive_path, metadata, flat))
     except (FileNotFoundError, RuntimeError) as e:
         print(f"ERROR: {e}", file=sys.stderr)
         return 1
 
-    print("=" * 70)
-    print(f"Release archive: {archive_path}")
-    print("=" * 70)
-    print(f"  Version:          {metadata['version']}")
-    print(f"  Files:            {metadata['file_count']}")
-    print(f"  Raw size:         {metadata['raw_size_human']}")
-    print(f"  Archive size:     {metadata['archive_size_human']} "
-          f"(압축률 {metadata['compression_ratio']}%)")
-    print(f"  SHA-256:          {metadata['sha256']}")
-    print()
-    print(f"  Metadata: {archive_path.parent / (archive_path.stem + '.metadata.json')}")
-    print(f"  Checksum: {archive_path}.sha256")
-    print("=" * 70)
-    print()
-    print("배포 확인:")
-    print(f"  unzip -l {archive_path} | head -20")
-    print()
+    for archive_path, metadata, flat in results:
+        variant = "flat" if flat else "wrapped"
+        print("=" * 70)
+        print(f"Release archive ({variant}): {archive_path}")
+        print("=" * 70)
+        print(f"  Version:          {metadata['version']}")
+        print(f"  Files:            {metadata['file_count']}")
+        print(f"  Raw size:         {metadata['raw_size_human']}")
+        print(f"  Archive size:     {metadata['archive_size_human']} "
+              f"(압축률 {metadata['compression_ratio']}%)")
+        print(f"  SHA-256:          {metadata['sha256']}")
+        print(f"  Metadata: {archive_path.parent / (archive_path.stem + '.metadata.json')}")
+        print(f"  Checksum: {archive_path}.sha256")
+        if flat:
+            print("  구조: ZIP 루트에 .claude-plugin/ 바로 (/plugin marketplace add 권장)")
+        else:
+            print("  구조: ZIP 루트에 techdoc-plugin/ 래퍼 (수동 배치용)")
+        print()
+
     print("팀원 설치 안내 → INSTALL.md 참조")
 
     return 0

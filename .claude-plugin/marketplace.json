@@ -4,26 +4,23 @@
     "name": "Klaus",
     "email": "ystar001@gmail.com"
   },
-  "metadata": {
-    "description": "TechDoc Plugin 로컬 마켓플레이스 (자기 참조). 이 디렉토리를 `claude plugin marketplace add`로 등록하면 techdoc-plugin을 바로 설치할 수 있습니다.",
-    "version": "0.1.0"
-  },
   "plugins": [
     {
       "name": "techdoc-plugin",
       "source": "./",
-      "description": "AI 기술보고서 생성 — 대학·기업·연구기관 레퍼런스 77% 기반, 카드 중첩식 섹션, 별첨 심층분석 (기술 15k~40k자 / 프로젝트 20k~50k자)",
       "version": "0.1.0",
-      "category": "writing",
+      "description": "AI 기술보고서 생성 — 대학·기업·연구기관 레퍼런스 77% 기반, 카드 중첩식 섹션, 별첨 심층분석",
+      "author": {
+        "name": "Klaus"
+      },
+      "license": "Private",
       "keywords": [
         "technical-writing",
         "report-generation",
         "korean",
-        "research",
-        "multi-agent"
+        "research"
       ],
-      "license": "Private",
-      "postInstallMessage": "설치 후 pip 설치도 필요합니다: cd <plugin-path> && pip install -e . (또는 [pdf,docx] extras 포함). /techdoc-doctor 로 환경 진단하세요."
+      "category": "productivity"
     }
   ]
 }

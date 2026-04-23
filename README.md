@@ -33,6 +33,11 @@ playwright install chromium  # PDF용
 ```
 15개 항목 모두 `[OK]`이면 정상 설치 완료.
 
+## 설치·사용 가이드
+
+- **설치**: [INSTALL.md](INSTALL.md) — 4가지 방법 (ZIP·로컬경로·개발자모드·Git)
+- **사용법 + 샘플 예제**: [USAGE.md](USAGE.md) — 4가지 도메인 시나리오·단계별 실행·카드 재작성·FAQ
+
 ## 빠른 시작
 
 ### 1. 목차 파일 준비 (`my_toc.txt`)
