@@ -1,18 +1,18 @@
 {
-  "name": "기술보고서",
-  "type_key": "tech_report",
+  "name": "정책보고서",
+  "type_key": "policy_report",
   "colors": {
-    "primary": "#1B3A5C",
-    "secondary": "#2D6A9F",
-    "accent": "#0891B2",
+    "primary": "#475569",
+    "secondary": "#64748B",
+    "accent": "#DC2626",
     "background": "#FFFFFF",
     "surface": "#F8FAFC",
-    "text": "#1E293B",
-    "text_secondary": "#64748B",
-    "border": "#E2E8F0",
-    "success": "#059669",
-    "warning": "#D97706",
-    "error": "#DC2626"
+    "text": "#0F172A",
+    "text_secondary": "#475569",
+    "border": "#CBD5E1",
+    "success": "#16A34A",
+    "warning": "#CA8A04",
+    "error": "#B91C1C"
   },
   "typography": {
     "heading_font": "Pretendard",
@@ -23,7 +23,7 @@
     "h4_size": "1.1rem",
     "body_size": "1rem",
     "small_size": "0.875rem",
-    "line_height": 1.8,
+    "line_height": 1.85,
     "heading_weight": 700,
     "body_weight": 400
   },

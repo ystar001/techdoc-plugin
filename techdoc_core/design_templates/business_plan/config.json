@@ -1,15 +1,15 @@
 {
-  "name": "기술보고서",
-  "type_key": "tech_report",
+  "name": "사업계획서",
+  "type_key": "business_plan",
   "colors": {
-    "primary": "#1B3A5C",
-    "secondary": "#2D6A9F",
-    "accent": "#0891B2",
+    "primary": "#1E3A8A",
+    "secondary": "#1E40AF",
+    "accent": "#F59E0B",
     "background": "#FFFFFF",
-    "surface": "#F8FAFC",
-    "text": "#1E293B",
-    "text_secondary": "#64748B",
-    "border": "#E2E8F0",
+    "surface": "#F9FAFB",
+    "text": "#111827",
+    "text_secondary": "#6B7280",
+    "border": "#E5E7EB",
     "success": "#059669",
     "warning": "#D97706",
     "error": "#DC2626"
@@ -17,13 +17,13 @@
   "typography": {
     "heading_font": "Pretendard",
     "body_font": "Pretendard",
-    "h1_size": "2.0rem",
-    "h2_size": "1.5rem",
-    "h3_size": "1.25rem",
+    "h1_size": "2.2rem",
+    "h2_size": "1.6rem",
+    "h3_size": "1.3rem",
     "h4_size": "1.1rem",
     "body_size": "1rem",
     "small_size": "0.875rem",
-    "line_height": 1.8,
+    "line_height": 1.75,
     "heading_weight": 700,
     "body_weight": 400
   },
@@ -39,8 +39,8 @@
   "cover": {
     "layout": "4-tier",
     "elements": ["title", "part", "chapter", "date"],
-    "title_size": "2.4rem",
-    "part_size": "1.6rem",
+    "title_size": "2.6rem",
+    "part_size": "1.7rem",
     "chapter_size": "1.2rem",
     "date_size": "1rem"
   },

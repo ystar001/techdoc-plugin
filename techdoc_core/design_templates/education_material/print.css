@@ -1,0 +1,65 @@
+/* ══════════════════════════════════════════════════════════
+   Techdoc — 기술보고서 인쇄 CSS
+   ══════════════════════════════════════════════════════════ */
+
+@media print {
+  body {
+    font-size: 10pt;
+    line-height: 1.6;
+    max-width: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  @page {
+    size: A4;
+    margin: 25mm 20mm 25mm 25mm;
+  }
+
+  /* 표지: 별도 페이지 */
+  .cover-page {
+    min-height: auto;
+    height: 100vh;
+    page-break-after: always;
+  }
+
+  /* 목차: 별도 페이지 */
+  .toc {
+    page-break-after: always;
+  }
+
+  /* 섹션 내부 분리 방지 */
+  .doc-section {
+    page-break-inside: avoid;
+  }
+
+  /* 표·그림 분리 방지 */
+  .data-table, .comparison-matrix, figure, .stat-highlight {
+    page-break-inside: avoid;
+  }
+
+  /* h2/h3 이후 분리 방지 */
+  h2, h3, h4 {
+    page-break-after: avoid;
+  }
+
+  /* 배경색 인쇄 */
+  .callout, .key-point, .insight-box, .section-summary, .stat-item {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* 링크 URL 표시 안 함 */
+  a[href]::after {
+    content: none;
+  }
+
+  /* 페이지 번호 */
+  @page {
+    @bottom-center {
+      content: counter(page);
+      font-size: 9pt;
+      color: #64748B;
+    }
+  }
+}

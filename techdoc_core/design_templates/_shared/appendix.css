@@ -1,0 +1,242 @@
+/* ========================================
+ * 별첨 심층분석 공통 스타일 (v1.4/v1.5)
+ * tech-appendix / project-appendix
+ * 문서 말미 Appendix 블록 (논문 수준 리뷰)
+ * ======================================== */
+
+:root {
+  --appendix-bg: var(--color-appendix-bg, #fcfcfd);
+  --appendix-header-bg: var(--color-primary, #2c3e50);
+  --appendix-header-fg: #fff;
+  --appendix-block-bg: #fff;
+  --appendix-block-border: 1px solid #eee;
+  --appendix-block-padding: 18px 22px;
+}
+
+/* 부록 전체 래퍼 */
+.appendices {
+  margin-top: 60px;
+  padding-top: 40px;
+  border-top: 4px double var(--color-primary, #2c3e50);
+  page-break-before: always;
+}
+
+.appendices-cover {
+  text-align: center;
+  padding: 60px 0 40px;
+  background: linear-gradient(135deg,
+    var(--color-primary, #2c3e50) 0%,
+    var(--color-accent, #e67e22) 100%);
+  color: #fff;
+  border-radius: 8px;
+  margin-bottom: 32px;
+}
+.appendices-cover h1 {
+  font-size: 2.5em;
+  margin: 0 0 12px 0;
+  color: #fff;
+}
+.appendices-note {
+  font-size: 0.95em;
+  opacity: 0.92;
+  margin: 0;
+}
+
+/* 부록 TOC */
+.appendix-toc {
+  background: #f8f9fa;
+  padding: 20px 28px;
+  border-left: 4px solid var(--color-accent, #e67e22);
+  margin-bottom: 40px;
+}
+.appendix-toc h2 {
+  margin: 0 0 12px 0;
+  color: var(--color-primary, #2c3e50);
+}
+.appendix-toc ol {
+  padding-left: 24px;
+  margin: 0;
+}
+.appendix-toc li {
+  margin: 6px 0;
+}
+.appendix-toc a {
+  color: var(--color-link, #2980b9);
+  text-decoration: none;
+}
+.appendix-toc a:hover {
+  text-decoration: underline;
+}
+
+/* 개별 별첨 */
+.tech-appendix,
+.project-appendix {
+  background: var(--appendix-bg);
+  margin: 40px 0;
+  padding: 0;
+  border-radius: 8px;
+  page-break-before: always;
+}
+
+.appendix-cover {
+  background: var(--appendix-header-bg);
+  color: var(--appendix-header-fg);
+  padding: 50px 40px;
+  border-radius: 8px 8px 0 0;
+  text-align: left;
+}
+.appendix-cover .appendix-id {
+  font-size: 0.95em;
+  opacity: 0.85;
+  letter-spacing: 2px;
+  font-weight: bold;
+}
+.appendix-cover .appendix-type {
+  display: inline-block;
+  background: var(--color-accent, #e67e22);
+  color: #fff;
+  padding: 3px 12px;
+  border-radius: 3px;
+  font-size: 0.9em;
+  margin: 10px 0;
+}
+.appendix-cover h2 {
+  color: var(--appendix-header-fg);
+  font-size: 2em;
+  margin: 8px 0 0 0;
+}
+
+.appendix-header {
+  padding: 12px 40px;
+  background: #eef2f5;
+  border-bottom: 1px solid #ddd;
+  font-size: 0.9em;
+}
+.appendix-header a {
+  color: var(--color-link, #2980b9);
+  text-decoration: none;
+}
+
+.appendix-meta {
+  background: #f0f4f8;
+  padding: 16px 40px;
+  margin: 0;
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 4px 20px;
+  border-bottom: 1px solid #ddd;
+}
+.appendix-meta dt {
+  font-weight: bold;
+  color: var(--color-primary, #2c3e50);
+}
+.appendix-meta dd { margin: 0; }
+
+.appendix-body {
+  padding: 32px 40px;
+}
+
+.appendix-block {
+  background: var(--appendix-block-bg);
+  border: var(--appendix-block-border);
+  border-radius: 6px;
+  padding: var(--appendix-block-padding);
+  margin: 24px 0;
+  page-break-inside: avoid;
+}
+.appendix-block h3 {
+  color: var(--color-primary, #2c3e50);
+  border-bottom: 2px solid var(--color-accent, #e67e22);
+  padding-bottom: 8px;
+  margin: 0 0 16px 0;
+}
+
+/* 블록 타입별 특수 스타일 */
+.block-theory,
+.block-algorithms,
+.block-experiment {
+  background: #fafcff;
+}
+.block-theory {
+  font-family: "Cambria Math", "STIX Two Math", Georgia, serif;
+}
+
+/* 수식 컨테이너 */
+.equation-block {
+  background: #fafcff;
+  padding: 16px;
+  margin: 16px 0;
+  overflow-x: auto;
+  border-left: 3px solid var(--color-primary, #2c3e50);
+}
+
+/* 의사코드 */
+.pseudocode,
+pre.pseudocode {
+  font-family: "Consolas", "Courier New", monospace;
+  background: #f5f7fa;
+  border: 1px solid #d1d9e0;
+  border-radius: 4px;
+  padding: 14px 16px;
+  font-size: 0.9em;
+  line-height: 1.45;
+  overflow-x: auto;
+  margin: 12px 0;
+}
+
+/* Mermaid 다이어그램 컨테이너 */
+pre.mermaid,
+.mermaid {
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  padding: 16px;
+  margin: 16px 0;
+  text-align: center;
+}
+
+/* 벤치마크 비교표 강조 */
+.appendix-block table.benchmark,
+.appendix-block table.comparison {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 16px 0;
+  font-size: 0.92em;
+}
+.appendix-block table.benchmark th,
+.appendix-block table.comparison th {
+  background: var(--color-primary, #2c3e50);
+  color: #fff;
+  padding: 8px 10px;
+  text-align: left;
+}
+.appendix-block table.benchmark td,
+.appendix-block table.comparison td {
+  padding: 6px 10px;
+  border-bottom: 1px solid #eee;
+}
+.appendix-block table.benchmark tr:nth-child(even),
+.appendix-block table.comparison tr:nth-child(even) {
+  background: #f8f9fa;
+}
+
+/* 참고문헌 블록 (전문) */
+.block-references ol,
+.block-references ul {
+  font-size: 0.9em;
+  line-height: 1.5;
+}
+
+/* 인쇄 최적화 */
+@media print {
+  .tech-appendix,
+  .project-appendix {
+    page-break-before: always;
+  }
+  .appendix-cover {
+    background: #2c3e50 !important;
+    color: #fff !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}

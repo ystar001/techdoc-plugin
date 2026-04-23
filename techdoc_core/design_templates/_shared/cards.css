@@ -1,0 +1,135 @@
+/* ========================================
+ * 본문 카드 공통 스타일 (v1.2)
+ * tech-card / project-card / product-card
+ * 각 디자인은 색상·폰트만 CSS 변수로 재정의
+ * ======================================== */
+
+:root {
+  --card-border: 1px solid var(--color-border, #dcdcdc);
+  --card-radius: 6px;
+  --card-padding: 20px 24px;
+  --card-margin: 24px 0;
+  --card-bg: var(--color-card-bg, #fafafa);
+
+  --card-header-bg: var(--color-primary, #2c3e50);
+  --card-header-fg: #fff;
+  --card-header-padding: 10px 16px;
+
+  --card-type-fg: var(--color-accent, #e67e22);
+  --card-block-margin: 16px 0;
+  --card-block-title-fg: var(--color-primary, #2c3e50);
+
+  --card-meta-bg: #f0f4f8;
+  --card-meta-padding: 10px 14px;
+  --card-footer-fg: var(--color-muted, #666);
+  --card-footer-size: 0.85em;
+}
+
+/* 공통 카드 골격 */
+.tech-card,
+.project-card,
+.product-card {
+  border: var(--card-border);
+  border-radius: var(--card-radius);
+  background: var(--card-bg);
+  margin: var(--card-margin);
+  padding: 0;
+  page-break-inside: avoid;
+}
+
+.card-header {
+  background: var(--card-header-bg);
+  color: var(--card-header-fg);
+  padding: var(--card-header-padding);
+  border-radius: var(--card-radius) var(--card-radius) 0 0;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.card-header h3 {
+  margin: 0;
+  font-size: 1.15em;
+  color: var(--card-header-fg);
+}
+.card-header .card-type {
+  font-weight: bold;
+  font-size: 0.9em;
+  color: var(--card-type-fg);
+  background: rgba(255,255,255,0.1);
+  padding: 2px 8px;
+  border-radius: 3px;
+}
+.name-en {
+  font-weight: normal;
+  font-size: 0.9em;
+  opacity: 0.85;
+}
+
+.card-body {
+  padding: var(--card-padding);
+}
+
+.card-block {
+  margin: var(--card-block-margin);
+}
+.card-block h4 {
+  margin: 0 0 8px 0;
+  color: var(--card-block-title-fg);
+  font-size: 1em;
+  border-bottom: 1px dotted var(--color-border, #ccc);
+  padding-bottom: 4px;
+}
+
+/* 프로젝트·제품 메타 박스 */
+.project-meta,
+.product-meta {
+  background: var(--card-meta-bg);
+  padding: var(--card-meta-padding);
+  border-left: 3px solid var(--color-accent, #e67e22);
+  margin: 0 var(--card-padding) 16px;
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 4px 16px;
+  font-size: 0.92em;
+}
+.project-meta dt,
+.product-meta dt {
+  font-weight: bold;
+  color: var(--color-primary, #2c3e50);
+}
+.project-meta dd,
+.product-meta dd {
+  margin: 0;
+}
+
+/* 카드 풋터 (별첨 링크) */
+.card-footer {
+  padding: 10px var(--card-padding);
+  border-top: 1px dotted var(--color-border, #ccc);
+  font-size: var(--card-footer-size);
+  color: var(--card-footer-fg);
+  font-style: italic;
+}
+.card-footer a {
+  color: var(--color-link, #2980b9);
+  text-decoration: none;
+}
+.card-footer a:hover {
+  text-decoration: underline;
+}
+
+/* 중요도별 강조 */
+.importance-high {
+  border-left: 4px solid var(--color-accent, #e67e22);
+}
+.importance-medium {
+  border-left: 4px solid var(--color-primary, #2c3e50);
+}
+.importance-low {
+  border-left: 4px solid var(--color-muted, #bbb);
+}
+
+/* 카드 타입별 배경 미세 차이 */
+.tech-card .card-body { background: transparent; }
+.project-card .card-body { background: transparent; }
+.product-card .card-body { background: transparent; }
