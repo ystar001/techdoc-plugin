@@ -86,7 +86,7 @@ class HTMLRenderer:
 <div class="cover-page">
     <div class="cover-content">
         <h1 class="cover-title">{title_parts['main_title']}</h1>
-        {f'<div class="cover-divider"></div>' if title_parts['part'] else ''}
+        {'<div class="cover-divider"></div>' if title_parts['part'] else ''}
         {f'<p class="cover-part">{title_parts["part"]}</p>' if title_parts['part'] else ''}
         {f'<p class="cover-chapter">{title_parts["chapter"]}</p>' if title_parts['chapter'] else ''}
     </div>

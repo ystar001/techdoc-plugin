@@ -108,7 +108,7 @@ def render_pdf(html_path: Path, output_dir: Path, filename: str) -> Path | None:
         exporter = PDFExporter()
         return exporter.export(html_path, output_dir, filename)
     except ImportError:
-        print(f"  [SKIP] PDF: playwright 미설치 — `pip install techdoc-plugin[pdf]`", file=sys.stderr)
+        print("  [SKIP] PDF: playwright 미설치 — `pip install techdoc-plugin[pdf]`", file=sys.stderr)
         return None
     except Exception as e:
         print(format_error("TECHDOC-E060", str(e), "playwright install chromium"), file=sys.stderr)
@@ -122,7 +122,7 @@ def render_docx(html_path: Path, output_dir: Path, title: str, filename: str) ->
         exporter = DOCXExporter()
         return exporter.export(html_path, output_dir, title=title, filename=filename)
     except ImportError:
-        print(f"  [SKIP] DOCX: python-docx 미설치 — `pip install techdoc-plugin[docx]`", file=sys.stderr)
+        print("  [SKIP] DOCX: python-docx 미설치 — `pip install techdoc-plugin[docx]`", file=sys.stderr)
         return None
     except Exception as e:
         print(format_error("TECHDOC-E061", str(e)), file=sys.stderr)

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "techdoc-plugin"
-version = "0.1.0.dev0"
+version = "0.1.0"
 description = "TechDoc — AI 기술보고서 생성 Cowork Plugin (Claude Code 네이티브)"
 readme = "README.md"
 license = { text = "Private" }
@@ -21,7 +21,7 @@ keywords = [
     "claude-code-plugin",
 ]
 classifiers = [
-    "Development Status :: 2 - Pre-Alpha",
+    "Development Status :: 3 - Alpha",
     "Intended Audience :: Science/Research",
     "Natural Language :: Korean",
     "Programming Language :: Python :: 3.10",

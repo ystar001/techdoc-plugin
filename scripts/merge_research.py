@@ -18,7 +18,6 @@ from rapidfuzz import fuzz
 
 from techdoc_core.schemas import format_error
 
-
 TITLE_SIMILARITY_THRESHOLD = 85  # 제목 유사도 ≥85면 중복 처리
 
 

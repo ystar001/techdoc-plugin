@@ -14,7 +14,6 @@ from techdoc_core.models import (
     TechCard,
 )
 
-
 BLOCK_LABELS_TECH = {
     "overview": "기술 개요·배경",
     "principle": "작동 원리",

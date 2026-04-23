@@ -23,8 +23,8 @@ class DOCXExporter:
         """HTML → DOCX 변환. python-docx 미설치 시 건너뜀."""
         try:
             from docx import Document as DocxDocument
-            from docx.shared import Pt, RGBColor, Cm
             from docx.enum.text import WD_ALIGN_PARAGRAPH
+            from docx.shared import Cm, Pt, RGBColor
         except ImportError:
             console.print("  [dim]DOCX 변환 건너뜀 (python-docx 필요)[/dim]")
             return None
@@ -76,8 +76,8 @@ class DOCXExporter:
     @staticmethod
     def _add_cover(doc, title: str) -> None:
         """표지 페이지 추가."""
-        from docx.shared import Pt, RGBColor
         from docx.enum.text import WD_ALIGN_PARAGRAPH
+        from docx.shared import Pt, RGBColor
 
         # 제목 파싱
         main_title = title

@@ -24,7 +24,6 @@ from techdoc_core.constants import ANALYSIS_TAGS, DEFAULT_ANALYSIS_TAG
 from techdoc_core.models import Outline, Section
 from techdoc_core.schemas import format_error
 
-
 ITEM_MARKERS = ("●", "-", "*", "•")
 META_BLOCK_PATTERNS = (
     r"^\s*\[.*\]\s*$",  # [작성 지침] 같은 대괄호 메타

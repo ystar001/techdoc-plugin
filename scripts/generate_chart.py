@@ -23,8 +23,9 @@ import sys
 from pathlib import Path
 
 import matplotlib
+
 matplotlib.use("Agg")  # 백엔드 고정 (headless)
-import matplotlib.pyplot as plt  # noqa: E402
+import matplotlib.pyplot as plt
 
 from techdoc_core.schemas import format_error
 
@@ -81,7 +82,6 @@ def render_pie(ax, spec: dict) -> None:
 
 def render_radar(ax, spec: dict) -> None:
     """레이더 차트 (별첨용 성능 비교)."""
-    import numpy as np
     data = spec.get("data", {})
     categories = data.get("categories", [])
     series = data.get("series", [])  # [{"name": ..., "values": [...]}]

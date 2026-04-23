@@ -28,7 +28,6 @@ from techdoc_core.constants import (
 from techdoc_core.models import Document
 from techdoc_core.schemas import QualityIssueSchema
 
-
 TAG_RE = re.compile(r"<[^>]+>")
 
 

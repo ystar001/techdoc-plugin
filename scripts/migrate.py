@@ -18,7 +18,6 @@ from pathlib import Path
 from techdoc_core.constants import SCHEMA_VERSION
 from techdoc_core.schemas import format_error
 
-
 # 향후 버전별 마이그레이션 핸들러 등록
 # key = (from_version, to_version), value = callable(data: dict) -> dict
 MIGRATIONS: dict[tuple[str, str], callable] = {}
