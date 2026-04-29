@@ -156,3 +156,39 @@ def apply_zip(zip_path: Path, plugin_root: Path) -> None:
             raise PluginError("zip 형식이 잘못되었습니다 (.claude-plugin/plugin.json 없음)")
 
         zf.extractall(plugin_root)
+
+
+# ── 사용자 출력·프롬프트 ──────────────────────────────────────────────────────
+
+
+def print_up_to_date(current: str) -> None:
+    """현재 버전이 최신임을 알림."""
+    print(f"TechDoc Plugin v{current} — 최신 버전 사용 중입니다.")
+
+
+def print_release_summary(current: str, latest: Release) -> None:
+    """새 릴리스 요약 + CHANGELOG 미리보기 표시."""
+    print("TechDoc Plugin 신규 버전 발견")
+    print(f"  현재: v{current}")
+    print(f"  최신: v{latest.version}  ({latest.published_at[:10] if latest.published_at else '?'} 릴리스)")
+    print()
+    if latest.body.strip():
+        print(f"CHANGELOG (v{latest.version}):")
+        for line in latest.body.splitlines()[:20]:
+            print(f"  {line}")
+        print()
+
+
+def confirm_with_user(prompt: str = "업데이트하시겠습니까? [y/N]: ") -> bool:
+    """[y/N] 사용자 확인. y만 진행, 그 외(엔터·n·취소)는 중단."""
+    try:
+        ans = input(prompt).strip().lower()
+    except (EOFError, KeyboardInterrupt):
+        print()
+        return False
+    return ans == "y"
+
+
+def print_reload_hint() -> None:
+    """재로드 힌트 출력."""
+    print("완료. /reload-plugins 실행을 권장합니다.")

@@ -15,6 +15,10 @@ from scripts.update_plugin import (
     apply_zip,
     PluginError,
     Release,
+    print_release_summary,
+    print_up_to_date,
+    print_reload_hint,
+    confirm_with_user,
 )
 
 
@@ -177,3 +181,51 @@ def test_apply_zip_invalid_structure(fake_plugin_dir: Path, tmp_path: Path):
 
     with pytest.raises(PluginError, match="zip 형식"):
         apply_zip(bad_zip, fake_plugin_dir)
+
+
+# ── 사용자 출력·프롬프트 테스트 ────────────────────────────────────────────────
+
+
+def test_print_release_summary(capsys: pytest.CaptureFixture, monkeypatch):
+    rel = Release(
+        version="1.1.0",
+        tag_name="v1.1.0",
+        name="v1.1.0",
+        body="## CHANGELOG\n- Wiki 통합\n- 테스트 강화",
+        published_at="2026-05-15T00:00:00Z",
+        zip_url="https://example.com/x.zip",
+    )
+    print_release_summary(current="1.0.0", latest=rel)
+    out = capsys.readouterr().out
+    assert "1.0.0" in out
+    assert "1.1.0" in out
+    assert "Wiki 통합" in out
+
+
+def test_print_up_to_date(capsys: pytest.CaptureFixture):
+    print_up_to_date(current="1.0.0")
+    out = capsys.readouterr().out
+    assert "1.0.0" in out
+    assert "최신" in out
+
+
+def test_print_reload_hint(capsys: pytest.CaptureFixture):
+    print_reload_hint()
+    out = capsys.readouterr().out
+    assert "/reload-plugins" in out or "reload" in out.lower()
+
+
+def test_confirm_with_user_yes(monkeypatch):
+    monkeypatch.setattr("builtins.input", lambda _: "y")
+    assert confirm_with_user() is True
+
+
+def test_confirm_with_user_no(monkeypatch):
+    monkeypatch.setattr("builtins.input", lambda _: "n")
+    assert confirm_with_user() is False
+
+
+def test_confirm_with_user_empty_default_no(monkeypatch):
+    """[y/N]에서 Enter만 입력하면 N(취소)."""
+    monkeypatch.setattr("builtins.input", lambda _: "")
+    assert confirm_with_user() is False
