@@ -187,7 +187,7 @@ def test_apply_zip_invalid_structure(fake_plugin_dir: Path, tmp_path: Path):
 # ── 사용자 출력·프롬프트 테스트 ────────────────────────────────────────────────
 
 
-def test_print_release_summary(capsys: pytest.CaptureFixture, monkeypatch):
+def test_print_release_summary(capsys: pytest.CaptureFixture):
     rel = Release(
         version="1.1.0",
         tag_name="v1.1.0",
@@ -214,6 +214,15 @@ def test_print_reload_hint(capsys: pytest.CaptureFixture):
     print_reload_hint()
     out = capsys.readouterr().out
     assert "/reload-plugins" in out or "reload" in out.lower()
+
+
+def test_print_force_reinstall(capsys: pytest.CaptureFixture):
+    """--force 동일 버전 안내 메시지."""
+    from scripts.update_plugin import print_force_reinstall
+    print_force_reinstall(current="1.0.0")
+    out = capsys.readouterr().out
+    assert "1.0.0" in out
+    assert "강제 재설치" in out
 
 
 def test_confirm_with_user_yes(monkeypatch):
@@ -315,3 +324,20 @@ def test_main_apply_user_declines(fake_plugin_dir: Path, monkeypatch):
     import json
     data = json.loads((fake_plugin_dir / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8"))
     assert data["version"] == "1.0.0"
+
+
+def test_main_force_same_version_message(fake_plugin_dir: Path, capsys, monkeypatch):
+    """--force + 동일 버전: '강제 재설치' 메시지 + '신규 버전 발견' 미출력."""
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json=_make_release("1.0.0"))
+
+    monkeypatch.setattr(
+        "scripts.update_plugin._http_transport",
+        lambda: httpx.MockTransport(handler),
+    )
+    monkeypatch.setattr("builtins.input", lambda _: "n")
+    code = main(["--force"], plugin_root=fake_plugin_dir)
+    assert code == 0
+    out = capsys.readouterr().out
+    assert "강제 재설치" in out
+    assert "신규 버전 발견" not in out

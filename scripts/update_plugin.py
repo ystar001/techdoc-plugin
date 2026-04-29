@@ -10,8 +10,11 @@ GitHub Releases (ystar001/techdoc-plugin)에서 최신 zip을 받아 plugin 디�
 
 from __future__ import annotations
 
+import argparse
 import json
 import re
+import sys
+import tempfile
 import zipfile
 from dataclasses import dataclass
 from pathlib import Path
@@ -188,16 +191,17 @@ def confirm_with_user(prompt: str = "업데이트하시겠습니까? [y/N]: ") -
     return ans == "y"
 
 
+def print_force_reinstall(current: str) -> None:
+    """동일 버전을 --force로 재설치할 때 안내."""
+    print(f"TechDoc Plugin v{current}을(를) 강제 재설치합니다 (--force).")
+
+
 def print_reload_hint() -> None:
     """재로드 힌트 출력."""
     print("완료. /reload-plugins 실행을 권장합니다.")
 
 
 # ── 진입점 ────────────────────────────────────────────────────────────────────
-
-import argparse
-import sys
-import tempfile
 
 
 def _http_transport() -> httpx.BaseTransport | None:
@@ -235,11 +239,16 @@ def main(argv: list[str] | None = None, plugin_root: Path | None = None) -> int:
         print(f"오류: {e}", file=sys.stderr)
         return 1
 
-    if not is_newer(latest.version, current) and not args.force:
+    is_new = is_newer(latest.version, current)
+
+    if not is_new and not args.force:
         print_up_to_date(current)
         return 0
 
-    print_release_summary(current=current, latest=latest)
+    if not is_new and args.force:
+        print_force_reinstall(current)
+    else:
+        print_release_summary(current=current, latest=latest)
 
     if args.check:
         return 0

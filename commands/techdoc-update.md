@@ -64,5 +64,6 @@ CHANGELOG (v1.1.0):
 ## 트러블슈팅
 
 - **`plugin.json을 찾을 수 없습니다`**: plugin 설치 디렉토리에서 실행하지 않은 경우. 해당 디렉토리로 cd 후 재실행.
-- **`GitHub API 응답 오류`**: 네트워크 또는 GitHub 일시적 장애. 잠시 후 재시도.
+- **`GitHub API 응답 오류 status=404`**: 아직 GitHub Releases에 게시된 release가 없는 상태입니다 (정상). v1.1.0 이상이 게시된 후 사용 가능.
+- **`GitHub API 응답 오류` (그 외)**: 네트워크 또는 GitHub 일시적 장애. 잠시 후 재시도.
 - **`릴리스에 zip 자산이 없습니다`**: GitHub Releases에 zip이 첨부되지 않은 release. 개발자에게 보고.
