@@ -192,3 +192,80 @@ def confirm_with_user(prompt: str = "업데이트하시겠습니까? [y/N]: ") -
 def print_reload_hint() -> None:
     """재로드 힌트 출력."""
     print("완료. /reload-plugins 실행을 권장합니다.")
+
+
+# ── 진입점 ────────────────────────────────────────────────────────────────────
+
+import argparse
+import sys
+import tempfile
+
+
+def _http_transport() -> httpx.BaseTransport | None:
+    """기본 transport는 None (실제 네트워크). 테스트에서 monkeypatch로 교체."""
+    return None
+
+
+PLUGIN_ROOT_DEFAULT = Path(__file__).resolve().parent.parent
+
+
+def main(argv: list[str] | None = None, plugin_root: Path | None = None) -> int:
+    """진입점.
+
+    argv: 인자 리스트 (None이면 sys.argv[1:])
+    plugin_root: 테스트에서 가짜 plugin 디렉토리 주입 (None이면 자동 탐지)
+    """
+    parser = argparse.ArgumentParser(prog="update_plugin")
+    parser.add_argument("--check", action="store_true", help="체크만, 적용 안 함")
+    parser.add_argument("--force", action="store_true", help="동일 버전이어도 강제 재설치")
+    args = parser.parse_args(argv)
+
+    root = plugin_root or PLUGIN_ROOT_DEFAULT
+
+    try:
+        current = read_current_version(root)
+    except PluginError as e:
+        print(f"오류: {e}", file=sys.stderr)
+        return 1
+
+    transport = _http_transport()
+
+    try:
+        latest = fetch_latest_release(transport=transport)
+    except PluginError as e:
+        print(f"오류: {e}", file=sys.stderr)
+        return 1
+
+    if not is_newer(latest.version, current) and not args.force:
+        print_up_to_date(current)
+        return 0
+
+    print_release_summary(current=current, latest=latest)
+
+    if args.check:
+        return 0
+
+    if not confirm_with_user():
+        print("취소되었습니다.")
+        return 0
+
+    with tempfile.TemporaryDirectory(prefix="techdoc-plugin-update-") as tmp:
+        tmp_dir = Path(tmp)
+        try:
+            zip_path = download_zip(latest.zip_url, tmp_dir, transport=transport)
+        except PluginError as e:
+            print(f"오류: {e}", file=sys.stderr)
+            return 1
+
+        try:
+            apply_zip(zip_path, root)
+        except PluginError as e:
+            print(f"오류: {e}", file=sys.stderr)
+            return 1
+
+    print_reload_hint()
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

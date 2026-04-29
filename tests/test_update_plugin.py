@@ -19,6 +19,7 @@ from scripts.update_plugin import (
     print_up_to_date,
     print_reload_hint,
     confirm_with_user,
+    main,
 )
 
 
@@ -229,3 +230,88 @@ def test_confirm_with_user_empty_default_no(monkeypatch):
     """[y/N]에서 Enter만 입력하면 N(취소)."""
     monkeypatch.setattr("builtins.input", lambda _: "")
     assert confirm_with_user() is False
+
+
+# ── main() 통합 테스트 ────────────────────────────────────────────────────────
+
+
+def _make_release(version: str, body: str = "") -> dict:
+    return {
+        "tag_name": f"v{version}",
+        "name": f"v{version}",
+        "body": body,
+        "published_at": "2026-05-15T00:00:00Z",
+        "assets": [
+            {
+                "name": f"techdoc-plugin-v{version}.zip",
+                "browser_download_url": f"https://example.com/techdoc-plugin-v{version}.zip",
+            }
+        ],
+    }
+
+
+def test_main_check_only_up_to_date(fake_plugin_dir: Path, capsys, monkeypatch):
+    """--check, 동일 버전: 'up to date' 출력 후 0 리턴."""
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json=_make_release("1.0.0"))
+    monkeypatch.setattr(
+        "scripts.update_plugin._http_transport",
+        lambda: httpx.MockTransport(handler),
+    )
+    code = main(["--check"], plugin_root=fake_plugin_dir)
+    assert code == 0
+    assert "최신" in capsys.readouterr().out
+
+
+def test_main_check_only_new_version_no_apply(fake_plugin_dir: Path, fake_release_zip, capsys, monkeypatch):
+    """--check, 새 버전: 요약만 출력하고 적용 안 함."""
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json=_make_release("1.1.0", body="- new feature"))
+    monkeypatch.setattr(
+        "scripts.update_plugin._http_transport",
+        lambda: httpx.MockTransport(handler),
+    )
+    code = main(["--check"], plugin_root=fake_plugin_dir)
+    assert code == 0
+    out = capsys.readouterr().out
+    assert "1.1.0" in out
+    import json
+    data = json.loads((fake_plugin_dir / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8"))
+    assert data["version"] == "1.0.0"
+
+
+def test_main_apply_with_user_confirm(fake_plugin_dir: Path, fake_release_zip: Path, monkeypatch):
+    """--check 없이, 사용자 'y': 다운로드·적용 후 plugin.json이 v1.1.0으로 갱신."""
+    payload = fake_release_zip.read_bytes()
+
+    def api_handler(request: httpx.Request) -> httpx.Response:
+        if "/releases/latest" in str(request.url):
+            return httpx.Response(200, json=_make_release("1.1.0"))
+        return httpx.Response(200, content=payload, headers={"Content-Type": "application/zip"})
+
+    monkeypatch.setattr(
+        "scripts.update_plugin._http_transport",
+        lambda: httpx.MockTransport(api_handler),
+    )
+    monkeypatch.setattr("builtins.input", lambda _: "y")
+    code = main([], plugin_root=fake_plugin_dir)
+    assert code == 0
+    import json
+    data = json.loads((fake_plugin_dir / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8"))
+    assert data["version"] == "1.1.0"
+
+
+def test_main_apply_user_declines(fake_plugin_dir: Path, monkeypatch):
+    """사용자 'n': plugin.json 그대로."""
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json=_make_release("1.1.0"))
+    monkeypatch.setattr(
+        "scripts.update_plugin._http_transport",
+        lambda: httpx.MockTransport(handler),
+    )
+    monkeypatch.setattr("builtins.input", lambda _: "n")
+    code = main([], plugin_root=fake_plugin_dir)
+    assert code == 0
+    import json
+    data = json.loads((fake_plugin_dir / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8"))
+    assert data["version"] == "1.0.0"
