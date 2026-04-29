@@ -12,7 +12,6 @@ from __future__ import annotations
 
 import json
 import re
-import shutil
 import zipfile
 from dataclasses import dataclass
 from pathlib import Path
