@@ -4,9 +4,10 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import httpx
 import pytest
 
-from scripts.update_plugin import is_newer, read_current_version, PluginError
+from scripts.update_plugin import fetch_latest_release, is_newer, read_current_version, PluginError, Release
 
 
 def test_pytest_infra_works():
@@ -70,3 +71,56 @@ def test_read_current_version_missing_version_field(fake_plugin_dir: Path):
     )
     with pytest.raises(PluginError, match="version"):
         read_current_version(fake_plugin_dir)
+
+
+# ── fetch_latest_release 테스트 ──────────────────────────────────────────────
+
+
+def _mock_github_response(payload: dict) -> httpx.MockTransport:
+    """GET /repos/.../releases/latest 호출에 대한 가짜 응답."""
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert "/releases/latest" in str(request.url)
+        return httpx.Response(200, json=payload)
+    return httpx.MockTransport(handler)
+
+
+def test_fetch_latest_release_ok():
+    payload = {
+        "tag_name": "v1.1.0",
+        "name": "v1.1.0",
+        "body": "## CHANGELOG\n- Wiki 통합",
+        "published_at": "2026-05-15T00:00:00Z",
+        "assets": [
+            {
+                "name": "techdoc-plugin-v1.1.0.zip",
+                "browser_download_url": "https://github.com/.../techdoc-plugin-v1.1.0.zip",
+            }
+        ],
+    }
+    transport = _mock_github_response(payload)
+    rel = fetch_latest_release(transport=transport)
+    assert isinstance(rel, Release)
+    assert rel.version == "1.1.0"
+    assert rel.zip_url.endswith("techdoc-plugin-v1.1.0.zip")
+    assert "Wiki 통합" in rel.body
+
+
+def test_fetch_latest_release_no_zip_asset():
+    payload = {
+        "tag_name": "v1.1.0",
+        "name": "v1.1.0",
+        "body": "",
+        "published_at": "2026-05-15T00:00:00Z",
+        "assets": [],
+    }
+    transport = _mock_github_response(payload)
+    with pytest.raises(PluginError, match="zip 자산"):
+        fetch_latest_release(transport=transport)
+
+
+def test_fetch_latest_release_api_error():
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(404, json={"message": "Not Found"})
+    transport = httpx.MockTransport(handler)
+    with pytest.raises(PluginError, match="GitHub API"):
+        fetch_latest_release(transport=transport)
