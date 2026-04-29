@@ -10,6 +10,9 @@ from scripts.wiki.markers import (
     AUTO_START, AUTO_END,
     extract_ai_region, replace_ai_region, has_markers,
 )
+from scripts.wiki.frontmatter import (
+    serialize_frontmatter, parse_frontmatter, split_page,
+)
 
 
 def test_pytest_infra(fake_vault_dir: Path, fake_document_final: dict):
@@ -72,3 +75,36 @@ def test_replace_ai_region_empty_page():
     assert AUTO_START in new
     assert "ai content" in new
     assert AUTO_END in new
+
+
+def test_serialize_frontmatter():
+    data = {"type": "tech", "name": "점적관개", "tags": ["smart-farming"]}
+    out = serialize_frontmatter(data)
+    assert out.startswith("---\n")
+    assert out.endswith("---\n")
+    assert "type: tech" in out
+    assert "점적관개" in out
+
+
+def test_parse_frontmatter_with_data():
+    page = "---\ntype: tech\nname: 점적관개\n---\n\nbody content"
+    fm, body = parse_frontmatter(page)
+    assert fm == {"type": "tech", "name": "점적관개"}
+    assert body.strip() == "body content"
+
+
+def test_parse_frontmatter_no_frontmatter():
+    page = "just body, no frontmatter"
+    fm, body = parse_frontmatter(page)
+    assert fm == {}
+    assert body == "just body, no frontmatter"
+
+
+def test_split_page_combines():
+    """split_page는 frontmatter dict와 body 문자열을 받아 완전한 페이지 생성."""
+    fm = {"type": "tech", "name": "점적관개"}
+    body = "## 본문\n내용"
+    page = split_page(fm, body)
+    parsed_fm, parsed_body = parse_frontmatter(page)
+    assert parsed_fm == fm
+    assert parsed_body.strip() == body
