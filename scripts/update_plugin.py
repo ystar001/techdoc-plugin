@@ -12,6 +12,8 @@ from __future__ import annotations
 
 import json
 import re
+import shutil
+import zipfile
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -107,3 +109,50 @@ def fetch_latest_release(transport: httpx.BaseTransport | None = None) -> Releas
         published_at=payload.get("published_at", ""),
         zip_url=zip_url,
     )
+
+
+# ── zip 다운로드·적용 ────────────────────────────────────────────────────────
+
+
+def download_zip(
+    url: str,
+    dest_dir: Path,
+    transport: httpx.BaseTransport | None = None,
+) -> Path:
+    """zip URL에서 파일을 받아 dest_dir에 저장. 저장 경로 반환."""
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    filename = url.rstrip("/").rsplit("/", 1)[-1] or "techdoc-plugin.zip"
+    dest = dest_dir / filename
+
+    try:
+        with httpx.Client(transport=transport, timeout=120.0, follow_redirects=True) as client:
+            with client.stream("GET", url) as resp:
+                if resp.status_code != 200:
+                    raise PluginError(f"zip 다운로드 실패 status={resp.status_code}")
+                with open(dest, "wb") as f:
+                    for chunk in resp.iter_bytes(chunk_size=64 * 1024):
+                        f.write(chunk)
+    except httpx.HTTPError as e:
+        raise PluginError(f"zip 다운로드 네트워크 오류: {e}") from e
+
+    return dest
+
+
+def apply_zip(zip_path: Path, plugin_root: Path) -> None:
+    """zip 파일을 plugin_root에 압축 해제. 기존 파일은 덮어쓰기, zip에 없는 파일은 보존.
+
+    먼저 zip이 plugin 형식(.claude-plugin/plugin.json 포함)인지 검증.
+    """
+    if not zipfile.is_zipfile(zip_path):
+        raise PluginError(f"zip 파일이 아닙니다: {zip_path}")
+
+    with zipfile.ZipFile(zip_path) as zf:
+        names = zf.namelist()
+        has_manifest = any(
+            n.endswith(".claude-plugin/plugin.json") or n == ".claude-plugin/plugin.json"
+            for n in names
+        )
+        if not has_manifest:
+            raise PluginError("zip 형식이 잘못되었습니다 (.claude-plugin/plugin.json 없음)")
+
+        zf.extractall(plugin_root)

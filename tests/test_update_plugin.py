@@ -7,7 +7,15 @@ from pathlib import Path
 import httpx
 import pytest
 
-from scripts.update_plugin import fetch_latest_release, is_newer, read_current_version, PluginError, Release
+from scripts.update_plugin import (
+    fetch_latest_release,
+    is_newer,
+    read_current_version,
+    download_zip,
+    apply_zip,
+    PluginError,
+    Release,
+)
 
 
 def test_pytest_infra_works():
@@ -124,3 +132,48 @@ def test_fetch_latest_release_api_error():
     transport = httpx.MockTransport(handler)
     with pytest.raises(PluginError, match="GitHub API"):
         fetch_latest_release(transport=transport)
+
+
+# ── download_zip 테스트 ──────────────────────────────────────────────────────
+
+
+def test_download_zip(tmp_path: Path, fake_release_zip: Path):
+    """다운로드 함수가 mocked URL에서 zip을 받아 저장."""
+    payload = fake_release_zip.read_bytes()
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, content=payload, headers={"Content-Type": "application/zip"})
+    transport = httpx.MockTransport(handler)
+
+    dest = download_zip(
+        url="https://github.com/.../techdoc-plugin-v1.1.0.zip",
+        dest_dir=tmp_path,
+        transport=transport,
+    )
+    assert dest.exists()
+    assert dest.suffix == ".zip"
+    assert dest.read_bytes() == payload
+
+
+# ── apply_zip 테스트 ─────────────────────────────────────────────────────────
+
+
+def test_apply_zip_overwrites_files(fake_plugin_dir: Path, fake_release_zip: Path):
+    """zip이 plugin 디렉토리에 적용되면 신규 파일이 추가되어야 한다."""
+    apply_zip(fake_release_zip, fake_plugin_dir)
+    assert (fake_plugin_dir / "commands" / "new_command.md").exists()
+    assert (fake_plugin_dir / "scripts" / "existing.py").exists()
+    import json
+    data = json.loads((fake_plugin_dir / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8"))
+    assert data["version"] == "1.1.0"
+
+
+def test_apply_zip_invalid_structure(fake_plugin_dir: Path, tmp_path: Path):
+    """zip에 .claude-plugin/plugin.json이 없으면 PluginError."""
+    import zipfile
+    bad_zip = tmp_path / "bad.zip"
+    with zipfile.ZipFile(bad_zip, "w") as zf:
+        zf.writestr("README.md", "# nope")
+
+    with pytest.raises(PluginError, match="zip 형식"):
+        apply_zip(bad_zip, fake_plugin_dir)
