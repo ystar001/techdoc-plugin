@@ -4,9 +4,9 @@ All notable changes to TechDoc Plugin.
 
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [1.0.0] — 2026-04-29
+## [1.0.0] — 2026-04-29 (정식 릴리스)
 
-### 정식 릴리스 — TechDoc Plugin이 차세대 정식 버전으로 승격
+### TechDoc Plugin이 차세대 정식 버전으로 승격
 
 v0.1.0 알파의 모든 기능을 그대로 계승하면서 패키지의 책임 라인을 알파(Development Status 3)에서 정식(Development Status 5)으로 전환. 이후 TechDoc 메인 라인은 본 플러그인으로 계속 발전한다.
 
@@ -16,10 +16,10 @@ v0.1.0 알파의 모든 기능을 그대로 계승하면서 패키지의 책임 
 - `pyproject.toml` classifier: `Development Status :: 3 - Alpha` → `5 - Production/Stable`
 - 표면 표기 일괄 갱신: `plugin.json` · `marketplace.json` · `README.md` · `INSTALL.md` · `USAGE.md` · `REQUIREMENTS_TRACEABILITY.md`
 
-### 보존 (변경 없음)
+### 기능 유지 (Breaking Change 없음)
 
-- 기능·데이터 모델·프롬프트 26개·슬래시 커맨드 11개·subagent 3개 — v0.1.0과 완전 동일
-- `SCHEMA_VERSION = "0.1.0"` (데이터 스키마 호환성 표시는 패키지 버전과 별개로 운영. JSON 포맷의 breaking change가 발생할 때만 별도 마이그레이션을 거쳐 갱신)
+- 기능·데이터 모델·프롬프트 26개·슬래시 커맨드 11개·subagent 3개 — v0.1.0과 완전 호환
+- `SCHEMA_VERSION = "0.1.0"` 보존 (데이터 스키마 호환성 표시는 패키지 버전과 별개로 운영. JSON 포맷의 breaking change가 발생할 때만 별도 마이그레이션을 거쳐 갱신)
 
 ### v1.x 발전 계획 (예정)
 

@@ -8,7 +8,7 @@
 
 | 파일 | 구조 | 용도 |
 |---|---|---|
-| **`techdoc-plugin-v1.0.0.zip`** (flat, 권장) | 해제 시 바로 `.claude-plugin/` | `/plugin marketplace add` 표준 |
+| **`techdoc-plugin-v1.0.0.zip`** (flat, 권장) | 해제 시 plugin root가 직접 노출 (`.claude-plugin/`, `commands/`, ... 가 최상위로) | `/plugin marketplace add` 표준 |
 | `techdoc-plugin-v1.0.0-wrapped.zip` | 해제 시 `techdoc-plugin/` 폴더 생성 | 수동 배치용 |
 
 **대부분의 경우 flat 버전을 사용하세요.**
