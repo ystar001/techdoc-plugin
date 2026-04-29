@@ -1,6 +1,6 @@
 # TechDoc Plugin 설치 가이드
 
-> **v0.1.0** — Claude Code 플러그인 설치
+> **v1.0.0** — Claude Code 플러그인 설치
 
 ---
 
@@ -8,8 +8,8 @@
 
 | 파일 | 구조 | 용도 |
 |---|---|---|
-| **`techdoc-plugin-v0.1.0.zip`** (flat, 권장) | 해제 시 바로 `.claude-plugin/` | `/plugin marketplace add` 표준 |
-| `techdoc-plugin-v0.1.0-wrapped.zip` | 해제 시 `techdoc-plugin/` 폴더 생성 | 수동 배치용 |
+| **`techdoc-plugin-v1.0.0.zip`** (flat, 권장) | 해제 시 바로 `.claude-plugin/` | `/plugin marketplace add` 표준 |
+| `techdoc-plugin-v1.0.0-wrapped.zip` | 해제 시 `techdoc-plugin/` 폴더 생성 | 수동 배치용 |
 
 **대부분의 경우 flat 버전을 사용하세요.**
 
@@ -22,13 +22,13 @@
 **Windows (PowerShell)**:
 ```powershell
 mkdir $HOME\.claude\plugins\techdoc-plugin
-Expand-Archive techdoc-plugin-v0.1.0.zip -DestinationPath $HOME\.claude\plugins\techdoc-plugin
+Expand-Archive techdoc-plugin-v1.0.0.zip -DestinationPath $HOME\.claude\plugins\techdoc-plugin
 ```
 
 **macOS / Linux**:
 ```bash
 mkdir -p ~/.claude/plugins/techdoc-plugin
-unzip techdoc-plugin-v0.1.0.zip -d ~/.claude/plugins/techdoc-plugin
+unzip techdoc-plugin-v1.0.0.zip -d ~/.claude/plugins/techdoc-plugin
 ```
 
 압축 해제 후 구조:
@@ -49,9 +49,9 @@ unzip techdoc-plugin-v0.1.0.zip -d ~/.claude/plugins/techdoc-plugin
 ### 2단계: SHA-256 검증 (선택)
 
 ```bash
-shasum -a 256 -c techdoc-plugin-v0.1.0.zip.sha256
+shasum -a 256 -c techdoc-plugin-v1.0.0.zip.sha256
 # 또는 Windows PowerShell
-Get-FileHash techdoc-plugin-v0.1.0.zip -Algorithm SHA256
+Get-FileHash techdoc-plugin-v1.0.0.zip -Algorithm SHA256
 ```
 
 ### 3단계: Claude Code에 등록
@@ -88,7 +88,7 @@ playwright install chromium
 ZIP에 `techdoc-plugin/` 래퍼가 포함되어 있어 아무 곳에 해제하면 자동으로 폴더 생성:
 
 ```bash
-unzip techdoc-plugin-v0.1.0-wrapped.zip -d ~/.claude/plugins/
+unzip techdoc-plugin-v1.0.0-wrapped.zip -d ~/.claude/plugins/
 # → ~/.claude/plugins/techdoc-plugin/ 자동 생성
 ```
 
@@ -182,7 +182,7 @@ rm -rf ~/.claude/plugins/techdoc-plugin
 | 증상 | 원인 | 조치 |
 |---|---|---|
 | `/plugin` 명령 인식 안 됨 | Claude Code 구버전 | `claude --version` 확인 후 최신 업그레이드 |
-| `plugin validation fail` | `plugin.json` 스키마 문제 | 본 v0.1.0은 공식 스키마 준수 — 다시 다운로드 |
+| `plugin validation fail` | `plugin.json` 스키마 문제 | 본 v1.0.0은 공식 스키마 준수 — 다시 다운로드 |
 | `techdoc_core: [FAIL]` (doctor) | Python 의존성 누락 | `cd <plugin-path> && pip install -e .` |
 | `Korean font: [WARN]` | matplotlib 한글 폰트 없음 | Pretendard 또는 NanumGothic 설치 |
 | PDF 생성 실패 | playwright 없음 | `pip install -e ".[pdf]" && playwright install chromium` |

@@ -1,6 +1,6 @@
 # TechDoc Plugin 사용법 및 샘플 예제
 
-> v0.1.0 | 설치: [INSTALL.md](INSTALL.md)
+> v1.0.0 | 설치: [INSTALL.md](INSTALL.md)
 
 ---
 

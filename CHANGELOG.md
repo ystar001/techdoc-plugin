@@ -4,6 +4,31 @@ All notable changes to TechDoc Plugin.
 
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.0.0] — 2026-04-29
+
+### 정식 릴리스 — TechDoc Plugin이 차세대 정식 버전으로 승격
+
+v0.1.0 알파의 모든 기능을 그대로 계승하면서 패키지의 책임 라인을 알파(Development Status 3)에서 정식(Development Status 5)으로 전환. 이후 TechDoc 메인 라인은 본 플러그인으로 계속 발전한다.
+
+### Changed
+
+- 패키지 버전: 0.1.0 → 1.0.0
+- `pyproject.toml` classifier: `Development Status :: 3 - Alpha` → `5 - Production/Stable`
+- 표면 표기 일괄 갱신: `plugin.json` · `marketplace.json` · `README.md` · `INSTALL.md` · `USAGE.md` · `REQUIREMENTS_TRACEABILITY.md`
+
+### 보존 (변경 없음)
+
+- 기능·데이터 모델·프롬프트 26개·슬래시 커맨드 11개·subagent 3개 — v0.1.0과 완전 동일
+- `SCHEMA_VERSION = "0.1.0"` (데이터 스키마 호환성 표시는 패키지 버전과 별개로 운영. JSON 포맷의 breaking change가 발생할 때만 별도 마이그레이션을 거쳐 갱신)
+
+### v1.x 발전 계획 (예정)
+
+- v1.x — Obsidian LLM Wiki 통합 (`docs/superpowers/specs/2026-04-29-obsidian-llm-wiki-design.md`)
+- v1.x — Fixtures + Unit test suite + CI 연동 (기존 v0.2.0 deferred 항목 흡수)
+- v1.x — 완전 오프라인 모드, 디자인 템플릿 커스터마이징, 프롬프트 오버라이드, 예시 갤러리
+
+---
+
 ## [0.1.0] — 2026-04-23
 
 ### 최초 릴리스 — Cowork Plugin 전환 완료
@@ -116,7 +141,11 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
-## [1.1.0] — 2026-04-15 (이전 `techdoc` CLI)
+# Legacy: `techdoc` Python CLI (이전 세대)
+
+이하는 plugin 전환 전 Python CLI 시절의 이력입니다. 본 플러그인의 직계 조상이며, 카드·별첨 등 v1.0.0의 핵심 데이터 구조 일부는 CLI 시절 v1.1.0의 REQ-012/013/014에서 이미 설계됐습니다.
+
+## [Legacy 1.1.0] — 2026-04-15 (`techdoc` CLI)
 
 기존 Python CLI 버전. Cowork Plugin 전환 전.
 
@@ -127,6 +156,6 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - 국내/해외 자료 균형 (해외 40%+, 국제기구 3건+)
 - 진행 상황 실시간 로그 (progress.log)
 
-## [1.0.0] — 2026-04-14 (이전 `techdoc` CLI)
+## [Legacy 1.0.0] — 2026-04-14 (`techdoc` CLI)
 
 최초 Python CLI 릴리스. 11개 스킬, 13단계 파이프라인, Anthropic API 직접 호출.

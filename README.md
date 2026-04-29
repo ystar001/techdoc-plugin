@@ -1,6 +1,6 @@
 # TechDoc Plugin
 
-> **v0.1.0** · AI 기술보고서 생성 Claude Code Cowork Plugin
+> **v1.0.0** · AI 기술보고서 생성 Claude Code Cowork Plugin
 
 명령 한 줄로 100~300페이지 전문 기술보고서 생성. 대학·기업 R&D·전문연구기관 레퍼런스 77% 기반, 핵심 기술·프로젝트는 별첨으로 **논문 수준 심층분석**(기술 15k~40k자 / 프로젝트 20k~50k자).
 
@@ -10,7 +10,7 @@
 
 ```bash
 # 1. ZIP 압축 해제
-unzip techdoc-plugin-v0.1.0.zip -d ~/.claude/plugins/techdoc-plugin
+unzip techdoc-plugin-v1.0.0.zip -d ~/.claude/plugins/techdoc-plugin
 
 # 2. Python 의존성
 cd ~/.claude/plugins/techdoc-plugin && pip install -e ".[pdf,docx]"
