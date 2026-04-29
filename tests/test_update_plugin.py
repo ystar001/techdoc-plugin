@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from scripts.update_plugin import is_newer
+from scripts.update_plugin import is_newer, read_current_version, PluginError
 
 
 def test_pytest_infra_works():
@@ -42,3 +42,31 @@ def test_is_newer(latest: str, current: str, expected: bool):
 def test_is_newer_strips_v_prefix():
     assert is_newer("v1.1.0", "1.0.0") is True
     assert is_newer("v1.0.0", "v1.0.0") is False
+
+
+def test_read_current_version_ok(fake_plugin_dir: Path):
+    """fake plugin dir에서 v1.0.0을 읽어와야 한다."""
+    assert read_current_version(fake_plugin_dir) == "1.0.0"
+
+
+def test_read_current_version_missing_plugin_json(tmp_path: Path):
+    """plugin.json이 없으면 PluginError."""
+    with pytest.raises(PluginError, match="plugin.json"):
+        read_current_version(tmp_path)
+
+
+def test_read_current_version_malformed_json(fake_plugin_dir: Path):
+    """plugin.json이 깨진 JSON이면 PluginError."""
+    (fake_plugin_dir / ".claude-plugin" / "plugin.json").write_text("not json", encoding="utf-8")
+    with pytest.raises(PluginError, match="plugin.json"):
+        read_current_version(fake_plugin_dir)
+
+
+def test_read_current_version_missing_version_field(fake_plugin_dir: Path):
+    """version 필드가 없으면 PluginError."""
+    import json
+    (fake_plugin_dir / ".claude-plugin" / "plugin.json").write_text(
+        json.dumps({"name": "techdoc-plugin"}), encoding="utf-8"
+    )
+    with pytest.raises(PluginError, match="version"):
+        read_current_version(fake_plugin_dir)
