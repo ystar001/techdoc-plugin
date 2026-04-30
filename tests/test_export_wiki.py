@@ -18,6 +18,7 @@ from scripts.wiki.conflict import (
     extract_facts, detect_conflicts, format_conflict_callout,
 )
 from scripts.wiki.assets import copy_figures
+from scripts.wiki.builders.source import build_source_page, source_filename
 
 
 def test_pytest_infra(fake_vault_dir: Path, fake_document_final: dict):
@@ -203,3 +204,36 @@ def test_copy_figures_missing_source(fake_vault_dir: Path, tmp_path: Path):
     nonexistent = tmp_path / "nope"
     copied = copy_figures(nonexistent, fake_vault_dir, report_slug="x")
     assert copied == []
+
+
+def test_source_filename():
+    ref = {"id": "REF-001", "title": "노지 원예농업의 스마트화 실태와 과제"}
+    name = source_filename(ref)
+    assert name.startswith("REF-001_")
+    assert name.endswith(".md")
+
+
+def test_build_source_page_new(fake_keyref_dir: Path, fake_reference_list: dict):
+    ref = fake_reference_list["references"][0]
+    page = build_source_page(ref, keyref_dir=fake_keyref_dir, existing_page=None)
+    # frontmatter
+    assert "type: source" in page
+    assert "REF-001" in page
+    assert "확인됨" in page or "confirmed" in page
+    # 본문에 KeyRef 원문 요약이 들어옴
+    assert "원문 요약" in page or "KeyRef" in page
+    # AI 영역 마커 존재
+    from scripts.wiki.markers import AUTO_START
+    assert AUTO_START in page
+
+
+def test_build_source_page_idempotent(fake_keyref_dir: Path, fake_reference_list: dict):
+    """같은 ref로 두 번 호출하면 결과가 같아야 한다 (멱등)."""
+    ref = fake_reference_list["references"][0]
+    p1 = build_source_page(ref, keyref_dir=fake_keyref_dir, existing_page=None)
+    p2 = build_source_page(ref, keyref_dir=fake_keyref_dir, existing_page=p1)
+    # frontmatter·AI 영역은 동일 (멱등)
+    from scripts.wiki.frontmatter import parse_frontmatter
+    fm1, _ = parse_frontmatter(p1)
+    fm2, _ = parse_frontmatter(p2)
+    assert fm1 == fm2
