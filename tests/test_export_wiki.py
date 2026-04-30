@@ -14,6 +14,9 @@ from scripts.wiki.frontmatter import (
     serialize_frontmatter, parse_frontmatter, split_page,
 )
 from scripts.wiki.filename import sanitize_name
+from scripts.wiki.conflict import (
+    extract_facts, detect_conflicts, format_conflict_callout,
+)
 
 
 def test_pytest_infra(fake_vault_dir: Path, fake_document_final: dict):
@@ -134,3 +137,46 @@ def test_sanitize_name_empty_fallback():
 
 def test_sanitize_name_only_invalid_fallback():
     assert sanitize_name("////") == "____"
+
+
+def test_extract_facts_years():
+    text = "2024년 시범지구 9개 시군에서 점적관개 도입"
+    facts = extract_facts(text)
+    assert "2024" in facts["years"]
+    assert any("9" in n for n in facts["numbers"])
+
+
+def test_extract_facts_organizations():
+    text = "MIT CSAIL과 한국농촌경제연구원의 협력으로 진행"
+    facts = extract_facts(text)
+    assert any("MIT CSAIL" in o or "한국농촌경제연구원" in o for o in facts["organizations"])
+
+
+def test_detect_conflicts_year_mismatch():
+    a = {"years": {"2024"}, "numbers": set(), "organizations": set()}
+    b = {"years": {"2025"}, "numbers": set(), "organizations": set()}
+    conflicts = detect_conflicts(a, b)
+    assert len(conflicts) > 0
+    assert "year" in conflicts[0]["category"].lower() or "연도" in conflicts[0]["category"]
+
+
+def test_detect_conflicts_no_conflict():
+    a = {"years": {"2024"}, "numbers": {"85%"}, "organizations": {"MIT"}}
+    b = {"years": {"2024"}, "numbers": {"85%"}, "organizations": {"MIT"}}
+    assert detect_conflicts(a, b) == []
+
+
+def test_format_conflict_callout():
+    conflicts = [
+        {
+            "category": "연도",
+            "values": [
+                {"value": "2024", "source": "보고서 A"},
+                {"value": "2025", "source": "보고서 B"},
+            ],
+        }
+    ]
+    callout = format_conflict_callout(conflicts)
+    assert "[!warning]" in callout
+    assert "2024" in callout
+    assert "2025" in callout
