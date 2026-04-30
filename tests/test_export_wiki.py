@@ -22,6 +22,9 @@ from scripts.wiki.builders.source import build_source_page, source_filename
 from scripts.wiki.builders.entity import (
     build_tech_page, build_project_page, build_product_page, entity_filename,
 )
+from scripts.wiki.builders.appendix import (
+    build_tech_appendix_page, build_project_appendix_page, appendix_filename,
+)
 
 
 def test_pytest_infra(fake_vault_dir: Path, fake_document_final: dict):
@@ -284,3 +287,23 @@ def test_build_tech_page_with_appendix_link(fake_document_final: dict):
     assert "appendix:" in page or "_appendix" in page
     assert "심층분석 별첨" in page  # 콜아웃 헤더
     assert "_appendix.md)" in page  # 표준 마크다운 링크
+
+
+def test_appendix_filename_uses_parent_name():
+    """별첨 파일명은 부모 카드의 name + _appendix.md."""
+    appendix = {"id": "A.1", "source_card_id": "1.1.1", "name": "점적관개 — 심층분석"}
+    parent_name = "점적관개"
+    assert appendix_filename(appendix, parent_name) == "점적관개_appendix.md"
+
+
+def test_build_tech_appendix_page(fake_document_final: dict):
+    appendix = fake_document_final["tech_appendices"][0]
+    page = build_tech_appendix_page(
+        appendix, parent_name="점적관개", report_title="노지 스마트농업", existing_page=None,
+    )
+    assert "type: tech_appendix" in page
+    assert "A.1" in page
+    assert "1.1.1" in page  # source_card_id
+    assert "[[Tech/점적관개]]" in page
+    # 10블록 중 일부 헤더 존재
+    assert "theory" in page.lower() or "이론" in page
