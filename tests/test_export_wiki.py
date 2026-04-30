@@ -13,6 +13,7 @@ from scripts.wiki.markers import (
 from scripts.wiki.frontmatter import (
     serialize_frontmatter, parse_frontmatter, split_page,
 )
+from scripts.wiki.filename import sanitize_name
 
 
 def test_pytest_infra(fake_vault_dir: Path, fake_document_final: dict):
@@ -108,3 +109,28 @@ def test_split_page_combines():
     parsed_fm, parsed_body = parse_frontmatter(page)
     assert parsed_fm == fm
     assert parsed_body.strip() == body
+
+
+def test_sanitize_name_korean_preserved():
+    assert sanitize_name("점적관개") == "점적관개"
+
+
+def test_sanitize_name_english_preserved():
+    assert sanitize_name("Drip Irrigation") == "Drip Irrigation"
+
+
+def test_sanitize_name_invalid_chars_replaced():
+    """Windows 금지 문자: / \\ : * ? " < > |"""
+    assert sanitize_name("a/b\\c:d*e?f\"g<h>i|j") == "a_b_c_d_e_f_g_h_i_j"
+
+
+def test_sanitize_name_strips_whitespace():
+    assert sanitize_name("  점적관개  ") == "점적관개"
+
+
+def test_sanitize_name_empty_fallback():
+    assert sanitize_name("") == "unnamed"
+
+
+def test_sanitize_name_only_invalid_fallback():
+    assert sanitize_name("////") == "____"
