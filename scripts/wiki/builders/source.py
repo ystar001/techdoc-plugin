@@ -8,7 +8,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from scripts.wiki.filename import sanitize_name
-from scripts.wiki.frontmatter import serialize_frontmatter, parse_frontmatter, split_page
+from scripts.wiki.frontmatter import parse_frontmatter, split_page
 from scripts.wiki.markers import replace_ai_region
 
 
