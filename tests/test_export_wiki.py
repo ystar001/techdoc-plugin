@@ -267,6 +267,16 @@ def test_build_project_page_meta(fake_document_final: dict):
     assert "$3.2M" in page  # budget
 
 
+def test_build_project_page_appendix_uses_plural_dir(fake_document_final: dict):
+    """spec §3.1: Projects/ (복수) 디렉토리 매칭 검증 (Project/ 단수 X)."""
+    card = fake_document_final["project_cards"][0]
+    page = build_project_page(
+        card, report_title="노지 스마트농업", existing_page=None, has_appendix=True
+    )
+    assert "[[Projects/" in page  # 복수형 정확
+    assert "[[Project/" not in page  # 단수형 X
+
+
 def test_build_product_page_meta(fake_document_final: dict):
     card = fake_document_final["product_cards"][0]
     page = build_product_page(card, report_title="노지 스마트농업", existing_page=None)
@@ -307,3 +317,17 @@ def test_build_tech_appendix_page(fake_document_final: dict):
     assert "[[Tech/점적관개]]" in page
     # 10블록 중 일부 헤더 존재
     assert "theory" in page.lower() or "이론" in page
+
+
+def test_build_project_appendix_page_uses_plural_dir():
+    """spec §3.1: parent_page는 Projects/ (복수)."""
+    appendix = {
+        "id": "B.1", "source_card_id": "2.1.1",
+        "name": "SMART-IRRI-2024 — 심층분석",
+        "chronicle": "...", "structure": "...",
+    }
+    page = build_project_appendix_page(
+        appendix, parent_name="SMART-IRRI-2024", report_title="노지 스마트농업", existing_page=None,
+    )
+    assert "[[Projects/SMART-IRRI-2024]]" in page  # 복수형 정확
+    assert "[[Project/" not in page  # 단수형 X

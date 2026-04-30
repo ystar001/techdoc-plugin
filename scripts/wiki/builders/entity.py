@@ -11,6 +11,10 @@ from scripts.wiki.frontmatter import parse_frontmatter, split_page
 from scripts.wiki.markers import replace_ai_region
 
 
+# vault 디렉토리 매핑: spec §3.1 카테고리 (Tech 단수, 나머지 복수)
+_VAULT_DIR = {"tech": "Tech", "project": "Projects", "product": "Products"}
+
+
 def entity_filename(card: dict) -> str:
     """카드 name → '<safe_name>.md'."""
     return f"{sanitize_name(card.get('name', 'unnamed'))}.md"
@@ -32,7 +36,7 @@ def _build_common_frontmatter(card: dict, type_: str, report_title: str, has_app
         fm["aliases"] = [name_en]
     if has_appendix:
         safe = sanitize_name(card.get("name", "unnamed"))
-        fm["appendix"] = f"[[{type_.capitalize()}/{safe}_appendix]]"
+        fm["appendix"] = f"[[{_VAULT_DIR[type_]}/{safe}_appendix]]"
     return fm
 
 

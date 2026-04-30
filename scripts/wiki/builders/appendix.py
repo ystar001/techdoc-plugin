@@ -48,6 +48,10 @@ def _render_blocks(appendix: dict, blocks: list[tuple[str, str]]) -> str:
     return "\n".join(parts)
 
 
+# vault 디렉토리 매핑: spec §3.1 (Tech 단수, Projects 복수)
+_VAULT_DIR = {"tech": "Tech", "project": "Projects"}
+
+
 def _build(appendix: dict, parent_name: str, report_title: str, existing_page: str | None,
            type_label: str, parent_type: str, blocks: list[tuple[str, str]]) -> str:
     safe_parent = sanitize_name(parent_name)
@@ -56,7 +60,7 @@ def _build(appendix: dict, parent_name: str, report_title: str, existing_page: s
         "name": appendix.get("name", ""),
         "appendix_id": appendix.get("id", ""),
         "parent_card_id": appendix.get("source_card_id", ""),
-        "parent_page": f"[[{parent_type.capitalize()}/{safe_parent}]]",
+        "parent_page": f"[[{_VAULT_DIR[parent_type]}/{safe_parent}]]",
         "blocks_fulfilled": appendix.get("blocks_fulfilled", 0),
         "length_chars": appendix.get("length_chars", 0),
         "reports": [f"[[Reports/{sanitize_name(report_title)}]]"],
