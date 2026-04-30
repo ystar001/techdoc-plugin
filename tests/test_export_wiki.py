@@ -17,6 +17,7 @@ from scripts.wiki.filename import sanitize_name
 from scripts.wiki.conflict import (
     extract_facts, detect_conflicts, format_conflict_callout,
 )
+from scripts.wiki.assets import copy_figures
 
 
 def test_pytest_infra(fake_vault_dir: Path, fake_document_final: dict):
@@ -180,3 +181,25 @@ def test_format_conflict_callout():
     assert "[!warning]" in callout
     assert "2024" in callout
     assert "2025" in callout
+
+
+def test_copy_figures(tmp_path: Path, fake_vault_dir: Path):
+    """source figures → vault/Assets/figures/<report_slug>/."""
+    src = tmp_path / "src_figures"
+    src.mkdir()
+    (src / "fig_1_1.png").write_bytes(b"fake png")
+    (src / "fig_1_2.svg").write_bytes(b"<svg/>")
+
+    copied = copy_figures(src, fake_vault_dir, report_slug="노지스마트농업")
+    target = fake_vault_dir / "Assets" / "figures" / "노지스마트농업"
+    assert target.exists()
+    assert (target / "fig_1_1.png").read_bytes() == b"fake png"
+    assert (target / "fig_1_2.svg").read_bytes() == b"<svg/>"
+    assert len(copied) == 2
+
+
+def test_copy_figures_missing_source(fake_vault_dir: Path, tmp_path: Path):
+    """source 디렉토리가 없으면 빈 리스트 반환 (에러 아님)."""
+    nonexistent = tmp_path / "nope"
+    copied = copy_figures(nonexistent, fake_vault_dir, report_slug="x")
+    assert copied == []
