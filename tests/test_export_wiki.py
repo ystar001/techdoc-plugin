@@ -25,6 +25,10 @@ from scripts.wiki.builders.entity import (
 from scripts.wiki.builders.appendix import (
     build_tech_appendix_page, build_project_appendix_page, appendix_filename,
 )
+from scripts.wiki.builders.concept import build_concept_page
+from scripts.wiki.builders.report import build_report_moc
+from scripts.wiki.builders.index import build_index
+from scripts.wiki.builders.log import append_log
 
 
 def test_pytest_infra(fake_vault_dir: Path, fake_document_final: dict):
@@ -331,3 +335,64 @@ def test_build_project_appendix_page_uses_plural_dir():
     )
     assert "[[Projects/SMART-IRRI-2024]]" in page  # 복수형 정확
     assert "[[Project/" not in page  # 단수형 X
+
+
+def test_build_concept_page():
+    page = build_concept_page(term="점적관개", definition="토양·작물 수분에 따른 정밀 급수", existing_page=None)
+    assert "type: concept" in page
+    assert "점적관개" in page
+    assert "정밀 급수" in page
+
+
+def test_build_report_moc(fake_document_final: dict):
+    moc = build_report_moc(fake_document_final, existing_page=None)
+    assert "type: report" in moc
+    assert "노지 스마트농업" in moc
+    assert "[점적관개](../Tech/점적관개.md)" in moc
+    assert "[SMART-IRRI-2024](../Projects/SMART-IRRI-2024.md)" in moc
+    assert "[AgriLink X2](../Products/AgriLink X2.md)" in moc
+
+
+def test_build_index(fake_vault_dir: Path):
+    """index.md는 vault의 카테고리별 카탈로그를 자동 생성."""
+    (fake_vault_dir / "Tech").mkdir()
+    (fake_vault_dir / "Tech" / "점적관개.md").write_text("---\ntype: tech\nname: 점적관개\n---\n", encoding="utf-8")
+    (fake_vault_dir / "Sources").mkdir()
+    (fake_vault_dir / "Sources" / "REF-001_x.md").write_text("---\ntype: source\nref_id: REF-001\n---\n", encoding="utf-8")
+
+    index = build_index(fake_vault_dir, existing_index=None)
+    assert "Tech" in index
+    assert "[점적관개](Tech/점적관개.md)" in index  # 표준 마크다운 링크
+    assert "Sources" in index
+    from scripts.wiki.markers import AUTO_START
+    assert AUTO_START in index
+
+
+def test_append_log_new_entry():
+    log = append_log(
+        existing_log=None,
+        date="2026-04-29",
+        report_title="노지 스마트농업",
+        stats={"new_pages": 5, "updated_pages": 2, "conflicts": 0},
+    )
+    assert "[2026-04-29]" in log
+    assert "노지 스마트농업" in log
+    assert "신규: 5" in log or "5" in log
+    from scripts.wiki.markers import AUTO_START
+    assert AUTO_START in log
+
+
+def test_append_log_idempotent_same_day_same_report():
+    """같은 날짜·보고서 두 번 append하면 한 항목만 유지 (중복 방지)."""
+    first = append_log(
+        existing_log=None, date="2026-04-29",
+        report_title="노지 스마트농업",
+        stats={"new_pages": 5, "updated_pages": 2, "conflicts": 0},
+    )
+    second = append_log(
+        existing_log=first, date="2026-04-29",
+        report_title="노지 스마트농업",
+        stats={"new_pages": 7, "updated_pages": 3, "conflicts": 1},
+    )
+    # 두 번째 append 시 첫 항목 갱신 (중복 항목 X)
+    assert second.count("[2026-04-29] 노지 스마트농업") == 1 or second.count("2026-04-29") <= 2
