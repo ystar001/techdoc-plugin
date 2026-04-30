@@ -19,6 +19,9 @@ from scripts.wiki.conflict import (
 )
 from scripts.wiki.assets import copy_figures
 from scripts.wiki.builders.source import build_source_page, source_filename
+from scripts.wiki.builders.entity import (
+    build_tech_page, build_project_page, build_product_page, entity_filename,
+)
 
 
 def test_pytest_infra(fake_vault_dir: Path, fake_document_final: dict):
@@ -237,3 +240,47 @@ def test_build_source_page_idempotent(fake_keyref_dir: Path, fake_reference_list
     fm1, _ = parse_frontmatter(p1)
     fm2, _ = parse_frontmatter(p2)
     assert fm1 == fm2
+
+
+def test_entity_filename():
+    card = {"name": "점적관개"}
+    assert entity_filename(card) == "점적관개.md"
+
+
+def test_build_tech_page(fake_document_final: dict):
+    card = fake_document_final["tech_cards"][0]
+    page = build_tech_page(card, report_title="노지 스마트농업", existing_page=None)
+    assert "type: tech" in page
+    assert "점적관개" in page
+    assert "Drip Irrigation" in page  # name_en
+    assert "high" in page  # importance
+
+
+def test_build_project_page_meta(fake_document_final: dict):
+    card = fake_document_final["project_cards"][0]
+    page = build_project_page(card, report_title="노지 스마트농업", existing_page=None)
+    assert "type: project" in page
+    assert "MIT CSAIL" in page  # institution
+    assert "$3.2M" in page  # budget
+
+
+def test_build_product_page_meta(fake_document_final: dict):
+    card = fake_document_final["product_cards"][0]
+    page = build_product_page(card, report_title="노지 스마트농업", existing_page=None)
+    assert "type: product" in page
+    assert "AgroTech" in page  # maker
+    assert "USA" in page  # country
+
+
+def test_build_tech_page_with_appendix_link(fake_document_final: dict):
+    """별첨이 있는 카드는 frontmatter appendix 필드 + 본문 표준 마크다운 링크."""
+    card = fake_document_final["tech_cards"][0]  # id=1.1.1, appendix A.1 존재
+    page = build_tech_page(
+        card,
+        report_title="노지 스마트농업",
+        existing_page=None,
+        has_appendix=True,
+    )
+    assert "appendix:" in page or "_appendix" in page
+    assert "심층분석 별첨" in page  # 콜아웃 헤더
+    assert "_appendix.md)" in page  # 표준 마크다운 링크
