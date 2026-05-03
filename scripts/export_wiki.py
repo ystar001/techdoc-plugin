@@ -103,6 +103,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--vault", required=True, help="옵시디언 vault 경로")
     parser.add_argument("--create-vault", action="store_true", help="vault 없으면 신규 생성")
     parser.add_argument("--lint", action="store_true", help="lint만 수행, export 안 함")
+    parser.add_argument("--mkdocs", action="store_true",
+                        help="vault에 mkdocs.yml 작성 (D 하이브리드 정적 사이트 옵션)")
     args = parser.parse_args(argv)
 
     doc_dir = Path(args.doc)
@@ -258,6 +260,12 @@ def main(argv: list[str] | None = None) -> int:
     # 9. 보고서 출력 (wiki_export_report.json)
     report_json = doc_dir / "wiki_export_report.json"
     report_json.write_text(json.dumps(stats, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    if args.mkdocs:
+        from scripts.wiki.mkdocs_setup import write_mkdocs_yml
+        target = write_mkdocs_yml(vault)
+        print(f"mkdocs.yml 작성: {target}")
+        print("정적 사이트 빌드: pip install mkdocs-material && cd <vault> && mkdocs build")
 
     print(f"vault 갱신 완료: {vault}")
     print(f"  신규: {stats['new_pages']} / 갱신: {stats['updated_pages']} / 충돌: {stats['conflicts']}")

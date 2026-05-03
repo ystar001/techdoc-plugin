@@ -457,6 +457,25 @@ def test_main_full_export(tmp_path, fake_vault_dir, fake_document_final, fake_re
     assert "conflicts" in report_data
 
 
+def test_write_mkdocs_yml_new(fake_vault_dir: Path):
+    """T13: MkDocs 옵션 — mkdocs.yml 신규 작성."""
+    from scripts.wiki.mkdocs_setup import write_mkdocs_yml
+    target = write_mkdocs_yml(fake_vault_dir)
+    assert target.exists()
+    text = target.read_text(encoding="utf-8")
+    assert "site_name: TechDoc Knowledge Wiki" in text
+    assert "material" in text
+
+
+def test_write_mkdocs_yml_preserves_existing(fake_vault_dir: Path):
+    """기존 mkdocs.yml은 보존 (사용자 커스터마이징)."""
+    existing = fake_vault_dir / "mkdocs.yml"
+    existing.write_text("custom: value\n", encoding="utf-8")
+    from scripts.wiki.mkdocs_setup import write_mkdocs_yml
+    write_mkdocs_yml(fake_vault_dir)
+    assert "custom: value" in existing.read_text(encoding="utf-8")
+
+
 def test_lint_vault_clean(fake_vault_dir: Path):
     """빈 vault — 이슈 없음, 통과 리포트 작성."""
     from scripts.wiki.lint import lint_vault
