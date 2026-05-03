@@ -1,7 +1,7 @@
 ---
 description: TechDoc 통합 파이프라인 - 목차→조사→작성→검토→별첨→렌더링. 60~130분, 본문 100~150p + 별첨 85~175p
 allowed-tools: Bash, Read, Write, Agent
-argument-hint: "<제목> [--toc FILE] [--mode exact|enhance] [--outline FILE] [--domain tech|market|policy] [--style 서술형|개조식] [--depth quick|standard|deep] [--ref file:|url:|site:] [--deep-dive IDs] [--no-deep-dive] [-o OUTPUT]"
+argument-hint: "<제목> [--toc FILE] [--mode exact|enhance] [--outline FILE] [--domain tech|market|policy] [--style 서술형|개조식] [--depth quick|standard|deep] [--ref file:|url:|site:] [--deep-dive IDs] [--no-deep-dive] [-o OUTPUT] [--export-wiki <vault>]"
 ---
 
 # /techdoc — 전체 파이프라인 통합 실행
@@ -28,6 +28,7 @@ argument-hint: "<제목> [--toc FILE] [--mode exact|enhance] [--outline FILE] [-
 - `--deep-dive-auto N` — 자동 선정 개수
 - `--no-deep-dive` — 별첨 생략
 - `-o DIR` — 출력 디렉토리 (기본: `./output`)
+- `--export-wiki <vault>` — 렌더링 완료 후 vault에 LLM Wiki 자동 export (D 하이브리드: 옵시디언·MkDocs·표준 마크다운 호환). `/techdoc-export-wiki --doc <output> --vault <vault> --create-vault`를 마지막 Step으로 자동 호출.
 
 ## 실행 흐름 (사용자 확인 포인트 포함)
 
