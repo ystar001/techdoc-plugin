@@ -447,6 +447,22 @@ def test_main_full_export(tmp_path, fake_vault_dir, fake_document_final, fake_re
     assert (fake_vault_dir / "index.md").exists()
     assert (fake_vault_dir / "log.md").exists()
     assert (fake_vault_dir / "Assets" / "figures").exists()
+    # spec §8.1: wiki_export_report.json 생성 검증
+    report_path = out_dir / "wiki_export_report.json"
+    assert report_path.exists()
+    import json as _json
+    report_data = _json.loads(report_path.read_text(encoding="utf-8"))
+    assert "new_pages" in report_data
+    assert "updated_pages" in report_data
+    assert "conflicts" in report_data
+
+
+def test_main_doc_missing(tmp_path, fake_vault_dir):
+    """document_final.json 미존재 → 에러 (spec §11 에지 케이스)."""
+    empty_dir = tmp_path / "empty"
+    empty_dir.mkdir()
+    code = main(["--doc", str(empty_dir), "--vault", str(fake_vault_dir), "--create-vault"])
+    assert code == 1
 
 
 def test_main_idempotent(tmp_path, fake_vault_dir, fake_document_final, fake_reference_list, fake_keyref_dir):

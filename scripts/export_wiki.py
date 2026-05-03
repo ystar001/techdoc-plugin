@@ -148,7 +148,11 @@ def main(argv: list[str] | None = None) -> int:
         else:
             stats["new_pages"] += 1
 
-    # 1. Sources
+    # 1. 자산 복사 (spec §10 step 2 — 입력 검증 직후)
+    if figures_dir.exists():
+        copy_figures(figures_dir, vault, report_slug)
+
+    # 2. Sources
     for ref in refs.get("references", []):
         fname = source_filename(ref)
         target = vault / "Sources" / fname
@@ -234,16 +238,12 @@ def main(argv: list[str] | None = None) -> int:
     moc = build_report_moc(document, existing_page=_read_existing(report_target))
     _write(report_target, moc)
 
-    # 7. 자산 복사
-    if figures_dir.exists():
-        copy_figures(figures_dir, vault, report_slug)
-
-    # 8. Index 재생성
+    # 7. Index 재생성
     index_target = vault / "index.md"
     index = build_index(vault, existing_index=_read_existing(index_target))
     _write(index_target, index)
 
-    # 9. Log append
+    # 8. Log append
     log_target = vault / "log.md"
     from datetime import date as _date
     today = document.get("metadata", {}).get("date") or _date.today().isoformat()
@@ -255,7 +255,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     _write(log_target, log)
 
-    # 10. 보고서 출력
+    # 9. 보고서 출력 (wiki_export_report.json)
     report_json = doc_dir / "wiki_export_report.json"
     report_json.write_text(json.dumps(stats, ensure_ascii=False, indent=2), encoding="utf-8")
 
