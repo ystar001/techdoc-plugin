@@ -457,6 +457,26 @@ def test_main_full_export(tmp_path, fake_vault_dir, fake_document_final, fake_re
     assert "conflicts" in report_data
 
 
+def test_lint_vault_clean(fake_vault_dir: Path):
+    """빈 vault — 이슈 없음, 통과 리포트 작성."""
+    from scripts.wiki.lint import lint_vault
+    result = lint_vault(fake_vault_dir)
+    assert result["issues"] == []
+    assert (fake_vault_dir / "_lint_report.md").exists()
+    assert "모든 점검 통과" in (fake_vault_dir / "_lint_report.md").read_text(encoding="utf-8")
+
+
+def test_lint_vault_broken_md_link(fake_vault_dir: Path):
+    """표준 마크다운 링크가 끊어진 경우 (D 하이브리드)."""
+    (fake_vault_dir / "Tech").mkdir()
+    (fake_vault_dir / "Tech" / "점적관개.md").write_text(
+        "본문에서 [존재안함](../Tech/존재안함.md) 참조", encoding="utf-8"
+    )
+    from scripts.wiki.lint import lint_vault
+    result = lint_vault(fake_vault_dir)
+    assert any("BROKEN-LINK" in i for i in result["issues"])
+
+
 def test_main_doc_missing(tmp_path, fake_vault_dir):
     """document_final.json 미존재 → 에러 (spec §11 에지 케이스)."""
     empty_dir = tmp_path / "empty"
