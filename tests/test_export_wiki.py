@@ -396,3 +396,115 @@ def test_append_log_idempotent_same_day_same_report():
     )
     # 두 번째 append 시 첫 항목 갱신 (중복 항목 X)
     assert second.count("[2026-04-29] 노지 스마트농업") == 1 or second.count("2026-04-29") <= 2
+
+
+# ---------------------------------------------------------------------------
+# Task 11 — main 통합 테스트
+# ---------------------------------------------------------------------------
+
+from scripts.export_wiki import main
+
+
+def _make_output_dir(tmp_path: Path, fake_document_final: dict, fake_reference_list: dict, fake_keyref_dir: Path) -> Path:
+    """fake output 디렉토리 — document_final.json·reference_list.json·KeyRef 포함."""
+    import json as _json
+    import shutil
+    out = tmp_path / "output"
+    out.mkdir(parents=True, exist_ok=True)
+    (out / "document_final.json").write_text(
+        _json.dumps(fake_document_final, ensure_ascii=False), encoding="utf-8"
+    )
+    (out / "reference_list.json").write_text(
+        _json.dumps(fake_reference_list, ensure_ascii=False), encoding="utf-8"
+    )
+    # KeyRef 디렉토리 복사
+    shutil.copytree(fake_keyref_dir, out / "KeyRef")
+    # final_outline.json (glossary 포함)
+    outline = {
+        "title": fake_document_final["title"],
+        "glossary": {"점적관개": "토양·작물 수분에 따른 정밀 급수 방식"},
+    }
+    (out / "final_outline.json").write_text(_json.dumps(outline, ensure_ascii=False), encoding="utf-8")
+    # figures
+    (out / "figures").mkdir()
+    (out / "figures" / "fig_1_1.png").write_bytes(b"png")
+    return out
+
+
+def test_main_full_export(tmp_path, fake_vault_dir, fake_document_final, fake_reference_list, fake_keyref_dir):
+    """전체 export 흐름 — vault에 모든 카테고리 페이지 생성."""
+    out_dir = _make_output_dir(tmp_path, fake_document_final, fake_reference_list, fake_keyref_dir)
+    code = main(["--doc", str(out_dir), "--vault", str(fake_vault_dir), "--create-vault"])
+    assert code == 0
+    # 카테고리별 페이지 생성 확인
+    assert list((fake_vault_dir / "Sources").glob("REF-001_*.md"))
+    assert (fake_vault_dir / "Tech" / "점적관개.md").exists()
+    assert (fake_vault_dir / "Projects" / "SMART-IRRI-2024.md").exists()
+    assert (fake_vault_dir / "Products" / "AgriLink X2.md").exists()
+    assert (fake_vault_dir / "Tech" / "점적관개_appendix.md").exists()
+    assert (fake_vault_dir / "Concepts" / "점적관개.md").exists()
+    assert list((fake_vault_dir / "Reports").glob("*.md"))
+    assert (fake_vault_dir / "index.md").exists()
+    assert (fake_vault_dir / "log.md").exists()
+    assert (fake_vault_dir / "Assets" / "figures").exists()
+
+
+def test_main_idempotent(tmp_path, fake_vault_dir, fake_document_final, fake_reference_list, fake_keyref_dir):
+    """동일 입력 두 번 export — 두 번째 결과가 안정적."""
+    out_dir = _make_output_dir(tmp_path, fake_document_final, fake_reference_list, fake_keyref_dir)
+    main(["--doc", str(out_dir), "--vault", str(fake_vault_dir), "--create-vault"])
+    tech_first = (fake_vault_dir / "Tech" / "점적관개.md").read_text(encoding="utf-8")
+    main(["--doc", str(out_dir), "--vault", str(fake_vault_dir)])
+    tech_second = (fake_vault_dir / "Tech" / "점적관개.md").read_text(encoding="utf-8")
+    assert tech_first == tech_second
+
+
+def test_main_preserves_user_memo(tmp_path, fake_vault_dir, fake_document_final, fake_reference_list, fake_keyref_dir):
+    """사용자가 추가한 메모(마커 외부)는 재export에도 보존."""
+    out_dir = _make_output_dir(tmp_path, fake_document_final, fake_reference_list, fake_keyref_dir)
+    main(["--doc", str(out_dir), "--vault", str(fake_vault_dir), "--create-vault"])
+    tech_path = fake_vault_dir / "Tech" / "점적관개.md"
+    page = tech_path.read_text(encoding="utf-8")
+    # 사용자 메모를 페이지 앞부분(마커 외부)에 추가
+    page = page.replace("---\n\n", "---\n\n## 내 메모\n사용자 직접 추가\n\n", 1)
+    tech_path.write_text(page, encoding="utf-8")
+    # 재export
+    main(["--doc", str(out_dir), "--vault", str(fake_vault_dir)])
+    after = tech_path.read_text(encoding="utf-8")
+    assert "내 메모" in after
+    assert "사용자 직접 추가" in after
+
+
+def test_main_vault_missing_no_create_flag(tmp_path, fake_document_final, fake_reference_list, fake_keyref_dir):
+    """vault 디렉토리 없을 때 --create-vault 없으면 에러."""
+    out_dir = _make_output_dir(tmp_path, fake_document_final, fake_reference_list, fake_keyref_dir)
+    nonexistent_vault = tmp_path / "nope_vault"
+    code = main(["--doc", str(out_dir), "--vault", str(nonexistent_vault)])
+    assert code == 1
+
+
+def test_main_two_reports_with_conflict(tmp_path, fake_vault_dir, fake_document_final, fake_reference_list, fake_keyref_dir):
+    """충돌 감지 end-to-end (spec §5 핵심 기능 검증).
+
+    같은 엔티티 페이지(점적관개)에 두 보고서가 다른 수치를 입력하면
+    Tech/점적관개.md에 ⚠️ 충돌 callout이 자동 추가되어야 한다.
+    """
+    import copy
+    # 첫 보고서: 2024년 9개 시군
+    doc1 = copy.deepcopy(fake_document_final)
+    doc1["title"] = "보고서_A"
+    doc1["tech_cards"][0]["overview"] = "<p>2024년 9개 시군 점적관개 도입.</p>"
+    out1 = _make_output_dir(tmp_path / "out1", doc1, fake_reference_list, fake_keyref_dir)
+    main(["--doc", str(out1), "--vault", str(fake_vault_dir), "--create-vault"])
+
+    # 두 번째 보고서: 같은 엔티티에 다른 수치 (2025년 12개 시군)
+    doc2 = copy.deepcopy(fake_document_final)
+    doc2["title"] = "보고서_B"
+    doc2["tech_cards"][0]["overview"] = "<p>2025년 12개 시군 점적관개 도입.</p>"
+    out2 = _make_output_dir(tmp_path / "out2", doc2, fake_reference_list, fake_keyref_dir)
+    main(["--doc", str(out2), "--vault", str(fake_vault_dir)])
+
+    tech_page = (fake_vault_dir / "Tech" / "점적관개.md").read_text(encoding="utf-8")
+    # 충돌 callout 검출
+    assert "⚠️" in tech_page or "[!warning]" in tech_page
+    assert "정보 충돌 감지" in tech_page
