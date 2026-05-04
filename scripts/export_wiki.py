@@ -9,8 +9,11 @@ document_final.json + KeyRef + figures + outline glossary → 옵시디언 vault
 from __future__ import annotations
 
 import argparse
+import inspect
 import json
 import sys
+import tempfile
+from datetime import date as _date
 from pathlib import Path
 
 from scripts.wiki.assets import copy_figures
@@ -60,7 +63,6 @@ def _build_card_page_with_conflict(
 
     existing_page가 있으면 새 AI 콘텐츠 vs 기존 AI 콘텐츠를 비교해 충돌 callout을 추가한다.
     """
-    import inspect
     sig = inspect.signature(builder_fn)
     if "has_appendix" in sig.parameters:
         new_page = builder_fn(card, report_title=report_title, existing_page=None, has_appendix=has_appendix)
@@ -247,7 +249,6 @@ def main(argv: list[str] | None = None) -> int:
 
     # 8. Log append
     log_target = vault / "log.md"
-    from datetime import date as _date
     today = document.get("metadata", {}).get("date") or _date.today().isoformat()
     log = append_log(
         existing_log=_read_existing(log_target),

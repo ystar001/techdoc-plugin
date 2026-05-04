@@ -4,7 +4,13 @@ from __future__ import annotations
 
 import re
 
-from scripts.wiki.markers import AUTO_START, AUTO_END, has_markers, replace_ai_region
+from scripts.wiki.markers import (
+    AUTO_END,
+    AUTO_START,
+    extract_ai_region,
+    has_markers,
+    replace_ai_region,
+)
 
 
 def _format_entry(date: str, report_title: str, stats: dict) -> str:
@@ -32,7 +38,6 @@ def append_log(existing_log: str | None, date: str, report_title: str, stats: di
 
     # 기존 마커 영역 안에 항목 추가
     if has_markers(existing_log):
-        from scripts.wiki.markers import extract_ai_region
         ai_region = extract_ai_region(existing_log) or ""
         if not ai_region.startswith("# Log"):
             ai_region = f"# Log\n\n{ai_region}"
