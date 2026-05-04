@@ -4,6 +4,49 @@ All notable changes to TechDoc Plugin.
 
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.1.0] — 2026-05-04
+
+### 신규 슬래시 커맨드 2개
+
+- **`/techdoc-update`** — plugin 자체를 GitHub Releases 최신 버전으로 자동 갱신. `--check`(체크만), `--force`(동일 버전 강제 재설치) 옵션. LLM 호출 0회.
+- **`/techdoc-export-wiki`** — TechDoc 보고서 산출물(`document_final.json` + `KeyRef/` + `figures/` + outline glossary)을 표준 마크다운 LLM Wiki로 변환·누적. **D 하이브리드** 호환 — 옵시디언·VS Code·Cursor·Logseq·Foam·Dendron·MkDocs Material·Docusaurus·Hugo·Jekyll·GitHub/GitLab 마크다운 뷰어 등. `--vault`·`--create-vault`·`--lint`·`--mkdocs` 옵션. LLM 호출 0회.
+
+### 통합
+
+- `/techdoc` 커맨드에 `--export-wiki <vault>` 옵션 추가 — 보고서 생성 완료 후 마지막 단계로 wiki export 자동 실행.
+
+### Wiki 모듈 (신규)
+
+- `scripts/wiki/` — markers·frontmatter·conflict·filename·assets·lint·mkdocs_setup
+- `scripts/wiki/builders/` — source·entity·appendix·concept·report·index·log
+- `scripts/export_wiki.py` — 9단계 오케스트레이션 main + 충돌 감지 end-to-end
+
+### 정책
+
+- **사용자 메모 보존**: `<!-- techdoc:auto-* -->` 마커 외부는 절대 손대지 않음
+- **충돌 감지**: 같은 엔티티의 핵심 사실(연도·수치·기관) 충돌 시 `> ⚠️ **정보 충돌 감지**` callout 자동 추가
+- **멱등성**: 같은 입력으로 두 번 실행 시 vault 상태 동일
+- **링크 형식**: 본문 표준 마크다운 `[text](path.md)`, frontmatter wiki-style `[[X]]` 유지 (옵시디언 Dataview 호환)
+- **Vault 디렉토리**: `Tech/`(단수)·`Projects/`·`Products/`·`Sources/`·`Concepts/`·`Reports/`·`Assets/figures/<report>/`
+
+### 테스트
+
+- pytest 인프라 도입 (plugin v1.x 첫 단위 테스트)
+- 85 tests pass (32 update_plugin + 53 export_wiki)
+- 멱등성·사용자 메모 보존·충돌 감지 end-to-end·vault 미존재·doc 미존재 모두 통합 테스트 커버
+
+### Changed
+
+- 패키지 버전: 1.0.0 → 1.1.0
+- 표면 표기 갱신: plugin.json·marketplace.json·pyproject.toml·CHANGELOG·__init__.py
+
+### 보존
+
+- 기존 11개 슬래시 커맨드·3개 subagent·26개 프롬프트 — 완전 호환
+- `SCHEMA_VERSION = "0.1.0"` — 데이터 호환성 표시 유지
+
+---
+
 ## [1.0.0] — 2026-04-29 (정식 릴리스)
 
 ### TechDoc Plugin이 차세대 정식 버전으로 승격
