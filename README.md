@@ -1,8 +1,14 @@
 # TechDoc Plugin
 
-> **v1.0.0** · AI 기술보고서 생성 Claude Code Cowork Plugin
+> **v1.1.0** · AI 기술보고서 생성 Claude Code Cowork Plugin · MIT License
 
 명령 한 줄로 100~300페이지 전문 기술보고서 생성. 대학·기업 R&D·전문연구기관 레퍼런스 77% 기반, 핵심 기술·프로젝트는 별첨으로 **논문 수준 심층분석**(기술 15k~40k자 / 프로젝트 20k~50k자).
+
+**v1.1.0 신규** (2026-05-04):
+- **`/techdoc-update`** — plugin 자체를 GitHub Releases 최신 버전으로 자동 갱신 (LLM 0회)
+- **`/techdoc-export-wiki`** — 보고서 산출물을 표준 마크다운 LLM Wiki로 변환·누적. **D 하이브리드** 호환 — 옵시디언·VS Code·Cursor·Logseq·Foam·Dendron·MkDocs Material·Docusaurus·Hugo·Jekyll·GitHub/GitLab 마크다운 뷰어 등 (LLM 0회)
+- **`/techdoc --export-wiki <vault>`** — 보고서 생성 + wiki 누적 통합 옵션
+- pytest 인프라 도입 (85 tests)
 
 ## 설치
 
@@ -10,7 +16,7 @@
 
 ```bash
 # 1. ZIP 압축 해제
-unzip techdoc-plugin-v1.0.0.zip -d ~/.claude/plugins/techdoc-plugin
+unzip techdoc-plugin-v1.1.0.zip -d ~/.claude/plugins/techdoc-plugin
 
 # 2. Python 의존성
 cd ~/.claude/plugins/techdoc-plugin && pip install -e ".[pdf,docx]"
@@ -92,12 +98,13 @@ output/
 
 ---
 
-## 11개 명령어 한눈에
+## 13개 명령어 한눈에
 
 | 분류 | 명령 | 입력 예 | 소요 |
 |---|---|---|---|
 | **유틸** | `/techdoc-doctor` | (없음) | 5초 |
 | | `/techdoc-demo` | (없음) | 3분 |
+| | `/techdoc-update` | `--check` | 30초 |
 | **단계** | `/techdoc-outline` | `"제목" --toc toc.txt` | 30초~2분 |
 | | `/techdoc-research` | `--outline draft_outline.json` | 5~8분 |
 | | `/techdoc-write` | `--outline ... --refs reference_list.json` | 10~15분 |
@@ -106,7 +113,8 @@ output/
 | **재실행** | `/techdoc-resume` | `--from write` | 가변 |
 | | `/techdoc-rewrite` | `1.1.3 --instruction "..."` | 2~3분 |
 | | `/techdoc-deepdive` | `1.1.1` | 10~15분 |
-| **통합** | `/techdoc` | `"제목" --toc ... --domain tech` | 60~130분 |
+| **Wiki** ⭐ | `/techdoc-export-wiki` | `--vault ~/Obsidian/주제 --create-vault` | 1~2분 |
+| **통합** | `/techdoc` | `"제목" --toc ... --domain tech [--export-wiki <vault>]` | 60~130분 |
 
 ---
 
@@ -243,6 +251,53 @@ output/
 
 # → writer_state.json 기반으로 미완료 카드만 재작성
 ```
+
+---
+
+### 상황 H: LLM Wiki에 누적 (v1.1.0 신규) ⭐
+
+```bash
+# 보고서 생성 + 같은 vault에 자동 누적
+/techdoc "노지 스마트농업 분석" --toc ./toc.txt --domain tech \
+  --export-wiki ~/Obsidian/스마트농업
+
+# 다른 보고서를 같은 vault에 추가 → 같은 엔티티 페이지에 정보 합쳐짐
+/techdoc "스마트팜 로드맵 2030" --toc ./toc2.txt --domain tech \
+  --export-wiki ~/Obsidian/스마트농업
+```
+
+vault 안에 카테고리별 페이지 자동 생성:
+- `Sources/REF-*.md` — 참고문헌
+- `Tech/<기술명>.md` + `Tech/<기술명>_appendix.md` (별첨 시)
+- `Projects/<연구명>.md` + `Projects/<연구명>_appendix.md`
+- `Products/<제품명>.md`
+- `Concepts/<용어>.md`
+- `Reports/<보고서명>.md` (MOC)
+- `index.md`, `log.md` (자동 갱신)
+
+**D 하이브리드** — 옵시디언으로 vault 열기, 또는 `--mkdocs` 옵션으로 MkDocs 정적 사이트 빌드:
+
+```bash
+/techdoc-export-wiki --doc ./output --vault ~/Wiki --mkdocs
+cd ~/Wiki && pip install mkdocs-material && mkdocs build
+# → ~/Wiki/site/ 정적 HTML 사이트
+```
+
+**충돌 감지** 자동: 같은 엔티티의 다른 보고서가 다른 수치(연도·기관 등)를 가지면 페이지에 `> ⚠️ **정보 충돌 감지**` callout 자동 추가.
+
+**사용자 메모 보존**: 사용자가 옵시디언/VS Code에서 페이지에 직접 추가한 메모는 재export에도 절대 손대지 않음 (`<!-- techdoc:auto-* -->` 마커 정책).
+
+### 상황 I: plugin 자체 업데이트 (v1.1.0 신규)
+
+```bash
+# 새 버전 체크만
+/techdoc-update --check
+
+# [y/N] 확인 후 자동 다운로드·교체
+/techdoc-update
+```
+
+GitHub Releases에서 최신 zip을 받아 `~/.claude/plugins/techdoc-plugin/` 자동 갱신. LLM 호출 없이 결정론적.
 
 ---
 
