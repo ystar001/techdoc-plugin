@@ -15,7 +15,5 @@
     "research",
     "multi-agent",
     "claude-code-plugin"
-  ],
-  "commands": "./commands/",
-  "agents": "./agents/"
+  ]
 }
