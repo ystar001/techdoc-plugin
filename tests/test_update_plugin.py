@@ -380,3 +380,67 @@ def test_verify_sha256_accepts_checksum_file_format(tmp_path):
     correct = "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
     checksum_file_content = f"{correct}  x.bin\n"
     assert verify_sha256(f, checksum_file_content) is True
+
+
+# ── Plan B Task 2: fetch_sha256_for_release (F7) ─────────────────────────────
+
+
+def test_fetch_sha256_for_release_returns_content():
+    """release에 .sha256 자산이 있으면 그 내용을 반환한다."""
+    from scripts.update_plugin import fetch_sha256_for_release, Release
+
+    sha_content = (
+        "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
+        "  techdoc-plugin-v1.1.1.zip\n"
+    )
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, text=sha_content)
+
+    rel = Release(
+        version="1.1.1",
+        tag_name="v1.1.1",
+        name="TechDoc 1.1.1",
+        body="",
+        published_at="2026-05-13",
+        zip_url="https://example.invalid/techdoc-plugin.zip",
+        sha256_url="https://example.invalid/techdoc-plugin.zip.sha256",
+    )
+    transport = httpx.MockTransport(handler)
+    result = fetch_sha256_for_release(rel, transport=transport)
+    assert result is not None
+    assert result.strip().startswith("ba7816")
+
+
+def test_fetch_sha256_returns_none_when_url_missing():
+    """release에 .sha256 자산이 없으면 None 반환 (역호환)."""
+    from scripts.update_plugin import fetch_sha256_for_release, Release
+
+    rel = Release(
+        version="1.1.0", tag_name="v1.1.0", name="", body="", published_at="",
+        zip_url="https://example.invalid/a.zip", sha256_url="",
+    )
+    assert fetch_sha256_for_release(rel) is None
+
+
+def test_fetch_latest_release_extracts_sha256_url():
+    """release payload에 .sha256 자산이 있으면 sha256_url에 채워진다."""
+    from scripts.update_plugin import fetch_latest_release
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json={
+            "tag_name": "v1.1.1",
+            "name": "v1.1.1",
+            "body": "",
+            "published_at": "2026-05-13",
+            "assets": [
+                {"name": "techdoc-plugin.zip",
+                 "browser_download_url": "https://example.invalid/x.zip"},
+                {"name": "techdoc-plugin.zip.sha256",
+                 "browser_download_url": "https://example.invalid/x.zip.sha256"},
+            ],
+        })
+
+    rel = fetch_latest_release(transport=httpx.MockTransport(handler))
+    assert rel.zip_url == "https://example.invalid/x.zip"
+    assert rel.sha256_url == "https://example.invalid/x.zip.sha256"

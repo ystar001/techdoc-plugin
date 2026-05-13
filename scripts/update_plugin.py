@@ -96,6 +96,7 @@ class Release:
     body: str
     published_at: str
     zip_url: str
+    sha256_url: str = ""  # F7: .sha256 자산 URL (없으면 빈 문자열, 역호환)
 
 
 def fetch_latest_release(transport: httpx.BaseTransport | None = None) -> Release:
@@ -119,11 +120,13 @@ def fetch_latest_release(transport: httpx.BaseTransport | None = None) -> Releas
     version = tag.lstrip("v")
 
     zip_url = ""
+    sha256_url = ""
     for asset in payload.get("assets", []):
         name = asset.get("name", "")
-        if name.endswith(".zip"):
+        if name.endswith(".zip") and not zip_url:
             zip_url = asset.get("browser_download_url", "")
-            break
+        elif name.endswith(".zip.sha256") and not sha256_url:
+            sha256_url = asset.get("browser_download_url", "")
     if not zip_url:
         raise PluginError("릴리스에 zip 자산이 없습니다")
 
@@ -134,10 +137,31 @@ def fetch_latest_release(transport: httpx.BaseTransport | None = None) -> Releas
         body=payload.get("body", ""),
         published_at=payload.get("published_at", ""),
         zip_url=zip_url,
+        sha256_url=sha256_url,
     )
 
 
 # ── zip 다운로드·적용 ────────────────────────────────────────────────────────
+
+
+def fetch_sha256_for_release(
+    release: Release,
+    transport: httpx.BaseTransport | None = None,
+) -> str | None:
+    """release.sha256_url에서 체크섬 텍스트를 가져온다.
+
+    URL이 없으면 None 반환 (역호환). 다운로드 실패 시 PluginError.
+    """
+    if not release.sha256_url:
+        return None
+    try:
+        with httpx.Client(transport=transport, timeout=30.0, follow_redirects=True) as client:
+            resp = client.get(release.sha256_url)
+    except httpx.HTTPError as e:
+        raise PluginError(f"sha256 다운로드 네트워크 오류: {e}") from e
+    if resp.status_code != 200:
+        raise PluginError(f"sha256 다운로드 실패 status={resp.status_code}")
+    return resp.text
 
 
 def download_zip(
