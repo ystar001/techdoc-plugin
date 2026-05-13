@@ -160,6 +160,35 @@ projects:
 - WebFetch 타임아웃: 해당 REF 스킵, 경고만 출력
 - 라운드 타임아웃 (`TECHDOC-E043`): 부분 결과 저장 + 다음 라운드 진입
 
+### Write 권한 거부 시 (F6 방어 — 매우 중요)
+
+Write tool 호출이 권한 거부로 실패한 경우 (사용자가 `[n]` 선택 또는 settings.json 권한 누락):
+
+1. **즉시 모든 추가 Write 시도 중단**. 추가 쿼리·새 라운드 진입 금지.
+2. **우회 생성 절대 금지** — 메인 세션·다른 디스크 경로에 임시 저장 시도 금지.
+3. 이미 디스크에 쓰여진 부분 결과(이전 라운드의 `research_round_<G>_r<N>.json`)는 그대로 유지.
+4. 다음 형식으로 메인 세션에 **명시적 보고** 후 종료:
+
+```json
+{
+  "status": "write_denied",
+  "researcher_group": "A",
+  "round_at_failure": 3,
+  "refs_collected_so_far": 18,
+  "unwritten_payload": {
+    "round": 3,
+    "queries": ["..."],
+    "candidate_refs": [
+      {"category": "학술", "url": "https://...", "title": "...", "excerpt": "..."}
+    ]
+  },
+  "user_action_required": "Write tool 권한을 허용한 후 /techdoc-research --resume 으로 재개하세요. 또는 settings.json의 permissions.allow에 Write를 추가하세요."
+}
+```
+
+5. `unwritten_payload`는 메인 세션이 사용자 권한 확보 후 디스크에 기록할 수 있도록 **구조화된 형태**로 반환.
+6. `KeyRef_overlap_*` 같은 임시 디렉토리 생성·우회 금지. 위반 시 사용자 신뢰 손실 + 중복 산출 사고(2026-04-29 cat13/14 사례).
+
 ## Deepdive 모드: 별첨 6라운드
 
 `--mode deepdive --appendix-id <card_id>` 호출 시:
