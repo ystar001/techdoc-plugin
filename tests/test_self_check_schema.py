@@ -54,3 +54,37 @@ def test_f4_fixture_has_inline_self_diagnosis():
         for body in bodies if re.search(p, body)
     ]
     assert matches, "F4 fixture가 인라인 자체 검증 패턴을 포함해야 함"
+
+
+from techdoc_core.schemas import SelfCheckResult
+
+
+def test_self_check_result_defaults_to_optional():
+    """SelfCheckResult는 모든 카드 사이즈에 동일하게 적용 — 모든 필드 optional."""
+    result = SelfCheckResult()
+    assert result.blocks_filled is None
+    assert result.refs_count is None
+    assert result.min_length_ok is None
+    assert result.ai_inference_below_threshold is None
+    assert result.no_unverified_markers is None
+    assert result.notes == []
+
+
+def test_self_check_result_full_population():
+    """모든 검증 항목을 명시한 정상 케이스."""
+    result = SelfCheckResult(
+        blocks_filled=True,
+        refs_count=6,
+        min_length_ok=True,
+        ai_inference_below_threshold=True,
+        no_unverified_markers=True,
+        notes=["기준 충족"],
+    )
+    assert result.refs_count == 6
+    assert "기준 충족" in result.notes
+
+
+def test_self_check_result_rejects_unknown_field():
+    """schema 외 필드는 거부 (pydantic strict)."""
+    with pytest.raises(Exception):
+        SelfCheckResult(unexpected_key="value")

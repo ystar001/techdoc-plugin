@@ -235,6 +235,38 @@ class ReferenceListSchema(BaseModel):
     refs: list[KeyRefSchema] = Field(default_factory=list)
 
 
+# ── Card Self-Check Result: writer 자체 검증 결과 (F2·F4 정합) ──
+
+class SelfCheckResult(BaseModel):
+    """writer subagent가 카드 작성 후 수행하는 자체 검증 결과.
+
+    사이즈(S·L1·L2·L3)와 카드 type(tech/project/product) 무관하게 동일 스키마.
+    모든 필드 optional — 기존 카드와 호환을 위해. 미기입은 WARN으로만 처리.
+
+    F2(필드 비대칭) 해결: 한 곳에만 기록.
+    F4(본문 인라인) 해결: 자체 검증 메모는 본문 텍스트가 아니라 이 객체로 출력.
+    """
+    model_config = {"extra": "forbid"}
+
+    blocks_filled: bool | None = None
+    """tech 7 / project 7 / product 6 블록을 모두 채웠는가."""
+
+    refs_count: int | None = None
+    """[REF-xxx] 인용 건수 (최소 5건 권장)."""
+
+    min_length_ok: bool | None = None
+    """카드 사이즈별 최소 분량 충족 여부."""
+
+    ai_inference_below_threshold: bool | None = None
+    """AI 추정 표현이 30% 미만인가."""
+
+    no_unverified_markers: bool | None = None
+    """본문에 [근거 미확인] 마커가 없는가."""
+
+    notes: list[str] = Field(default_factory=list)
+    """자유 메모 (필요 시). 본문 텍스트와 분리되어야 함."""
+
+
 # ── Error Codes (TECHDOC-Exxx) ──
 
 ERROR_CODES = {
