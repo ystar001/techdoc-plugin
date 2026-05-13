@@ -190,6 +190,8 @@ def run_export(
                 state["sections"].pop(sid, None)
 
     elif mode == "self_model":
+        # Task 14: cards/*_card.json 순회 — 각 카드를 Notion 페이지 1개로 push.
+        # card.name 이 빈 경우 card_id로 fallback (§critical impl note 4).
         from scripts.card_layout import load_self_model_card
 
         report_title = output_dir.name  # 보고서 title은 디렉토리 이름으로 fallback
