@@ -98,3 +98,29 @@ def test_load_standard_card_state_raises_on_missing_id(tmp_path):
     )
     with pytest.raises(KeyError):
         load_standard_card_state(tmp_path, "9.9.9")
+
+
+def test_self_model_card_schema_validates_fixture():
+    """자체 모델 fixture가 SelfModelCardSchema로 검증되는지."""
+    from techdoc_core.schemas import SelfModelCardSchema
+
+    data = json.loads((FIXTURES / "self_model_layout.json").read_text("utf-8"))
+    schema = SelfModelCardSchema.model_validate(data)
+    assert schema.id == "6.5"
+    assert "sec1_definition_scope" in schema.sections
+
+
+def test_self_model_card_schema_accepts_arbitrary_section_keys():
+    """section 키는 자유롭게 — 자식 프로젝트마다 다른 컨벤션 허용."""
+    from techdoc_core.schemas import SelfModelCardSchema
+
+    data = {
+        "id": "x.y",
+        "name": "anything",
+        "sections": {
+            "custom_key_1": {"body": "..."},
+            "another_custom_key": {"body": "..."},
+        },
+    }
+    schema = SelfModelCardSchema.model_validate(data)
+    assert "custom_key_1" in schema.sections

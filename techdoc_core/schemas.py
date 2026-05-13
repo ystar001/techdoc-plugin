@@ -267,6 +267,39 @@ class SelfCheckResult(BaseModel):
     """자유 메모 (필요 시). 본문 텍스트와 분리되어야 함."""
 
 
+# ── Self-model Card (F8) — 자식 프로젝트가 채택 가능한 대체 레이아웃 ──────────
+
+
+class SelfModelSection(BaseModel):
+    """self-model 카드의 한 섹션. `body` 필드만 강제, 나머지는 자유."""
+    model_config = {"extra": "allow"}
+
+    body: str = ""
+    """섹션 본문. 자체 모델의 body 키 표준화 (F1 해결)."""
+
+
+class SelfModelCardSchema(BaseModel):
+    """plugin이 인정하는 2nd-class 카드 레이아웃 — self-model.
+
+    호출 1건 = 단일 카드 (`output/cards/<call_id>_card.json`).
+    카드 = sections dict (키는 프로젝트별 자유, 각 섹션은 body 필수).
+
+    plugin core renderers는 이 schema를 직접 처리하지 않는다 — `scripts.card_layout`
+    유틸과 `/techdoc-rewrite`·`/techdoc-write` skill fallback이 사용.
+
+    자식 프로젝트는 이 모델을 채택할 수 있으며, plugin은 호환을 유지한다.
+    section 키 컨벤션은 `prompts/_shared/card_layout_conventions.md` 참조.
+    """
+    model_config = {"extra": "allow"}
+
+    id: str
+    name: str = ""
+    type: str = ""  # tech | project | product (자유)
+    importance: str = "medium"
+    sections: dict[str, SelfModelSection] = Field(default_factory=dict)
+    self_check: dict | None = None  # Plan A의 self_check 필드 재사용 가능
+
+
 # ── Error Codes (TECHDOC-Exxx) ──
 
 ERROR_CODES = {
