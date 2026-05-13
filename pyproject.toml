@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "techdoc-plugin"
-version = "1.1.1"
+version = "1.1.2"
 description = "TechDoc — AI 기술보고서 생성 Cowork Plugin (Claude Code 네이티브)"
 readme = "README.md"
 license = { text = "MIT" }

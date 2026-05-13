@@ -4,6 +4,26 @@ All notable changes to TechDoc Plugin.
 
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.1.2] — 2026-05-13
+
+### Added
+
+- **F8** `/techdoc-rewrite`·`/techdoc-write`에 self-model 카드 레이아웃(호출 1건 = 단일 카드 JSON `output/cards/<id>_card.json`) fallback 추가. `scripts/card_layout.py`로 standard vs self_model 자동 판별. `/techdoc-write --single-call <id>` 인자 신설.
+- `techdoc_core.schemas.SelfModelCardSchema` + `SelfModelSection` — 2nd-class 자체 모델 인정·문서화 (1st-class 채택 아님, 자식 프로젝트 호환 단편).
+- `prompts/_shared/card_layout_conventions.md` — F1(body 키)·F3(section 키) 권장 컨벤션 명문화. 자식 프로젝트가 self-model 채택 시 참조.
+- `tests/test_card_layout.py` — 모드 판별·로드·schema 회귀 10건.
+- `tests/fixtures/cards/self_model_layout.json` — openfieldtech 6.5 카드 모사 fixture.
+
+### Changed
+
+- `commands/techdoc-rewrite.md` Step 0: 카드 레이아웃 mode 자동 판별 + self-model 분기.
+- `commands/techdoc-write.md`: `--single-call <id>` 인자 명세 추가.
+
+### Compatibility
+
+- SCHEMA_VERSION 0.1.0 유지. 기존 standard 모드 카드·writer_state는 무변경 통과.
+- self-model 모드는 자식 프로젝트 선택 — plugin core(`render`·`check_quality`·`migrate`)는 standard만 직접 지원.
+
 ## [1.1.1] — 2026-05-13
 
 ### Fixed
