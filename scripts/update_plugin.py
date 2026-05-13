@@ -208,6 +208,34 @@ def apply_zip(zip_path: Path, plugin_root: Path) -> None:
         zf.extractall(plugin_root)
 
 
+# ── 백업·롤백 (F7) ───────────────────────────────────────────────────────────
+
+BACKUPS_DIR = "backups"
+
+
+def backup_plugin(plugin_root: Path) -> Path:
+    """plugin_root 전체를 backups/<YYYY-MM-DD-HHMMSS>/에 복사. 백업 경로 반환.
+
+    `backups/` 디렉토리 자체는 복사 대상에서 제외 (재귀 방지).
+    """
+    from datetime import datetime
+
+    timestamp = datetime.now().strftime("%Y-%m-%d-%H%M%S")
+    backup_root = plugin_root / BACKUPS_DIR / timestamp
+    backup_root.mkdir(parents=True, exist_ok=False)
+
+    for item in plugin_root.iterdir():
+        if item.name == BACKUPS_DIR:
+            continue
+        target = backup_root / item.name
+        if item.is_dir():
+            shutil.copytree(item, target)
+        else:
+            shutil.copy2(item, target)
+
+    return backup_root
+
+
 # ── 사용자 출력·프롬프트 ──────────────────────────────────────────────────────
 
 

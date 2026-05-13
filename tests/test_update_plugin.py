@@ -444,3 +444,31 @@ def test_fetch_latest_release_extracts_sha256_url():
     rel = fetch_latest_release(transport=httpx.MockTransport(handler))
     assert rel.zip_url == "https://example.invalid/x.zip"
     assert rel.sha256_url == "https://example.invalid/x.zip.sha256"
+
+
+# ── Plan B Task 3: backup_plugin (F7) ────────────────────────────────────────
+
+
+def test_backup_plugin_creates_timestamped_copy(fake_plugin_dir):
+    """backup_plugin은 backups/<timestamp>/ 디렉토리에 plugin_root 전체를 복사."""
+    from scripts.update_plugin import backup_plugin
+
+    backup_dir = backup_plugin(fake_plugin_dir)
+
+    assert backup_dir.exists()
+    assert backup_dir.is_dir()
+    assert backup_dir.parent.name == "backups"
+    assert (backup_dir / ".claude-plugin" / "plugin.json").exists()
+    assert (backup_dir / "commands" / "existing.md").exists()
+
+
+def test_backup_plugin_excludes_backups_directory(fake_plugin_dir):
+    """이전 백업이 있으면 새 백업에 포함하지 않음 (재귀 방지)."""
+    from scripts.update_plugin import backup_plugin
+
+    old_backup = fake_plugin_dir / "backups" / "2026-01-01-000000"
+    old_backup.mkdir(parents=True)
+    (old_backup / "marker.txt").write_text("old")
+
+    new_backup = backup_plugin(fake_plugin_dir)
+    assert not (new_backup / "backups").exists()
