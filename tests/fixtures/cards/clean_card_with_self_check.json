@@ -1,0 +1,22 @@
+{
+  "id": "4.6.L1",
+  "type": "tech",
+  "name": "예시 기술",
+  "importance": "high",
+  "sections": {
+    "sec1_definition_scope": {
+      "body": "본 기술은 ... [REF-001]을 따라 ... 작동한다 [REF-002]."
+    },
+    "sec2_principles": {
+      "body": "원리는 ... 이다 [REF-003]."
+    }
+  },
+  "self_check": {
+    "blocks_filled": true,
+    "refs_count": 6,
+    "min_length_ok": true,
+    "ai_inference_below_threshold": true,
+    "no_unverified_markers": true,
+    "notes": ["AI 추정 표현 0%, 모든 OEM 사양·시장 수치는 KeyRef 직접 인용"]
+  }
+}

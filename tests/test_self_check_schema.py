@@ -149,3 +149,22 @@ def test_product_card_self_check_round_trip():
         self_check={"refs_count": 4},
     )
     assert ProductCard.from_dict(src.to_dict()).self_check == {"refs_count": 4}
+
+
+def test_clean_card_has_no_inline_self_diagnosis():
+    """정상 카드는 본문에 자체 검증 메모를 포함하지 않는다."""
+    card = json.loads((FIXTURES / "clean_card_with_self_check.json").read_text("utf-8"))
+    bodies = _iter_card_body_texts(card)
+    matches = [
+        p for p in INLINE_SELF_DIAGNOSIS_PATTERNS
+        for body in bodies if re.search(p, body)
+    ]
+    assert not matches, f"정상 카드 본문에 인라인 패턴 잔존: {matches}"
+
+
+def test_clean_card_self_check_validates_against_schema():
+    """정상 카드의 self_check는 SelfCheckResult로 검증 통과."""
+    card = json.loads((FIXTURES / "clean_card_with_self_check.json").read_text("utf-8"))
+    result = SelfCheckResult.model_validate(card["self_check"])
+    assert result.refs_count == 6
+    assert "AI 추정 표현 0%" in result.notes[0]
