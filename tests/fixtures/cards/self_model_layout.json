@@ -1,0 +1,14 @@
+{
+  "id": "6.5",
+  "type": "tech",
+  "name": "정밀 분무 시스템",
+  "importance": "medium",
+  "sections": {
+    "sec1_definition_scope": {"body": "정의·범위 본문 ..."},
+    "sec2_principles": {"body": "원리 본문 ..."},
+    "sec3_trends_domestic_global": {"body": "국내외 동향 본문 ..."},
+    "sec4_components_methodology": {"body": "구성요소 본문 ..."},
+    "sec5_limitations_challenges": {"body": "한계 본문 ..."},
+    "sec6_outlook": {"body": "전망 본문 ..."}
+  }
+}
