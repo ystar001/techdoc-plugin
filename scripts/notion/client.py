@@ -57,12 +57,30 @@ class NotionClient:
             time.sleep(sleep_for)
         self._last_call_at = time.monotonic()
 
-    def _request(self, method: str, path: str, **kwargs) -> dict:
-        self._wait_for_rate_limit()
-        resp = self._client.request(method, path, **kwargs)
-        if resp.status_code >= 400:
+    def _request(self, method: str, path: str, max_retries: int = 3, **kwargs) -> dict:
+        backoff = 1.0
+        last_error: NotionAPIError | None = None
+        for attempt in range(max_retries):
+            self._wait_for_rate_limit()
+            resp = self._client.request(method, path, **kwargs)
+            if 200 <= resp.status_code < 300:
+                return resp.json()
+            if resp.status_code == 429:
+                retry_after = float(resp.headers.get("Retry-After", "1"))
+                time.sleep(retry_after)
+                continue
+            if 500 <= resp.status_code < 600:
+                last_error = NotionAPIError(status_code=resp.status_code, body=resp.text)
+                if attempt < max_retries - 1:
+                    time.sleep(backoff)
+                    backoff *= 2
+                    continue
+                raise last_error
+            # 4xx (429 제외) — 즉시 실패
             raise NotionAPIError(status_code=resp.status_code, body=resp.text)
-        return resp.json()
+        if last_error:
+            raise last_error
+        raise NotionAPIError(status_code=0, body="exhausted retries")
 
     # ── Public methods ──
 
