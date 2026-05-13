@@ -16,6 +16,17 @@ reviewer subagent가 판단하고 writer subagent가 외과적으로 수정합�
 
 ## 실행 흐름
 
+### 0. Phase A — 결정론적 품질 검사 (v1.1.3+)
+
+domain reviewer 호출 전에 `scripts.check_quality`로 23지표 자동 측정. self-model 카드 레이아웃도 자동 감지(F5+F8 연계).
+
+```bash
+python -m scripts.check_quality -i "$OUTPUT_DIR" -o "$OUTPUT_DIR/quality_report.json"
+```
+
+산출: `$OUTPUT_DIR/quality_report.json` (mode·overall·total_fail·issues 포함).
+exit 2면 FAIL 우선 해소(Phase B 진입 전 `/techdoc-rewrite`로 카드 보강).
+
 ### 1. Reviewer 호출 (단일 subagent, 도메인별)
 
 ```

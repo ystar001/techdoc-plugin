@@ -8,7 +8,7 @@
     {
       "name": "techdoc-plugin",
       "source": "./",
-      "version": "1.1.2",
+      "version": "1.1.3",
       "description": "AI 기술보고서 생성 — 대학·기업·연구기관 레퍼런스 77% 기반, 카드 중첩식 섹션, 별첨 심층분석",
       "author": {
         "name": "Klaus"

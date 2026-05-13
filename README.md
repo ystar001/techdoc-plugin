@@ -1,9 +1,9 @@
 # TechDoc Plugin
 
-> **AI 기술보고서 자동 생성 Claude Code 플러그인** — v1.1.2 (2026-05-13)
+> **AI 기술보고서 자동 생성 Claude Code 플러그인** — v1.1.3 (2026-05-13)
 > 레퍼런스 100% 기반 · 카드 중첩식 섹션 · 별첨 논문 수준 심층분석 · LLM Wiki 통합 · Claude Code 네이티브
 
-[![Version](https://img.shields.io/badge/version-1.1.2-green)]()
+[![Version](https://img.shields.io/badge/version-1.1.3-green)]()
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue)]()
 [![License](https://img.shields.io/badge/license-MIT-green)]()
 [![Plugin](https://img.shields.io/badge/claude--code-plugin-purple)]()
@@ -1051,6 +1051,7 @@ unzip techdoc-plugin-v1.1.0-wrapped.zip -d ~/.claude/plugins/
 
 | 버전 | 주요 변경 | 파일 수 | 코드 |
 |---|---|---|---|
+| **v1.1.3** (2026-05-13) | F5 자체 모델 품질 검사: `scripts/check_quality`에 self-model 카드 레이아웃 지원 + mode 자동 라우팅 + F1 변형 본문 키 재귀 합산. `/techdoc-review` Phase A 자동화. SCHEMA 유지. | (변동 없음) | 약 19k줄 |
 | **v1.1.2** (2026-05-13) | F8 자체 모델 호환: `/techdoc-rewrite`·`/techdoc-write` skill에 self-model 카드 레이아웃(`output/cards/<id>_card.json`) fallback + `--single-call` 인자. F1·F3 컨벤션 명문화. SCHEMA 유지. | (변동 없음) | 약 18.5k줄 |
 | **v1.1.1** (2026-05-13) | F2·F4·F6·F7 정합: writer `self_check` 필드 통일 + 본문 인라인 자체 검증 금지 + researcher Write 권한 거부 사전 차단(preflight·prompt 규약) + `/techdoc-update` SHA-256·자동 백업·롤백. SCHEMA_VERSION 유지. | (변동 없음) | 약 18k줄 |
 | **v1.1.0** (2026-05-04) | `/techdoc-update`(자체 갱신) + `/techdoc-export-wiki`(LLM Wiki, D 하이브리드) + `/techdoc --export-wiki` 통합 옵션. pytest 인프라(85 tests). | 130+ | 약 17k줄 |

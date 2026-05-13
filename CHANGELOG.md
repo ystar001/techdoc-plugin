@@ -4,6 +4,24 @@ All notable changes to TechDoc Plugin.
 
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.1.3] — 2026-05-13
+
+### Added
+
+- **F5** `scripts/check_quality`에 self-model 카드 레이아웃(`output/cards/*_card.json`) 지원 추가. 기존 standard 모드(`document_final.json`)와 함께 라우팅: `python -m scripts.check_quality -i <output_dir>`가 mode 자동 판별. openfieldtech `scripts/verify_cards.py`의 사이즈별 임계(S 14k / L1 7k / L2 10k / L3 5k)·F1 변형 본문 키(`body`/`narrative`/`content`) 재귀 합산 패턴 흡수. (openfieldtech findings F5)
+- `scripts/check_quality.run_quality_check(output_dir)` — 새 entry point (mode 자동 라우팅).
+- `scripts/check_quality.measure_self_model(output_dir)` — self-model 일괄 검사.
+- `tests/test_check_quality.py` — self_model/standard/unknown 모드 + F1 변형·CLI 회귀 5건.
+
+### Changed
+
+- `commands/techdoc-review.md` Step 0 (Phase A): domain reviewer 호출 전에 `check_quality` 자동 실행 명시.
+- `scripts/check_quality.main` CLI: `-i <dir>` 형태로 디렉토리 지정 시 자동 mode 판별. 기존 `-i <document_final.json>` 동작 유지.
+
+### Compatibility
+
+- SCHEMA_VERSION 0.1.0 유지. 기존 standard 모드 호출(`-i document_final.json`)은 무변경 통과.
+
 ## [1.1.2] — 2026-05-13
 
 ### Added
