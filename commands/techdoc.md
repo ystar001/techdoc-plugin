@@ -1,7 +1,7 @@
 ---
 description: TechDoc 통합 파이프라인 - 목차→조사→작성→검토→별첨→렌더링. 60~130분, 본문 100~150p + 별첨 85~175p
 allowed-tools: Bash, Read, Write, Agent
-argument-hint: "<제목> [--toc FILE] [--mode exact|enhance] [--outline FILE] [--domain tech|market|policy] [--style 서술형|개조식] [--depth quick|standard|deep] [--ref file:|url:|site:] [--deep-dive IDs] [--no-deep-dive] [-o OUTPUT] [--export-wiki <vault>]"
+argument-hint: "<제목> [--toc FILE] [--mode exact|enhance] [--outline FILE] [--domain tech|market|policy] [--style 서술형|개조식] [--depth quick|standard|deep] [--ref file:|url:|site:] [--deep-dive IDs] [--no-deep-dive] [-o OUTPUT] [--export-wiki <vault>] [--push-notion <parent_page_id>]"
 ---
 
 # /techdoc — 전체 파이프라인 통합 실행
@@ -29,6 +29,7 @@ argument-hint: "<제목> [--toc FILE] [--mode exact|enhance] [--outline FILE] [-
 - `--no-deep-dive` — 별첨 생략
 - `-o DIR` — 출력 디렉토리 (기본: `./output`)
 - `--export-wiki <vault>` — 렌더링 완료 후 vault에 LLM Wiki 자동 export (D 하이브리드: 옵시디언·MkDocs·표준 마크다운 호환). `/techdoc-export-wiki --doc <output> --vault <vault> --create-vault`를 마지막 Step으로 자동 호출.
+- `--push-notion <parent_page_id>` — 렌더링 완료 후 Notion 워크스페이스로 자동 publish. `NOTION_TOKEN` 환경 변수 필수. `/techdoc-export-notion --parent-page <id>`를 마지막 Step으로 자동 호출.
 
 ## 실행 흐름 (사용자 확인 포인트 포함)
 
@@ -98,6 +99,24 @@ FAIL 있으면 사용자에게 보고 + `/techdoc-rewrite` 권장.
 document_draft.json → document_final.json 승격 (rename/copy)
 /techdoc-render --input document_final.json --refs ... --formats html,pdf,docx,md
 ```
+
+### Phase 9: Wiki export (선택, `--export-wiki <vault>` 제공 시)
+
+```bash
+/techdoc-export-wiki --doc "$OUTPUT_DIR" --vault "$VAULT_PATH" --create-vault
+```
+
+### Phase 10: Notion publish (선택, `--push-notion <id>` 제공 시)
+
+`--push-notion <parent_page_id>` 인자가 있으면 보고서 생성 완료 후 자동으로:
+
+```bash
+python -m scripts.export_notion --doc "$OUTPUT_DIR" --parent-page "$NOTION_PARENT_PAGE"
+```
+
+`NOTION_TOKEN` 환경 변수 필수. 미설정 시 경고 출력 후 보고서 산출은 유지 (Notion push만 skip).
+
+이 단계는 `/techdoc-export-notion` 단독 호출과 동등 — 사용자는 둘 다 가능.
 
 ## 단계 간 사용자 확인 (기본 ON)
 
