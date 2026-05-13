@@ -4,6 +4,39 @@ All notable changes to TechDoc Plugin.
 
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.2.0] — 2026-05-13
+
+### Added
+
+- **Notion 통합** — `/techdoc-export-notion` 신규 슬래시 명령. TechDoc 보고서를 Notion 워크스페이스로 publish. 페이지 계층(루트 + 섹션·별첨 자식 페이지) + KeyRef inline database 자동 생성.
+- `/techdoc --push-notion <parent_page_id>` 통합 옵션 — 보고서 생성 완료 후 자동 Notion publish.
+- 신규 모듈: `scripts/notion/{client,blocks,keyref_db,state,preflight}.py` + `scripts/export_notion.py`. LLM 호출 0회. httpx 기반 (신규 의존성 0).
+- **delta sync** — `output/notion_state.json`의 content hash로 변경 카드만 update_page. 50카드 중 1개 수정 시 API ~1회.
+- **mode 자동 판별** — standard + self_model 양쪽 지원 (`scripts.card_layout.detect_mode` 재사용).
+- **Phase A 안전 장치** — parent page 권한 사전 점검 + parent_page_id 일관성 검증 + title 변경 자동 갱신.
+- **v2 호환 디자인 원칙 4종 명시적 구현**:
+  - `notion_state.json`에 `last_edited_time` 보존 (v1.3.x conflict 감지 준비)
+  - blocks 변환 가역성 (heading level·code language·table 구조 무손실)
+  - REF mention의 안정적 ID (`REF-XXX` 기준)
+  - `schema_version` 명시 (`notion_state.json` 0.1.0)
+
+### Spec · Plan
+
+- `docs/superpowers/specs/2026-05-13-notion-push-integration-design.md` (285줄, 12 섹션).
+- `docs/superpowers/plans/2026-05-13-notion-push-integration.md` (~20 task).
+
+### 양방향 sync 로드맵 (§10-1)
+
+- **v1.2.x**: `--protect-pages` 옵션 — Notion 측 수동 편집 부분 보존.
+- **v1.3.x**: 선택적 pull-back (`/techdoc-pull-notion`) — Notion → disk 명시적 sync.
+- **v2.0**: 완전 양방향 sync — timestamp 기반 reconciliation.
+
+### Compatibility
+
+- SCHEMA_VERSION 0.1.0 유지 (breaking 아님).
+- 신규 의존성 0개 (httpx·pydantic 이미 포함).
+- `NOTION_TOKEN` 미설정 사용자는 영향 없음 (단순히 새 기능을 사용 안 함).
+
 ## [1.1.3] — 2026-05-13
 
 ### Added
