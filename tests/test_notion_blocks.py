@@ -85,3 +85,38 @@ def test_equation_block_dollar_dollar():
     blocks = markdown_to_blocks(md)
     assert blocks[0]["type"] == "equation"
     assert blocks[0]["equation"]["expression"] == "E = mc^2"
+
+
+def test_table_block_simple():
+    from scripts.notion.blocks import markdown_to_blocks
+
+    md = "| H1 | H2 |\n|---|---|\n| a | b |\n| c | d |"
+    blocks = markdown_to_blocks(md)
+    assert len(blocks) == 1
+    assert blocks[0]["type"] == "table"
+    tbl = blocks[0]["table"]
+    assert tbl["table_width"] == 2
+    assert tbl["has_column_header"] is True
+    rows = tbl["children"]
+    assert len(rows) == 3  # header + 2 data rows
+    assert rows[0]["table_row"]["cells"][0][0]["text"]["content"] == "H1"
+
+
+def test_image_block_external_url():
+    from scripts.notion.blocks import markdown_to_blocks
+
+    md = "![설명](https://example.com/x.png)"
+    blocks = markdown_to_blocks(md)
+    assert blocks[0]["type"] == "image"
+    assert blocks[0]["image"]["external"]["url"] == "https://example.com/x.png"
+
+
+def test_image_local_path_becomes_placeholder():
+    """로컬 경로 이미지는 paragraph + WARN으로 fallback (v1.2.0)."""
+    from scripts.notion.blocks import markdown_to_blocks
+
+    md = "![차트](./figures/chart.png)"
+    blocks = markdown_to_blocks(md)
+    assert blocks[0]["type"] == "paragraph"
+    text = blocks[0]["paragraph"]["rich_text"][0]["text"]["content"]
+    assert "차트" in text or "chart.png" in text
