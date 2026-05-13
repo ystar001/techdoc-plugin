@@ -66,7 +66,7 @@ TechDoc은 **AI 기술보고서 자동 생성 + LLM Wiki 누적을 지원하는 
 - ⭐ **LLM Wiki 누적** (D 하이브리드: 옵시디언·MkDocs·표준 마크다운 호환)
 - ⭐ **자체 업데이트** (`/techdoc-update`로 새 버전 자동 갱신)
 
-하도록 설계된 **13종 슬래시 명령 + 3종 Subagent + 26종 프롬프트 + 13+ Python 모듈**의 종합 도구입니다.
+하도록 설계된 **14종 슬래시 명령 + 3종 Subagent + 26종 프롬프트 + 14+ Python 모듈**의 종합 도구입니다.
 
 ## 2. 대상 사용자
 
@@ -166,7 +166,7 @@ techdoc-plugin/                                  # 플러그인 루트 (v1.1.0)
 │   ├── plugin.json                              # 이름·버전·설명
 │   └── marketplace.json                         # 자체 마켓플레이스
 │
-├── commands/                                    # 13종 슬래시 명령
+├── commands/                                    # 14종 슬래시 명령
 │   ├── techdoc.md            techdoc-outline.md
 │   ├── techdoc-research.md   techdoc-write.md
 │   ├── techdoc-review.md     techdoc-render.md
