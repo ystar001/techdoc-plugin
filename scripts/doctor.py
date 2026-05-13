@@ -166,15 +166,23 @@ def check_playwright_chromium(r: DoctorResult) -> None:
 
 
 def check_output_dir(r: DoctorResult, output_dir: str = "./output") -> None:
+    """output 디렉토리 Write 권한 사전 점검 (F6 방어)."""
+    from scripts.preflight import check_write_permission
+
     p = Path(output_dir)
-    if p.exists():
-        if p.is_dir():
-            r.add(f"output dir ({output_dir})", "OK", detail="exists")
-        else:
-            r.add(f"output dir ({output_dir})", "FAIL", detail="not a directory",
-                  fix=f"rm {output_dir}")
+    if p.exists() and not p.is_dir():
+        r.add(f"output dir ({output_dir})", "FAIL",
+              detail="not a directory",
+              fix=f"rm {output_dir}")
+        return
+
+    ok, reason = check_write_permission(p)
+    if ok:
+        r.add(f"output dir ({output_dir})", "OK", detail="Write preflight 통과")
     else:
-        r.add(f"output dir ({output_dir})", "OK", detail="will be created on first run")
+        r.add(f"output dir ({output_dir})", "FAIL",
+              detail=reason,
+              fix=f"권한 확인 후 재시도 (POSIX: chmod +w {output_dir})")
 
 
 def main() -> int:
