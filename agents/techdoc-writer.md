@@ -136,14 +136,37 @@ projects:
 이벤트는 `append`, 전체 덮어쓰지 말 것. `monitor.py`가 이 파일을 폴링함.
 
 ## 자체 검증 (카드당)
-작성 후 해당 카드 검증:
-- [ ] 모든 블록 채움 (tech 7 / project 7 / product 6)
-- [ ] [REF-xxx] 인용 최소 5건
-- [ ] 최소 분량 충족 (중요도별)
-- [ ] AI 추정 표현 < 30%
-- [ ] `[근거 미확인]` 잔존 없음
 
-**미달 시 해당 카드만 재작성** (다른 카드 보존). 최대 3회. 그래도 미달 → `writer_state.failed` + `TECHDOC-E030` 기록.
+검증 결과는 **카드 JSON의 `self_check` 필드 1곳에만 기록**한다. 본문(`body`·`narrative`·`content`·`blocks`) 텍스트 안에 "AI 추정 표현 0%", "자가진단", "[REF-xxx] N건 이상 확인" 같은 자체 검증 메모를 **인라인으로 부착하지 말 것**. 사이즈(S·L1·L2·L3) 무관하게 동일한 키를 사용한다.
+
+검증 항목:
+- `blocks_filled` (bool): 모든 블록 채움 (tech 7 / project 7 / product 6)
+- `refs_count` (int): [REF-xxx] 인용 건수 (최소 5건 권장)
+- `min_length_ok` (bool): 카드 사이즈별 최소 분량 충족
+- `ai_inference_below_threshold` (bool): AI 추정 표현 < 30%
+- `no_unverified_markers` (bool): 본문에 `[근거 미확인]` 잔존 없음
+- `notes` (list[str]): 자유 메모 (선택). 본문과 반드시 분리.
+
+출력 예 — 카드 JSON 끝에 부착, 본문에는 일절 기재 금지:
+
+```json
+{
+  "id": "1.1.1",
+  "type": "tech",
+  "name": "LoRa-Mesh",
+  "blocks": { "...": "..." },
+  "self_check": {
+    "blocks_filled": true,
+    "refs_count": 6,
+    "min_length_ok": true,
+    "ai_inference_below_threshold": true,
+    "no_unverified_markers": true,
+    "notes": []
+  }
+}
+```
+
+**미달 시 해당 카드만 재작성** (다른 카드 보존). 최대 3회. 그래도 미달 → `writer_state.failed` + `TECHDOC-E030` 기록. `self_check`가 누락된 카드는 WARN 처리(역호환 — 기존 카드 호환 유지).
 
 ## Appendix 모드: 별첨 작성 흐름
 

@@ -79,9 +79,34 @@ KeyRef의 구조화 데이터를 **그대로 본문에 삽입**:
 ```
 
 ## 자체 검증 (카드별)
-- [ ] 블록 필드 모두 채움 (tech 7 / project 7 / product 6)
-- [ ] [REF-xxx] 인용 최소 5건
-- [ ] 최소 분량 (중요도별)
-- [ ] AI 추정 < 30%
 
-미달 시 해당 카드 재작성 (최대 3회). 그래도 미달이면 `writer_state.failed` 기록 + `TECHDOC-E030`.
+검증 결과는 **카드 JSON의 `self_check` 필드 1곳에만 기록**한다. 본문(`body`·`narrative`·`content`·`blocks`) 텍스트 안에 "AI 추정 표현 0%", "자가진단", "[REF-xxx] N건 이상 확인" 같은 자체 검증 메모를 **인라인으로 부착하지 말 것**. 사이즈(S·L1·L2·L3) 무관하게 동일한 키를 사용한다.
+
+검증 항목:
+- `blocks_filled` (bool): tech 7 / project 7 / product 6 블록을 모두 채웠는가
+- `refs_count` (int): [REF-xxx] 인용 건수 (최소 5건 권장)
+- `min_length_ok` (bool): 카드 사이즈별 최소 분량 충족
+- `ai_inference_below_threshold` (bool): AI 추정 표현 < 30%
+- `no_unverified_markers` (bool): 본문에 [근거 미확인] 잔존 없음
+- `notes` (list[str]): 자유 메모 (선택). 본문과 반드시 분리.
+
+출력 예 (카드 JSON 끝에 부착):
+
+```json
+{
+  "id": "1.1.1",
+  "type": "tech",
+  "name": "LoRa-Mesh",
+  "blocks": { "...": "..." },
+  "self_check": {
+    "blocks_filled": true,
+    "refs_count": 6,
+    "min_length_ok": true,
+    "ai_inference_below_threshold": true,
+    "no_unverified_markers": true,
+    "notes": []
+  }
+}
+```
+
+미달 시 해당 카드 재작성 (최대 3회). 그래도 미달이면 `writer_state.failed` 기록 + `TECHDOC-E030`. `self_check` 자체가 누락된 카드는 WARN 처리(역호환 — 기존 카드 호환 유지).
