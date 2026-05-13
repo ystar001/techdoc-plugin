@@ -16,6 +16,55 @@ argument-hint: "<card-id> [--instruction \"지시문\"] [--refs REF_IDS] [-o OUT
 
 ## 실행 흐름
 
+### 0. 카드 레이아웃 모드 자동 판별 (F8, v1.1.2+)
+
+```bash
+MODE=$(python -c "from scripts.card_layout import detect_mode; from pathlib import Path; print(detect_mode(Path('$OUTPUT_DIR')))")
+echo "Detected card layout mode: $MODE"
+```
+
+분기:
+
+- `MODE == "standard"`: 아래 Step 1~5 (기존 흐름) — `writer_state.json`에서 카드 상태 로드 + Step 4 `document_draft.json` 업데이트.
+- `MODE == "self_model"`: **자체 모델 fallback**. `output/cards/<card-id>_card.json` 직접 로드·수정·저장. `writer_state.json`·`document_draft.json` 건드리지 않음.
+- `MODE == "unknown"`: 사용자에게 안내 후 abort:
+
+```
+[/techdoc-rewrite 중단] 카드 레이아웃을 판별할 수 없습니다.
+
+다음 중 하나가 존재해야 합니다:
+  - $OUTPUT_DIR/writer_state.json (standard 모드)
+  - $OUTPUT_DIR/cards/*_card.json (self-model 모드)
+
+원래 작성 단계(/techdoc-write·/techdoc 등)를 먼저 실행했는지 확인하세요.
+```
+
+### Self-model 모드 흐름 (mode == "self_model" 만)
+
+#### S1. 단일 카드 파일 로드
+
+```bash
+python -c "from scripts.card_layout import load_self_model_card; from pathlib import Path; import json; print(json.dumps(load_self_model_card(Path('$OUTPUT_DIR'), '$CARD_ID'), ensure_ascii=False))" > /tmp/card_current.json
+```
+
+#### S2. 백업
+
+```bash
+mkdir -p "$OUTPUT_DIR/cards/_backup"
+TS=$(date +%Y%m%d_%H%M%S)
+cp "$OUTPUT_DIR/cards/${CARD_ID}_card.json" "$OUTPUT_DIR/cards/_backup/${CARD_ID}_card_${TS}_pre_rewrite.json"
+```
+
+#### S3. Writer subagent 호출 (self-model revise 모드)
+
+writer에게 현재 카드 JSON + `--instruction` 전달. writer는 sections dict의 body만 외과적 수정 후 같은 경로(`output/cards/${CARD_ID}_card.json`)에 저장. `writer_state.json` 이벤트는 emit 안 함 (해당 파일 부재).
+
+종료 후 standard 모드 Step 5(품질 재검증)는 self-model에서도 가능하면 적용; 그렇지 않으면 사용자가 자식 프로젝트 자체 verify 스크립트로 검증.
+
+---
+
+### Standard 모드 흐름 (mode == "standard" 만, 기존)
+
 ### 1. ID 유효성 확인
 
 `writer_state.json`에서 대상 카드 존재 여부 검증:
