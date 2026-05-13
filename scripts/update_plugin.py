@@ -236,6 +236,30 @@ def backup_plugin(plugin_root: Path) -> Path:
     return backup_root
 
 
+def rollback_plugin(plugin_root: Path, backup_dir: Path) -> None:
+    """plugin_root를 backup_dir의 내용으로 복원.
+
+    `backups/` 디렉토리는 보존 (이전 백업들도 유지).
+    """
+    if not backup_dir.exists():
+        raise PluginError(f"백업 디렉토리를 찾을 수 없습니다: {backup_dir}")
+
+    for item in plugin_root.iterdir():
+        if item.name == BACKUPS_DIR:
+            continue
+        if item.is_dir():
+            shutil.rmtree(item)
+        else:
+            item.unlink()
+
+    for item in backup_dir.iterdir():
+        target = plugin_root / item.name
+        if item.is_dir():
+            shutil.copytree(item, target)
+        else:
+            shutil.copy2(item, target)
+
+
 # ── 사용자 출력·프롬프트 ──────────────────────────────────────────────────────
 
 

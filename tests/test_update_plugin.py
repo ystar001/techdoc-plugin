@@ -472,3 +472,30 @@ def test_backup_plugin_excludes_backups_directory(fake_plugin_dir):
 
     new_backup = backup_plugin(fake_plugin_dir)
     assert not (new_backup / "backups").exists()
+
+
+# ── Plan B Task 4: rollback_plugin (F7) ──────────────────────────────────────
+
+
+def test_rollback_restores_plugin_state(fake_plugin_dir):
+    """rollback_plugin은 plugin_root를 backup 상태로 복원."""
+    from scripts.update_plugin import backup_plugin, rollback_plugin
+
+    backup = backup_plugin(fake_plugin_dir)
+
+    (fake_plugin_dir / "commands" / "existing.md").write_text("CORRUPTED")
+    (fake_plugin_dir / "commands" / "new_unwanted.md").write_text("from broken update")
+
+    rollback_plugin(fake_plugin_dir, backup)
+
+    assert (fake_plugin_dir / "commands" / "existing.md").read_text() == "# existing"
+    assert not (fake_plugin_dir / "commands" / "new_unwanted.md").exists()
+
+
+def test_rollback_preserves_backups_directory(fake_plugin_dir):
+    """rollback 후에도 backups/ 디렉토리 자체는 보존되어야 함."""
+    from scripts.update_plugin import backup_plugin, rollback_plugin
+
+    backup = backup_plugin(fake_plugin_dir)
+    rollback_plugin(fake_plugin_dir, backup)
+    assert backup.exists()
