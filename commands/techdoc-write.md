@@ -1,7 +1,7 @@
 ---
 description: Step 5 - writer subagent × 3 병렬로 섹션 개요·카드(기술 7·프로젝트 7·제품 6 블록)·종합분석 작성. writer_state.json 카드 단위 resume
 allowed-tools: Bash, Read, Write, Agent
-argument-hint: "--outline FILE --refs FILE [--style 서술형|개조식] [-o OUTPUT]"
+argument-hint: "--outline FILE --refs FILE [--style 서술형|개조식] [-o OUTPUT] [--single-call <call_id>]"
 ---
 
 # /techdoc-write — 섹션 작성 (카드 기반)
@@ -137,3 +137,34 @@ doc = Document(title='', subtitle='', sections=[], tech_cards=[], project_cards=
   /techdoc-review --input document_draft.json --domain tech
   (또는 품질만 빠르게) /techdoc-render --input document_draft.json
 ```
+
+## `--single-call <call_id>` 모드 (F8, v1.1.2+)
+
+자식 프로젝트가 self-model 카드 레이아웃(호출 1건 = 단일 카드 JSON)을 사용할 때, 단일 호출만 재실행할 수 있도록 지원.
+
+### 사용법
+
+```
+/techdoc-write --single-call 6.4 --instruction "§3 동향 블록 보강, §5 한계 추가"
+```
+
+### 흐름
+
+1. `scripts.card_layout.detect_mode`로 self-model 확인 (writer_state.json 부재 + cards/*_card.json 존재):
+   ```bash
+   MODE=$(python -c "from scripts.card_layout import detect_mode; from pathlib import Path; print(detect_mode(Path('$OUTPUT_DIR')))")
+   ```
+2. self-model이 아니면 abort — "이 인자는 self-model 레이아웃 전용입니다"
+3. `output/cards/<call_id>_card.json` 로드 (없으면 신규 작성):
+   ```bash
+   python -c "from scripts.card_layout import load_self_model_card; from pathlib import Path; import json; print(json.dumps(load_self_model_card(Path('$OUTPUT_DIR'), '$CALL_ID')))" 2>/dev/null
+   ```
+4. writer subagent 1회 호출 (병렬 dispatch 없음). 모드 = `revise` (기존 카드 수정) 또는 `create` (신규).
+5. 결과를 같은 경로(`output/cards/<call_id>_card.json`)에 저장.
+6. `output/cards/_backup/<call_id>_card_<timestamp>_pre_write.json`에 직전 상태 백업 (있는 경우).
+
+### 주의
+
+이 모드는 plugin core의 writer_state.json·document_draft.json을 건드리지 않습니다. self-model을 채택한 자식 프로젝트의 호환 단편이며, 자체 검증·후속 단계(merge·render)는 자식 프로젝트 책임입니다.
+
+writer subagent는 `prompts/_shared/card_layout_conventions.md`를 참조해 `sections.<key>.body` 단일 키 컨벤션을 따라야 합니다(F1).
