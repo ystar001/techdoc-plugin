@@ -89,7 +89,8 @@ def run_export(
     # 2. Load state
     state = load_state(output_dir)
 
-    # parent_page_id 불일치 검사 — 실제 값이 있을 때만
+    # Task 15: parent_page_id 일관성 검사 — 실제 값이 있을 때만.
+    # state에 기록된 parent와 인자가 다르면 즉시 abort (Notion 트리 이중화 방지).
     if state["parent_page_id"] and state["parent_page_id"] != parent_page_id:
         return {
             "status": "error",
