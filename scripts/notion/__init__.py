@@ -7,4 +7,4 @@ Public API:
 
 from scripts.notion.client import NotionAPIError, NotionClient
 
-__all__ = ["NotionClient", "NotionAPIError"]
+__all__ = ["NotionAPIError", "NotionClient"]

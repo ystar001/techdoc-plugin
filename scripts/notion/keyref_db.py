@@ -51,10 +51,7 @@ def keyref_to_row_properties(keyref: dict) -> dict:
     props["Institution"] = _rich_text_prop(keyref.get("institution", ""))
 
     authors = keyref.get("authors", [])
-    if isinstance(authors, list):
-        authors_text = ", ".join(str(a) for a in authors)
-    else:
-        authors_text = str(authors)
+    authors_text = ", ".join(str(a) for a in authors) if isinstance(authors, list) else str(authors)
     props["Authors"] = _rich_text_prop(authors_text)
 
     year = keyref.get("year")
@@ -72,10 +69,7 @@ def keyref_to_row_properties(keyref: dict) -> dict:
         }
 
     key_nums = keyref.get("key_numbers", [])
-    if isinstance(key_nums, list):
-        kn_text = " · ".join(str(k) for k in key_nums)
-    else:
-        kn_text = str(key_nums)
+    kn_text = " · ".join(str(k) for k in key_nums) if isinstance(key_nums, list) else str(key_nums)
     props["Key Numbers"] = _rich_text_prop(kn_text)
 
     return props
@@ -91,15 +85,20 @@ def create_keyref_database(client, parent_page_id: str) -> str:
     return resp["id"]
 
 
-def upsert_keyref(client, db_id: str, keyref: dict, existing_row_id: str | None) -> str:
+def upsert_keyref(
+    client, db_id: str, keyref: dict, existing_row_id: str | None
+) -> tuple[str, str | None]:
     """KeyRef row를 DB에 create 또는 update.
 
     existing_row_id가 주어지면 update_page, 아니면 create_page (parent=database).
     URL은 unique key로 호출자가 state에서 추적.
+
+    Returns:
+        (row_id, last_edited_time) — last_edited_time은 API 응답에 없으면 None.
     """
     props = keyref_to_row_properties(keyref)
     if existing_row_id:
         resp = client.update_page(page_id=existing_row_id, properties=props)
     else:
         resp = client.create_page(parent_database_id=db_id, properties=props)
-    return resp["id"]
+    return resp["id"], resp.get("last_edited_time")

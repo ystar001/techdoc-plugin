@@ -96,14 +96,15 @@ def test_upsert_keyref_creates_new_when_url_unknown():
     def handler(request: httpx.Request) -> httpx.Response:
         if request.method == "POST" and "/pages" in str(request.url):
             posts.append({"body": request.read().decode()})
-            return httpx.Response(200, json={"id": "new-row"})
+            return httpx.Response(200, json={"id": "new-row", "last_edited_time": "2026-05-13T10:00:00Z"})
         return httpx.Response(200, json={"id": "x"})
 
     client = NotionClient(token="t", transport=httpx.MockTransport(handler))
     keyref = {"id": "REF-100", "title": "T", "url": "https://new.test"}
-    row_id = upsert_keyref(client, db_id="db-1", keyref=keyref, existing_row_id=None)
+    row_id, last_edited = upsert_keyref(client, db_id="db-1", keyref=keyref, existing_row_id=None)
 
     assert row_id == "new-row"
+    assert last_edited == "2026-05-13T10:00:00Z"
     assert len(posts) == 1
 
 
@@ -121,7 +122,8 @@ def test_upsert_keyref_updates_when_existing_row_id_provided():
 
     client = NotionClient(token="t", transport=httpx.MockTransport(handler))
     keyref = {"id": "REF-100", "title": "T-updated", "url": "https://new.test"}
-    row_id = upsert_keyref(client, db_id="db-1", keyref=keyref, existing_row_id="existing-row")
+    row_id, last_edited = upsert_keyref(client, db_id="db-1", keyref=keyref, existing_row_id="existing-row")
 
     assert row_id == "existing-row"
+    assert last_edited is None  # 응답에 last_edited_time 없음
     assert any("existing-row" in p for p in patches)

@@ -68,14 +68,17 @@ def compute_content_hash(content: Any) -> str:
 
 
 def detect_section_changes(
-    old_state: dict, new_sections: dict[str, Any]
+    old_state: dict,
+    new_sections: dict[str, Any],
+    state_key: str = "sections",
 ) -> dict[str, list[str]]:
     """이전 state와 현재 섹션 dict 비교해 변경 분류.
 
     new_sections: {section_id: content (str|dict)}
+    state_key: state dict에서 읽을 키 ("sections", "appendices" 등).
     Returns: {"new": [...], "modified": [...], "unchanged": [...], "stale": [...]}
     """
-    old_sections = old_state.get("sections", {})
+    old_sections = old_state.get(state_key, {})
     new_hashes = {sid: compute_content_hash(content) for sid, content in new_sections.items()}
 
     new_ids: list[str] = []

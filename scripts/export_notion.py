@@ -6,6 +6,7 @@ LLM 호출 0회.
 
 from __future__ import annotations
 
+import contextlib
 import json
 import os
 import sys
@@ -27,16 +28,22 @@ from scripts.notion.state import (
 )
 
 
-def _load_standard_sections(output_dir: Path) -> tuple[str, list[dict]]:
+def _load_standard_sections(output_dir: Path) -> tuple[str, list[dict], list[dict]]:
     """document_final.json または document_draft.json 로드.
 
-    Returns (report_title, sections_list). 각 section은 {"id", "title", "html_content"}.
+    Returns (report_title, sections_list, appendices_list).
+    각 section/appendix는 {"id", "title", "html_content"}.
     """
     for fname in ("document_final.json", "document_draft.json"):
         p = output_dir / fname
         if p.exists():
             data = json.loads(p.read_text(encoding="utf-8"))
-            return data.get("title", ""), data.get("sections", [])
+            title = data.get("title", "")
+            sections = data.get("sections", [])
+            appendices = (
+                data.get("tech_appendices", []) + data.get("project_appendices", [])
+            )
+            return title, sections, appendices
     raise FileNotFoundError("document_final.json 또는 document_draft.json 없음")
 
 
@@ -105,7 +112,7 @@ def run_export(
 
     # 3. mode별 push
     if mode == "standard":
-        report_title, sections = _load_standard_sections(output_dir)
+        report_title, sections, appendices = _load_standard_sections(output_dir)
 
         # 3-1. 루트 페이지 생성 또는 update
         if not state["report_page_id"]:
@@ -115,19 +122,22 @@ def run_export(
                     properties={"title": [{"type": "text", "text": {"content": report_title or "보고서"}}]},
                 )
                 state["report_page_id"] = resp["id"]
+                state["report_last_edited_time"] = resp.get("last_edited_time")
             else:
                 state["report_page_id"] = "dry-run-report-page"
 
         # title 변경 감지 — 변경 시 루트 페이지 title 갱신
-        if state.get("report_title") and state["report_title"] != report_title and state["report_page_id"]:
-            if not dry_run:
-                try:
-                    client.update_page(
-                        page_id=state["report_page_id"],
-                        properties={"title": [{"type": "text", "text": {"content": report_title}}]},
-                    )
-                except NotionAPIError:
-                    pass
+        if (
+            state.get("report_title")
+            and state["report_title"] != report_title
+            and state["report_page_id"]
+            and not dry_run
+        ):
+            with contextlib.suppress(NotionAPIError):
+                client.update_page(
+                    page_id=state["report_page_id"],
+                    properties={"title": [{"type": "text", "text": {"content": report_title}}]},
+                )
         state["report_title"] = report_title
 
         # 3-2. KeyRef DB 생성 (없으면)
@@ -148,11 +158,27 @@ def run_export(
             if not force and existing.get("content_hash") == new_hash:
                 continue
             if not dry_run:
-                row_id = upsert_keyref(client, state["keyref_db_id"], kr, existing_row)
+                row_id, last_edited = upsert_keyref(client, state["keyref_db_id"], kr, existing_row)
             else:
                 row_id = existing_row or "dry-run-row"
-            state["keyrefs"][url_key] = {"row_id": row_id, "content_hash": new_hash}
+                last_edited = None
+            state["keyrefs"][url_key] = {
+                "row_id": row_id,
+                "content_hash": new_hash,
+                "last_edited_time": last_edited,
+            }
             pushed_count += 1
+
+        # I1: KeyRef upsert 완료 후 REF-ID → row_id 맵 빌드
+        keyref_id_map: dict[str, str] = {}
+        for kr in _load_keyrefs(output_dir):
+            url_key = kr.get("url", "")
+            ref_id = kr.get("id", "")  # e.g. "REF-023"
+            if url_key and ref_id:
+                entry = state["keyrefs"].get(url_key, {})
+                row_id = entry.get("row_id")
+                if row_id:
+                    keyref_id_map[ref_id] = row_id
 
         # 3-4. 섹션 페이지 push
         section_contents = {s["id"]: s.get("html_content", "") for s in sections}
@@ -161,7 +187,7 @@ def run_export(
             sec = next((s for s in sections if s["id"] == sid), None)
             if not sec:
                 continue
-            blocks = markdown_to_blocks(sec.get("html_content", ""))
+            blocks = markdown_to_blocks(sec.get("html_content", ""), keyref_id_map=keyref_id_map)
             if not dry_run:
                 if sid in changes["new"]:
                     resp = client.create_page(
@@ -172,6 +198,7 @@ def run_export(
                     state["sections"][sid] = {
                         "page_id": resp["id"],
                         "content_hash": compute_content_hash(sec.get("html_content", "")),
+                        "last_edited_time": resp.get("last_edited_time"),
                     }
                 else:
                     page_id = state["sections"][sid]["page_id"]
@@ -184,11 +211,44 @@ def run_export(
             for sid in changes["stale"]:
                 page_id = state["sections"][sid]["page_id"]
                 if not dry_run:
-                    try:
+                    with contextlib.suppress(NotionAPIError):
                         client.archive_page(page_id)
-                    except NotionAPIError:
-                        pass
                 state["sections"].pop(sid, None)
+
+        # C2: 별첨(tech_appendices + project_appendices) push
+        appendix_contents = {a["id"]: a.get("html_content", "") for a in appendices}
+        app_changes = detect_section_changes(state, appendix_contents, state_key="appendices")
+        for aid in app_changes["new"] + app_changes["modified"]:
+            ap = next((a for a in appendices if a["id"] == aid), None)
+            if not ap:
+                continue
+            blocks = markdown_to_blocks(ap.get("html_content", ""), keyref_id_map=keyref_id_map)
+            if not dry_run:
+                if aid in app_changes["new"]:
+                    resp = client.create_page(
+                        parent_page_id=state["report_page_id"],
+                        properties={"title": [{"type": "text", "text": {"content": f"별첨 {aid} {ap.get('title', '')}"}}]},
+                        children=blocks,
+                    )
+                    state["appendices"][aid] = {
+                        "page_id": resp["id"],
+                        "content_hash": compute_content_hash(ap.get("html_content", "")),
+                        "last_edited_time": resp.get("last_edited_time"),
+                    }
+                else:
+                    page_id = state["appendices"][aid]["page_id"]
+                    client.update_block_children(page_id, blocks)
+                    state["appendices"][aid]["content_hash"] = compute_content_hash(ap.get("html_content", ""))
+            pushed_count += 1
+
+        # stale 별첨 archive
+        if archive_stale:
+            for aid in app_changes["stale"]:
+                page_id = state["appendices"][aid]["page_id"]
+                if not dry_run:
+                    with contextlib.suppress(NotionAPIError):
+                        client.archive_page(page_id)
+                state["appendices"].pop(aid, None)
 
     elif mode == "self_model":
         # Task 14: cards/*_card.json 순회 — 각 카드를 Notion 페이지 1개로 push.
@@ -207,19 +267,22 @@ def run_export(
                     properties={"title": [{"type": "text", "text": {"content": report_title}}]},
                 )
                 state["report_page_id"] = resp["id"]
+                state["report_last_edited_time"] = resp.get("last_edited_time")
             else:
                 state["report_page_id"] = "dry-run-report-page"
 
         # title 변경 감지
-        if state.get("report_title") and state["report_title"] != report_title and state["report_page_id"]:
-            if not dry_run:
-                try:
-                    client.update_page(
-                        page_id=state["report_page_id"],
-                        properties={"title": [{"type": "text", "text": {"content": report_title}}]},
-                    )
-                except NotionAPIError:
-                    pass
+        if (
+            state.get("report_title")
+            and state["report_title"] != report_title
+            and state["report_page_id"]
+            and not dry_run
+        ):
+            with contextlib.suppress(NotionAPIError):
+                client.update_page(
+                    page_id=state["report_page_id"],
+                    properties={"title": [{"type": "text", "text": {"content": report_title}}]},
+                )
         state["report_title"] = report_title
 
         # 각 카드 push
@@ -239,7 +302,7 @@ def run_export(
                 body = sec.get("body", "") if isinstance(sec, dict) else str(sec)
                 md_parts.append(f"## {sec_key}\n\n{body}")
             md = "\n\n".join(md_parts)
-            blocks = markdown_to_blocks(md)
+            blocks = markdown_to_blocks(md, keyref_id_map={})
             if not dry_run:
                 if cid in changes["new"]:
                     card_name = card.get("name", "") or cid
@@ -251,6 +314,7 @@ def run_export(
                     state["sections"][cid] = {
                         "page_id": resp["id"],
                         "content_hash": compute_content_hash(card),
+                        "last_edited_time": resp.get("last_edited_time"),
                     }
                 else:
                     page_id = state["sections"][cid]["page_id"]
@@ -263,10 +327,8 @@ def run_export(
             for cid in changes["stale"]:
                 page_id = state["sections"][cid]["page_id"]
                 if not dry_run:
-                    try:
+                    with contextlib.suppress(NotionAPIError):
                         client.archive_page(page_id)
-                    except NotionAPIError:
-                        pass
                 state["sections"].pop(cid, None)
 
     # 4. State save

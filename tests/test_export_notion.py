@@ -237,3 +237,111 @@ def test_cli_with_dry_run(tmp_path, monkeypatch):
     # dry-run은 preflight도 skip이므로 0 종료 가능
     # 또는 preflight 실패로 비0. 두 경우 다 허용 (네트워크 의존).
     assert rc in (0, 1)
+
+
+# ─── C1 regression: last_edited_time 저장 ─────────────────────────────────────
+
+
+def test_run_export_stores_last_edited_time_from_api(tmp_path):
+    """v2 compat 원칙 1: 각 페이지·row의 last_edited_time이 state에 저장됨."""
+    from scripts.export_notion import run_export
+
+    _setup_standard_doc(tmp_path)
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        url = str(request.url)
+        if "/v1/pages/" in url and request.method == "GET":
+            return httpx.Response(200, json={"object": "page", "id": "parent"})
+        if "/v1/databases" in url and request.method == "POST":
+            return httpx.Response(200, json={"id": "db", "last_edited_time": "2026-05-13T11:00:00Z"})
+        if "/v1/pages" in url and request.method == "POST":
+            return httpx.Response(200, json={
+                "id": "new-page",
+                "last_edited_time": "2026-05-13T12:00:00Z",
+            })
+        return httpx.Response(200, json={"id": "x"})
+
+    run_export(
+        output_dir=tmp_path,
+        parent_page_id="parent",
+        token="t",
+        transport=httpx.MockTransport(handler),
+    )
+    state = json.loads((tmp_path / "notion_state.json").read_text("utf-8"))
+    # 섹션 또는 KeyRef 중 적어도 하나에 last_edited_time이 존재해야 함
+    has_let = any(
+        v.get("last_edited_time") for v in state.get("sections", {}).values()
+    ) or any(
+        v.get("last_edited_time") for v in state.get("keyrefs", {}).values()
+    )
+    assert has_let, "last_edited_time이 state에 저장되어야 함 (v2 compat 원칙 1)"
+
+
+# ─── C2 regression: 별첨 push ────────────────────────────────────────────────
+
+
+def _setup_doc_with_appendix(tmp_path: Path) -> None:
+    """standard mode 보고서 + 별첨 포함 디렉토리 생성."""
+    (tmp_path / "writer_state.json").write_text(
+        json.dumps({
+            "schema_version": "0.1.0",
+            "section_states": {"1.1": {"cards": [{"id": "1.1.1", "type": "tech"}]}},
+        }),
+        encoding="utf-8",
+    )
+    (tmp_path / "document_draft.json").write_text(
+        json.dumps({
+            "title": "별첨 테스트 보고서",
+            "sections": [
+                {"id": "1.1", "title": "섹션 1.1", "html_content": "<p>본문</p>"},
+            ],
+            "tech_appendices": [
+                {"id": "APP-01", "title": "기술 별첨", "html_content": "<p>별첨 본문</p>"},
+            ],
+            "project_appendices": [
+                {"id": "APP-02", "title": "프로젝트 별첨", "html_content": "<p>프로젝트 별첨 본문</p>"},
+            ],
+        }),
+        encoding="utf-8",
+    )
+    keyref_dir = tmp_path / "KeyRef"
+    keyref_dir.mkdir()
+
+
+def test_run_export_pushes_appendices(tmp_path):
+    """C2: tech_appendices + project_appendices가 자식 페이지로 push되고 state["appendices"]에 저장됨."""
+    from scripts.export_notion import run_export
+
+    _setup_doc_with_appendix(tmp_path)
+
+    page_creates: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        url = str(request.url)
+        if "/v1/pages/" in url and request.method == "GET":
+            return httpx.Response(200, json={"object": "page", "id": "parent"})
+        if "/v1/pages" in url and request.method == "POST":
+            body = request.read().decode()
+            page_creates.append(body)
+            return httpx.Response(200, json={"id": f"page-{len(page_creates)}", "last_edited_time": "2026-05-13T12:00:00Z"})
+        if "/v1/databases" in url and request.method == "POST":
+            return httpx.Response(200, json={"id": "db"})
+        return httpx.Response(200, json={"id": "x"})
+
+    result = run_export(
+        output_dir=tmp_path,
+        parent_page_id="parent",
+        token="t",
+        transport=httpx.MockTransport(handler),
+    )
+    assert result["status"] == "success"
+
+    state = json.loads((tmp_path / "notion_state.json").read_text("utf-8"))
+    # 별첨 2개가 state["appendices"]에 저장되어야 함
+    assert "APP-01" in state["appendices"], "APP-01 별첨이 state에 없음"
+    assert "APP-02" in state["appendices"], "APP-02 별첨이 state에 없음"
+    # page_id가 실제로 채워져 있어야 함
+    assert state["appendices"]["APP-01"]["page_id"]
+    assert state["appendices"]["APP-02"]["page_id"]
+    # title에 "별첨" 포함 여부 확인
+    assert any("별첨" in body for body in page_creates), "별첨 페이지 생성 요청에 '별첨'이 없음"
