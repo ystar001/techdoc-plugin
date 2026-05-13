@@ -1,0 +1,16 @@
+{
+  "cards": [
+    {
+      "id": "1.1",
+      "size": "S",
+      "validation": { "blocks_filled": true, "refs_count": 5 },
+      "structure_check": { "ok": true },
+      "body": "S 카드 본문 ..."
+    },
+    {
+      "id": "1.4.L1",
+      "size": "L1",
+      "body": "L1 카드 본문 — validation·structure_check 모두 없음"
+    }
+  ]
+}

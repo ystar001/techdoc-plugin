@@ -168,3 +168,21 @@ def test_clean_card_self_check_validates_against_schema():
     result = SelfCheckResult.model_validate(card["self_check"])
     assert result.refs_count == 6
     assert "AI 추정 표현 0%" in result.notes[0]
+
+
+def test_f2_fixture_shows_asymmetry():
+    """F2 fixture는 사이즈별로 self-check 필드가 비대칭이라는 사실을 기록."""
+    data = json.loads((FIXTURES / "F2_asymmetric_validation.json").read_text("utf-8"))
+    s_card = next(c for c in data["cards"] if c["size"] == "S")
+    l1_card = next(c for c in data["cards"] if c["size"] == "L1")
+
+    assert "validation" in s_card and "structure_check" in s_card
+    assert "validation" not in l1_card and "structure_check" not in l1_card
+
+
+def test_self_check_result_is_size_invariant():
+    """SelfCheckResult는 사이즈 무관 단일 스키마 — F2 해결 표명."""
+    same_input = {"refs_count": 5}
+    SelfCheckResult.model_validate(same_input)  # S 카드용으로도
+    SelfCheckResult.model_validate(same_input)  # L1 카드용으로도
+    SelfCheckResult.model_validate(same_input)  # L2·L3에서도
