@@ -11,6 +11,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **F4** writer subagent가 자체 검증 메모(`AI 추정 표현 0%`·`자가진단:` 등)를 카드 본문 텍스트 안에 인라인으로 부착하던 문제. 검증 결과는 이제 카드 JSON의 `self_check` 필드 1곳에만 기록됨. (openfieldtech findings F4)
 - **F2** 자체 검증 필드가 카드 사이즈(S·L1·L2·L3)에 따라 비대칭(`validation`·`structure_check` 일부 사이즈에서만 출력)이던 문제. `SelfCheckResult` 단일 스키마로 통일. (openfieldtech findings F2)
 - **F7** `/techdoc-update`에 SHA-256 무결성 검증, 적용 전 자동 백업, 실패 시 자동 롤백을 추가. 변조·손상된 zip 적용을 방지하고 적용 실패 시 이전 상태로 안전하게 복원. (openfieldtech findings F7)
+- **F6** researcher subagent가 Write 권한 거부 시 메인 세션이 우회 생성하여 중복 산출(`KeyRef_overlap_*`)이 만들어지던 사고 재발 방지. `scripts/preflight.py`로 사전 점검 + researcher prompt에 거부 시 행동 규약(payload 반환·우회 생성 금지) 명시 + `/techdoc-research` Step 2.5에 preflight 자동 실행. (openfieldtech findings F6, 2026-04-29 cat13/14 사고 원인 해소)
 
 ### Added
 
@@ -19,12 +20,16 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - `tests/test_self_check_schema.py` — F2·F4 회귀 fixture 3종 + 12 테스트.
 - `scripts/update_plugin.py`: `compute_sha256`·`verify_sha256`·`fetch_sha256_for_release`·`backup_plugin`·`rollback_plugin` 5개 함수. `Release` dataclass에 `sha256_url` 필드.
 - `tests/test_update_plugin.py`: SHA-256·backup·rollback·통합 흐름 13건 회귀.
+- `scripts/preflight.py` + `tests/test_preflight.py` — Write 권한 사전 점검(파일 생성·정리 사이클, 4건 회귀).
+- `agents/techdoc-researcher.md` 신설 섹션 "Write 권한 거부 시 행동 규약".
 
 ### Changed
 
 - `prompts/section_write.md`·`agents/techdoc-writer.md` 자체 검증 섹션: 본문 인라인 금지 + `self_check` JSON 강제.
 - `prompts/edit_rules.md` "편집하지 말아야 할 것"에 `self_check` 보호 + 본문 인라인 금지 명시.
 - `commands/techdoc-update.md`: 안전 장치 단계(SHA-256·백업·롤백) 명시. 기존 "백업·롤백 없음·SHA256 미검증" 한계 표기 제거.
+- `scripts/doctor.py`의 output dir 검사를 "will be created" 표기에서 실제 Write preflight 시도로 강화.
+- `commands/techdoc-research.md`: Step 2.5에 preflight 자동 실행 + 거부 시 abort 흐름 추가.
 
 ### Compatibility
 

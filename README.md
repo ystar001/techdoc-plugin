@@ -1051,7 +1051,7 @@ unzip techdoc-plugin-v1.1.0-wrapped.zip -d ~/.claude/plugins/
 
 | 버전 | 주요 변경 | 파일 수 | 코드 |
 |---|---|---|---|
-| **v1.1.1** (2026-05-13) | F2·F4·F7 정합: writer `self_check` 필드 통일 + 본문 인라인 자체 검증 금지 + `/techdoc-update`에 SHA-256 무결성 검증·자동 백업·실패 시 롤백 추가. SCHEMA_VERSION 유지. | (변동 없음) | 약 17.5k줄 |
+| **v1.1.1** (2026-05-13) | F2·F4·F6·F7 정합: writer `self_check` 필드 통일 + 본문 인라인 자체 검증 금지 + researcher Write 권한 거부 사전 차단(preflight·prompt 규약) + `/techdoc-update` SHA-256·자동 백업·롤백. SCHEMA_VERSION 유지. | (변동 없음) | 약 18k줄 |
 | **v1.1.0** (2026-05-04) | `/techdoc-update`(자체 갱신) + `/techdoc-export-wiki`(LLM Wiki, D 하이브리드) + `/techdoc --export-wiki` 통합 옵션. pytest 인프라(85 tests). | 130+ | 약 17k줄 |
 | **v1.0.0** (2026-04-29) | 정식 릴리스. plugin 단독 메인 구조. MIT 라이선스 + public 배포. | 100+ | 약 15k줄 |
 | **v0.1.0** (2026-04-24) | 알파 릴리스. Cowork Plugin 전환. 카드 + 별첨 시스템. 5종 디자인 | 97 | 14,866줄 |
