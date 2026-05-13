@@ -1,4 +1,4 @@
 """TechDoc Plugin — AI 기술보고서 생성 Cowork Plugin."""
 
-__version__ = "1.1.3"
+__version__ = "1.2.0"
 __author__ = "Klaus"
