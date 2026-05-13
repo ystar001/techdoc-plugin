@@ -277,29 +277,204 @@ def measure_document(document: Document, reference_list: dict | None = None) -> 
     }
 
 
+# ── Self-model 모드 지원 (F5, v1.1.3+) ─────────────────────────────────────
+#
+# 기존 measure_document는 standard 모드(document_final.json) 전용.
+# Self-model 카드(`output/cards/<id>_card.json`)는 schema가 달라 처리 불가했음.
+# 아래 entry point는 openfieldtech scripts/verify_cards.py 패턴을 흡수해
+# self-model 카드 디렉토리도 23지표 framework 일부로 자동 검사한다.
+
+# F1 변형 본문 키 (재귀 합산 시 사용 — body·narrative·content)
+BODY_KEYS = {"body", "narrative", "content", "text", "summary"}
+
+# 사이즈별 본문 글자 임계 (verify_cards.py에서 흡수)
+SIZE_THRESHOLDS = {"S": 14000, "L1": 7000, "L2": 10000, "L3": 5000, "?": 8000}
+
+CALL_ID_PAT = re.compile(r"^(\d+\.\d+)(?:\.(L\d|XL\d|S))?$")
+
+
+def _parse_call_id(stem: str) -> str:
+    """파일명에서 사이즈 grade 추출 (예: '1.1' → S, '1.1.L2' → L2)."""
+    s = stem.replace("_card", "")
+    m = CALL_ID_PAT.match(s)
+    if not m or m.group(2) is None:
+        return "S"
+    g2 = m.group(2)
+    if g2.startswith("L"):
+        return f"L{g2[1:]}"
+    return "S"
+
+
+def _collect_body_chars(node) -> int:
+    """node 안의 모든 본문 문자열 길이 합산 (F1 robust)."""
+    if isinstance(node, dict):
+        total = 0
+        for k, v in node.items():
+            if k in BODY_KEYS and isinstance(v, str):
+                total += len(v)
+            else:
+                total += _collect_body_chars(v)
+        return total
+    if isinstance(node, list):
+        return sum(_collect_body_chars(x) for x in node)
+    return 0
+
+
+def _check_self_model_card(card_path: Path) -> dict:
+    """self-model 카드 1건 검사 (verify_cards 패턴)."""
+    issues: list[dict] = []
+    try:
+        data = json.loads(card_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as e:
+        return {
+            "path": str(card_path),
+            "status": "FAIL",
+            "size": "?",
+            "chars": 0,
+            "issues": [{"severity": "FAIL", "msg": f"JSON parse 실패: {e}"}],
+        }
+
+    size = _parse_call_id(card_path.stem)
+    chars = _collect_body_chars(data)
+    threshold = SIZE_THRESHOLDS.get(size, 8000)
+
+    if chars < threshold * 0.5:
+        issues.append({
+            "severity": "FAIL",
+            "msg": f"본문 매우 부족: {chars}자 (임계 {threshold} 절반 미만)",
+        })
+    elif chars < threshold:
+        issues.append({
+            "severity": "WARNING",
+            "msg": f"본문 부족: {chars}자 (임계 {threshold})",
+        })
+
+    status = (
+        "FAIL" if any(i["severity"] == "FAIL" for i in issues)
+        else ("WARNING" if issues else "PASS")
+    )
+    return {
+        "path": str(card_path),
+        "status": status,
+        "size": size,
+        "chars": chars,
+        "issues": issues,
+    }
+
+
+def measure_self_model(output_dir: Path) -> dict:
+    """self-model 모드 — cards/*_card.json 일괄 검사."""
+    cards_dir = output_dir / "cards"
+    card_files = sorted(cards_dir.glob("*_card.json"))
+    results = [_check_self_model_card(p) for p in card_files]
+    total_fail = sum(1 for c in results if c["status"] == "FAIL")
+    total_warning = sum(1 for c in results if c["status"] == "WARNING")
+    overall = 5.0 - min(5.0, total_fail * 0.5 + total_warning * 0.1)
+    return {
+        "schema_version": "0.1.0",
+        "mode": "self_model",
+        "phase_a": {
+            "total_cards": len(card_files),
+            "PASS": sum(1 for c in results if c["status"] == "PASS"),
+            "WARNING": total_warning,
+            "FAIL": total_fail,
+        },
+        "cards": results,
+        "total_fail": total_fail,
+        "total_warning": total_warning,
+        "overall": round(overall, 2),
+    }
+
+
+def run_quality_check(output_dir: Path) -> dict:
+    """mode 자동 판별 후 적절한 측정 함수로 라우팅 (v1.1.3+ entry point).
+
+    standard 모드는 document_final.json·reference_list.json을 기대;
+    self_model 모드는 cards/*_card.json을 기대.
+    """
+    from scripts.card_layout import detect_mode
+
+    output_dir = Path(output_dir)
+    mode = detect_mode(output_dir)
+    if mode == "self_model":
+        return measure_self_model(output_dir)
+    if mode == "standard":
+        doc_path = output_dir / "document_final.json"
+        if not doc_path.exists():
+            doc_path = output_dir / "document_draft.json"
+        if not doc_path.exists():
+            return {
+                "schema_version": "0.1.0",
+                "mode": "standard",
+                "error": "document_final.json도 document_draft.json도 없습니다.",
+                "total_fail": 1,
+                "total_warning": 0,
+                "overall": 0.0,
+            }
+        doc = Document.load(doc_path)
+        refs_path = output_dir / "reference_list.json"
+        refs = None
+        if refs_path.exists():
+            refs = json.loads(refs_path.read_text(encoding="utf-8"))
+        result = measure_document(doc, refs)
+        result["mode"] = "standard"
+        return result
+    return {
+        "schema_version": "0.1.0",
+        "mode": "unknown",
+        "total_fail": 0,
+        "total_warning": 0,
+        "overall": 0.0,
+    }
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description="Phase A quality check (23 metrics)")
-    ap.add_argument("-i", "--input", required=True, help="document_final.json")
+    ap.add_argument(
+        "-i", "--input",
+        help="document_final.json (standard 모드) 또는 output_dir (자동 판별)",
+    )
     ap.add_argument("--refs", help="reference_list.json (학술·R&D 비율 체크)")
-    ap.add_argument("-o", "--output", default="./output/quality_report.json", help="리포트 저장 경로")
+    ap.add_argument(
+        "-o", "--output", default="./output/quality_report.json",
+        help="리포트 저장 경로",
+    )
     args = ap.parse_args()
 
-    doc = Document.load(Path(args.input))
-    refs = None
-    if args.refs and Path(args.refs).exists():
-        refs = json.loads(Path(args.refs).read_text(encoding="utf-8"))
+    if not args.input:
+        ap.error("--input 인자가 필요합니다 (document JSON 또는 output 디렉토리)")
 
-    result = measure_document(doc, refs)
+    input_path = Path(args.input)
+    if input_path.is_dir():
+        # v1.1.3+ self-model/standard 자동 판별 모드
+        result = run_quality_check(input_path)
+    else:
+        # 기존 동작 — document_final.json 직접 지정
+        doc = Document.load(input_path)
+        refs = None
+        if args.refs and Path(args.refs).exists():
+            refs = json.loads(Path(args.refs).read_text(encoding="utf-8"))
+        result = measure_document(doc, refs)
+        result["mode"] = "standard"
+
     out_path = Path(args.output)
     out_path.parent.mkdir(parents=True, exist_ok=True)
-    out_path.write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
+    out_path.write_text(
+        json.dumps(result, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
 
     print(f"OK: {out_path}")
-    print(f"  overall: {result['overall']} / 5.0")
-    print(f"  FAIL: {result['total_fail']}, WARNING: {result['total_warning']}")
-    print(f"  tech_cards: {result['phase_a']['tech_card_total']}, project: {result['phase_a']['project_card_total']}, product: {result['phase_a']['product_card_total']}")
+    print(f"  mode: {result.get('mode', 'standard')}")
+    print(f"  overall: {result.get('overall', 0)} / 5.0")
+    print(f"  FAIL: {result.get('total_fail', 0)}, WARNING: {result.get('total_warning', 0)}")
+    if "phase_a" in result and "tech_card_total" in result["phase_a"]:
+        pa = result["phase_a"]
+        print(f"  tech_cards: {pa.get('tech_card_total', 0)}, "
+              f"project: {pa.get('project_card_total', 0)}, "
+              f"product: {pa.get('product_card_total', 0)}")
 
-    if result["total_fail"] > 0:
+    if result.get("total_fail", 0) > 0:
         return 2  # FAIL 가드
     return 0
 
