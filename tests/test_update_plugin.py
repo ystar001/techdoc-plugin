@@ -341,3 +341,42 @@ def test_main_force_same_version_message(fake_plugin_dir: Path, capsys, monkeypa
     out = capsys.readouterr().out
     assert "강제 재설치" in out
     assert "신규 버전 발견" not in out
+
+
+# ── Plan B Task 1: SHA-256 검증 (F7) ──────────────────────────────────────────
+
+
+def test_compute_sha256_matches_known_value(tmp_path):
+    """compute_sha256은 표준 hashlib.sha256과 동일한 결과를 낸다."""
+    from scripts.update_plugin import compute_sha256
+    import hashlib as _hashlib
+
+    f = tmp_path / "sample.bin"
+    f.write_bytes(b"hello techdoc")
+    expected = _hashlib.sha256(b"hello techdoc").hexdigest()
+    assert compute_sha256(f) == expected
+
+
+def test_verify_sha256_accepts_correct_hash(tmp_path):
+    from scripts.update_plugin import verify_sha256
+    f = tmp_path / "x.bin"
+    f.write_bytes(b"abc")
+    correct = "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
+    assert verify_sha256(f, correct) is True
+
+
+def test_verify_sha256_rejects_wrong_hash(tmp_path):
+    from scripts.update_plugin import verify_sha256
+    f = tmp_path / "x.bin"
+    f.write_bytes(b"abc")
+    assert verify_sha256(f, "0" * 64) is False
+
+
+def test_verify_sha256_accepts_checksum_file_format(tmp_path):
+    """`<hash>  <filename>` 형식의 .sha256 파일 내용도 받는다."""
+    from scripts.update_plugin import verify_sha256
+    f = tmp_path / "x.bin"
+    f.write_bytes(b"abc")
+    correct = "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
+    checksum_file_content = f"{correct}  x.bin\n"
+    assert verify_sha256(f, checksum_file_content) is True

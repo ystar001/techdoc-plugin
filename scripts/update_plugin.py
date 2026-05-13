@@ -11,8 +11,10 @@ GitHub Releases (ystar001/techdoc-plugin)에서 최신 zip을 받아 plugin 디�
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import re
+import shutil
 import sys
 import tempfile
 import zipfile
@@ -24,6 +26,28 @@ import httpx
 
 class PluginError(Exception):
     """plugin 상태가 비정상일 때 발생."""
+
+
+# ── SHA-256 무결성 검증 (F7) ──────────────────────────────────────────────────
+
+
+def compute_sha256(file_path: Path) -> str:
+    """파일 SHA-256 해시를 hex 문자열로 반환."""
+    h = hashlib.sha256()
+    with open(file_path, "rb") as f:
+        for chunk in iter(lambda: f.read(64 * 1024), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def verify_sha256(file_path: Path, expected: str) -> bool:
+    """파일 해시가 expected와 일치하는지 확인.
+
+    expected는 64자 hex 또는 `<hash>  <filename>` 형식의 sha256 체크섬 파일 내용 둘 다 허용.
+    """
+    expected_norm = expected.strip().split()[0].lower()
+    actual = compute_sha256(file_path).lower()
+    return actual == expected_norm
 
 
 def read_current_version(plugin_root: Path) -> str:
