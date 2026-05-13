@@ -1,9 +1,9 @@
 # TechDoc Plugin
 
-> **AI 기술보고서 자동 생성 Claude Code 플러그인** — v1.1.3 (2026-05-13)
+> **AI 기술보고서 자동 생성 Claude Code 플러그인** — v1.2.0 (2026-05-13)
 > 레퍼런스 100% 기반 · 카드 중첩식 섹션 · 별첨 논문 수준 심층분석 · LLM Wiki 통합 · Claude Code 네이티브
 
-[![Version](https://img.shields.io/badge/version-1.1.3-green)]()
+[![Version](https://img.shields.io/badge/version-1.2.0-green)]()
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue)]()
 [![License](https://img.shields.io/badge/license-MIT-green)]()
 [![Plugin](https://img.shields.io/badge/claude--code-plugin-purple)]()
@@ -39,13 +39,14 @@
   - [21. 자주 하는 작업 패턴 6종](#21-자주-하는-작업-패턴-6종)
   - [22. 핵심 파일 예시](#22-핵심-파일-예시)
 - [PART Ⅴ. 명령·옵션 레퍼런스](#part-ⅴ-명령옵션-레퍼런스)
-  - [23. 슬래시 명령 전체 (13종)](#23-슬래시-명령-전체-13종)
+  - [23. 슬래시 명령 전체 (14종)](#23-슬래시-명령-전체-14종)
   - [24. 주요 옵션 상세](#24-주요-옵션-상세)
 - [PART Ⅵ. 운영·배포](#part-ⅵ-운영배포)
   - [25. 설치 경로 4종](#25-설치-경로-4종)
   - [26. 자체 업데이트 (v1.1.0 신규)](#26-자체-업데이트-v110-신규)
   - [27. 릴리스·상태](#27-릴리스상태)
   - [28. FAQ·트러블슈팅](#28-faq트러블슈팅)
+  - [29. Notion 통합 (v1.2.0 신규)](#29-notion-통합-v120-신규)
 - [관련 문서](#관련-문서)
 
 ---
@@ -877,7 +878,7 @@ techdoc_auto: true
 
 # PART Ⅴ. 명령·옵션 레퍼런스
 
-## 23. 슬래시 명령 전체 (13종)
+## 23. 슬래시 명령 전체 (14종)
 
 | 그룹 | 명령 | 핵심 역할 | 소요 |
 |---|---|---|---|
@@ -893,7 +894,8 @@ techdoc_auto: true
 | | `/techdoc-rewrite` | **카드 단위** ⭐ | 2~3분 |
 | | `/techdoc-deepdive` | **별첨 개별** ⭐ | 10~15분 |
 | **Wiki** ⭐ | `/techdoc-export-wiki` | LLM Wiki 변환·누적 | 1~2분 |
-| **통합** | `/techdoc` | 전체 파이프라인 (`--export-wiki` 옵션) | 60~130분 |
+| **Notion** ⭐ | `/techdoc-export-notion` (v1.2.0) | TechDoc 보고서 → Notion publish (페이지 계층 + KeyRef DB) | 30초~3분 |
+| **통합** | `/techdoc` | 전체 파이프라인 (`--export-wiki` / `--push-notion` 옵션) | 60~130분 |
 
 ## 24. 주요 옵션 상세
 
@@ -1051,6 +1053,7 @@ unzip techdoc-plugin-v1.1.0-wrapped.zip -d ~/.claude/plugins/
 
 | 버전 | 주요 변경 | 파일 수 | 코드 |
 |---|---|---|---|
+| **v1.2.0** (2026-05-13) | Notion 통합: `/techdoc-export-notion` + `/techdoc --push-notion` 옵션. 페이지 계층 + KeyRef inline database. delta sync. v2 호환 4원칙 준수. | (변동 없음) | 약 20k줄 |
 | **v1.1.3** (2026-05-13) | F5 자체 모델 품질 검사: `scripts/check_quality`에 self-model 카드 레이아웃 지원 + mode 자동 라우팅 + F1 변형 본문 키 재귀 합산. `/techdoc-review` Phase A 자동화. SCHEMA 유지. | (변동 없음) | 약 19k줄 |
 | **v1.1.2** (2026-05-13) | F8 자체 모델 호환: `/techdoc-rewrite`·`/techdoc-write` skill에 self-model 카드 레이아웃(`output/cards/<id>_card.json`) fallback + `--single-call` 인자. F1·F3 컨벤션 명문화. SCHEMA 유지. | (변동 없음) | 약 18.5k줄 |
 | **v1.1.1** (2026-05-13) | F2·F4·F6·F7 정합: writer `self_check` 필드 통일 + 본문 인라인 자체 검증 금지 + researcher Write 권한 거부 사전 차단(preflight·prompt 규약) + `/techdoc-update` SHA-256·자동 백업·롤백. SCHEMA_VERSION 유지. | (변동 없음) | 약 18k줄 |
@@ -1147,6 +1150,56 @@ v1.0.0에는 `/techdoc-update` 명령이 없습니다. v1.0.0 사용자는 처�
 ### Q13. Wiki 충돌 callout이 너무 많이 떠요. (v1.1.0 신규)
 
 같은 엔티티가 보고서마다 다른 수치를 가진 정상 변동입니다. 사용자가 수동으로 정리하거나 callout을 삭제하면 다음 export 시 사라집니다 (충돌 ID 추적).
+
+---
+
+## 29. Notion 통합 (v1.2.0 신규)
+
+`/techdoc-export-notion`이 TechDoc 보고서를 Notion 워크스페이스로 publish합니다.
+
+### 사전 준비 (최초 1회)
+
+1. **Notion integration 생성**: https://www.notion.so/my-integrations → "New integration" → token 발급.
+2. **환경 변수**: `export NOTION_TOKEN=secret_xxx`.
+3. **parent page 권한**: 보고서를 둘 부모 페이지의 `...` 메뉴 → "Add connections" → integration 추가.
+
+### 사용
+
+```bash
+export NOTION_TOKEN=secret_xxx
+/techdoc-export-notion --parent-page <32자-hex-UUID>
+```
+
+또는 `/techdoc` 통합 옵션:
+
+```bash
+/techdoc "title" --toc ... --push-notion <parent_page_id>
+```
+
+### 생성되는 Notion 구조
+
+```
+parent_page
+└── 보고서 title                    ← 루트 페이지
+    ├── 1.1 섹션 제목               ← 자식 페이지 (섹션마다)
+    ├── 1.2 섹션 제목
+    ├── 별첨 A.1 별첨 제목
+    └── KeyRef                      ← inline database
+         ├── REF-001 row
+         └── ...
+```
+
+### delta sync
+
+재실행 시 `output/notion_state.json`의 content hash와 비교해 **변경된 카드만 update_page** 호출. 50카드 중 1개 수정 → API ~1회.
+
+### 충돌 대응
+
+- v1.2.0은 **단방향(techdoc → Notion)**. Notion에서 수동 편집한 본문은 다음 push에서 덮어쓰여집니다.
+- **권장**: Notion에서 본문 직접 편집보다 코멘트·제안 모드 사용. 작성자가 plugin에서 반영 후 재publish.
+- 양방향 sync는 v1.3.x·v2.0 로드맵.
+
+**spec**: `docs/superpowers/specs/2026-05-13-notion-push-integration-design.md`
 
 ---
 
