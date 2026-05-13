@@ -4,6 +4,28 @@ All notable changes to TechDoc Plugin.
 
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.1.1] — 2026-05-13
+
+### Fixed
+
+- **F4** writer subagent가 자체 검증 메모(`AI 추정 표현 0%`·`자가진단:` 등)를 카드 본문 텍스트 안에 인라인으로 부착하던 문제. 검증 결과는 이제 카드 JSON의 `self_check` 필드 1곳에만 기록됨. (openfieldtech findings F4)
+- **F2** 자체 검증 필드가 카드 사이즈(S·L1·L2·L3)에 따라 비대칭(`validation`·`structure_check` 일부 사이즈에서만 출력)이던 문제. `SelfCheckResult` 단일 스키마로 통일. (openfieldtech findings F2)
+
+### Added
+
+- `techdoc_core.schemas.SelfCheckResult` — 사이즈·카드 type 무관 단일 self-check 스키마 (모든 필드 optional, 역호환 유지).
+- `TechCard`·`ProjectCard`·`ProductCard` dataclass에 `self_check: dict | None = None` 필드.
+- `tests/test_self_check_schema.py` — F2·F4 회귀 fixture 3종 + 12 테스트.
+
+### Changed
+
+- `prompts/section_write.md`·`agents/techdoc-writer.md` 자체 검증 섹션: 본문 인라인 금지 + `self_check` JSON 강제.
+- `prompts/edit_rules.md` "편집하지 말아야 할 것"에 `self_check` 보호 + 본문 인라인 금지 명시.
+
+### Compatibility
+
+- SCHEMA_VERSION 0.1.0 유지 (breaking 아님). 기존 카드는 그대로 통과(누락 시 WARN).
+
 ## [1.1.0] — 2026-05-04
 
 ### 신규 슬래시 커맨드 2개
