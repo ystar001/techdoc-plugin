@@ -120,3 +120,47 @@ def test_image_local_path_becomes_placeholder():
     assert blocks[0]["type"] == "paragraph"
     text = blocks[0]["paragraph"]["rich_text"][0]["text"]["content"]
     assert "차트" in text or "chart.png" in text
+
+
+def test_ref_mention_when_keyref_id_known():
+    """[REF-023]이 본문에 있고 keyref_id_map에 매핑이 있으면 mention block."""
+    from scripts.notion.blocks import markdown_to_blocks
+
+    keyref_id_map = {"REF-023": "notion-row-id-xyz"}
+    md = "이 기술의 정확도는 94.3% [REF-023]에 따르면."
+    blocks = markdown_to_blocks(md, keyref_id_map=keyref_id_map)
+    para = blocks[0]
+    assert para["type"] == "paragraph"
+    rich = para["paragraph"]["rich_text"]
+    # rich_text는 여러 요소로 분리됨: text + mention + text
+    mention_items = [r for r in rich if r.get("type") == "mention"]
+    assert len(mention_items) == 1
+    assert mention_items[0]["mention"]["page"]["id"] == "notion-row-id-xyz"
+
+
+def test_ref_mention_falls_back_to_plain_text():
+    """매핑 없으면 [REF-023]을 plain text로 유지."""
+    from scripts.notion.blocks import markdown_to_blocks
+
+    blocks = markdown_to_blocks("내용 [REF-099].", keyref_id_map={})
+    rich = blocks[0]["paragraph"]["rich_text"]
+    full_text = "".join(r.get("text", {}).get("content", "") for r in rich if r.get("type") == "text")
+    assert "[REF-099]" in full_text
+
+
+def test_block_conversion_preserves_heading_level_for_reversibility():
+    """v2 호환 원칙 #2: 변환 가역성. H2·H3가 명확히 구분 보존."""
+    from scripts.notion.blocks import markdown_to_blocks
+
+    h2_blocks = markdown_to_blocks("## H2 제목")
+    h3_blocks = markdown_to_blocks("### H3 제목")
+    assert h2_blocks[0]["type"] == "heading_2"
+    assert h3_blocks[0]["type"] == "heading_3"
+
+
+def test_code_language_preserved_for_reversibility():
+    """v2 호환 원칙 #2: code 블록 언어 그대로 보존."""
+    from scripts.notion.blocks import markdown_to_blocks
+
+    blocks = markdown_to_blocks("```rust\nfn main() {}\n```")
+    assert blocks[0]["code"]["language"] == "rust"
