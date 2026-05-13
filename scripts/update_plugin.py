@@ -365,13 +365,52 @@ def main(argv: list[str] | None = None, plugin_root: Path | None = None) -> int:
             print(f"오류: {e}", file=sys.stderr)
             return 1
 
+        # F7: SHA-256 검증 (asset이 있을 때만)
+        try:
+            expected_sha = fetch_sha256_for_release(latest, transport=transport)
+        except PluginError as e:
+            print(f"오류 (sha256 fetch): {e}", file=sys.stderr)
+            return 1
+
+        if expected_sha is None:
+            print(
+                "경고: release에 .sha256 자산이 없어 무결성 검증을 건너뜁니다.",
+                file=sys.stderr,
+            )
+        else:
+            if not verify_sha256(zip_path, expected_sha):
+                print(
+                    "오류: SHA-256 검증 실패. zip 파일이 손상되었거나 변조되었습니다.",
+                    file=sys.stderr,
+                )
+                return 2
+
+        # F7: 적용 전 백업
+        try:
+            backup_dir = backup_plugin(root)
+            print(f"백업 생성: {backup_dir}")
+        except OSError as e:
+            print(f"오류 (백업 생성 실패): {e}", file=sys.stderr)
+            return 1
+
+        # F7: 적용 + 실패 시 자동 롤백
         try:
             apply_zip(zip_path, root)
         except PluginError as e:
-            print(f"오류: {e}", file=sys.stderr)
+            print(f"오류 (apply): {e}", file=sys.stderr)
+            print("롤백을 시도합니다...", file=sys.stderr)
+            try:
+                rollback_plugin(root, backup_dir)
+                print("롤백 완료. 이전 상태로 복원됨.", file=sys.stderr)
+            except (PluginError, OSError) as rollback_err:
+                print(
+                    f"치명적: 롤백도 실패. 수동 복원 필요: {backup_dir}\n원인: {rollback_err}",
+                    file=sys.stderr,
+                )
             return 1
 
     print_reload_hint()
+    print(f"이전 버전 백업 위치: {backup_dir} (필요 시 수동 롤백 가능)")
     return 0
 
 

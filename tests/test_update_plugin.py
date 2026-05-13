@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import httpx
@@ -499,3 +500,79 @@ def test_rollback_preserves_backups_directory(fake_plugin_dir):
     backup = backup_plugin(fake_plugin_dir)
     rollback_plugin(fake_plugin_dir, backup)
     assert backup.exists()
+
+
+# ── Plan B Task 5: main() 흐름 통합 (verify→backup→apply→rollback) (F7) ─────
+
+
+def test_main_verify_backup_apply_success(monkeypatch, fake_plugin_dir, fake_release_zip):
+    """정상 흐름: SHA256 검증 통과 → 백업 → 적용."""
+    from scripts.update_plugin import compute_sha256, main
+
+    correct_hash = compute_sha256(fake_release_zip)
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        url = str(request.url)
+        if "/releases/latest" in url:
+            return httpx.Response(200, json={
+                "tag_name": "v1.1.1",
+                "name": "v1.1.1",
+                "body": "",
+                "published_at": "2026-05-13",
+                "assets": [
+                    {"name": "techdoc-plugin.zip",
+                     "browser_download_url": "https://example.invalid/x.zip"},
+                    {"name": "techdoc-plugin.zip.sha256",
+                     "browser_download_url": "https://example.invalid/x.zip.sha256"},
+                ],
+            })
+        if url.endswith(".zip.sha256"):
+            return httpx.Response(200, text=f"{correct_hash}  x.zip\n")
+        return httpx.Response(200, content=fake_release_zip.read_bytes())
+
+    monkeypatch.setattr(
+        "scripts.update_plugin._http_transport",
+        lambda: httpx.MockTransport(handler),
+    )
+    monkeypatch.setattr("scripts.update_plugin.confirm_with_user", lambda *a, **k: True)
+
+    rc = main(argv=[], plugin_root=fake_plugin_dir)
+    assert rc == 0
+    assert (fake_plugin_dir / "backups").exists()
+    assert any((fake_plugin_dir / "backups").iterdir())
+
+    pj = json.loads((fake_plugin_dir / ".claude-plugin" / "plugin.json").read_text())
+    assert pj["version"] == "1.1.0"  # fake_release_zip은 1.1.0 모사
+
+
+def test_main_rollback_on_sha256_mismatch(monkeypatch, fake_plugin_dir, fake_release_zip):
+    """SHA256 mismatch 시 plugin은 손상되지 않고 exit 2."""
+    from scripts.update_plugin import main
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        url = str(request.url)
+        if "/releases/latest" in url:
+            return httpx.Response(200, json={
+                "tag_name": "v1.1.1", "name": "v1.1.1", "body": "",
+                "published_at": "2026-05-13",
+                "assets": [
+                    {"name": "x.zip",
+                     "browser_download_url": "https://example.invalid/x.zip"},
+                    {"name": "x.zip.sha256",
+                     "browser_download_url": "https://example.invalid/x.zip.sha256"},
+                ],
+            })
+        if url.endswith(".zip.sha256"):
+            return httpx.Response(200, text="0" * 64 + "  x.zip\n")  # 의도적 mismatch
+        return httpx.Response(200, content=fake_release_zip.read_bytes())
+
+    monkeypatch.setattr(
+        "scripts.update_plugin._http_transport",
+        lambda: httpx.MockTransport(handler),
+    )
+    monkeypatch.setattr("scripts.update_plugin.confirm_with_user", lambda *a, **k: True)
+
+    rc = main(argv=[], plugin_root=fake_plugin_dir)
+    assert rc == 2
+    pj = json.loads((fake_plugin_dir / ".claude-plugin" / "plugin.json").read_text())
+    assert pj["version"] == "1.0.0"  # plugin 손상 없음
