@@ -42,6 +42,31 @@ print(f'sections={len(d[\"sections\"])}, type={d.get(\"document_type\", \"기술
 - 50MB 상한 (`TECHDOC-E071`)
 - `..` 경로 시퀀스 거부
 
+### 2.5. Write 권한 사전 점검 (F6, v1.1.1+)
+
+researcher subagent 호출 전에 `output/` 디렉토리에 실제 쓸 수 있는지 확인:
+
+```bash
+python -m scripts.preflight "$OUTPUT_DIR"
+```
+
+비정상 종료(exit 1)면 **researcher를 호출하지 말고 즉시 중단** 후 사용자에게 안내:
+
+```
+[/techdoc-research 중단] Write 권한 사전 점검 실패.
+
+원인: <preflight 출력>
+조치:
+  1. 현재 디렉토리 권한 확인: ls -ld "$OUTPUT_DIR"
+  2. Windows: 디렉토리 속성 → 보안 탭에서 현재 사용자에게 쓰기 권한 부여
+  3. POSIX: chmod +w "$OUTPUT_DIR"
+  4. settings.json의 permissions.allow에 Write 추가됐는지 확인
+
+권한 확보 후 같은 명령으로 재실행하세요.
+```
+
+이 단계는 F6 사고(researcher가 권한 거부 후 메인 세션이 generator로 우회하여 `KeyRef_overlap_*` 중복 산출)를 사전 차단합니다.
+
 ### 3. Researcher × 3 병렬 호출 (한 메시지에 모두 포함)
 
 **중요**: 한 메시지 안에 Agent tool을 3번 호출해야 실제 병렬 실행됨. 순차로 하면 시간 3배 소요.
