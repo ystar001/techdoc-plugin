@@ -66,7 +66,12 @@ class NotionClient:
             if 200 <= resp.status_code < 300:
                 return resp.json()
             if resp.status_code == 429:
-                retry_after = float(resp.headers.get("Retry-After", "1"))
+                raw = resp.headers.get("Retry-After", "1")
+                try:
+                    retry_after = float(raw)
+                except ValueError:
+                    retry_after = 60.0  # HTTP-date string fallback
+                last_error = NotionAPIError(status_code=429, body=resp.text)
                 time.sleep(retry_after)
                 continue
             if 500 <= resp.status_code < 600:

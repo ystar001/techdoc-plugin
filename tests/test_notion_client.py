@@ -150,9 +150,12 @@ def test_notion_client_retries_on_500_with_backoff(monkeypatch):
     assert len(backoff_sleeps) >= 2
 
 
-def test_notion_client_gives_up_after_max_retries():
+def test_notion_client_gives_up_after_max_retries(monkeypatch):
     """5xx가 계속되면 최대 3회 재시도 후 NotionAPIError."""
     from scripts.notion.client import NotionClient, NotionAPIError
+
+    sleeps: list[float] = []
+    monkeypatch.setattr(_time_mod, "sleep", lambda s: sleeps.append(s))
 
     def handler(request: httpx.Request) -> httpx.Response:
         return httpx.Response(500, text="persistent failure")
@@ -161,3 +164,45 @@ def test_notion_client_gives_up_after_max_retries():
     with pytest.raises(NotionAPIError) as exc:
         client.get_page("x")
     assert exc.value.status_code == 500
+
+
+def test_notion_client_429_exhaustion_raises_status_429(monkeypatch):
+    """429가 계속되면 마지막 NotionAPIError의 status_code가 429."""
+    from scripts.notion.client import NotionClient, NotionAPIError
+
+    sleeps: list[float] = []
+    monkeypatch.setattr(_time_mod, "sleep", lambda s: sleeps.append(s))
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(429, headers={"Retry-After": "1"}, text="rate limited")
+
+    client = NotionClient(token="t", transport=httpx.MockTransport(handler))
+    with pytest.raises(NotionAPIError) as exc:
+        client.get_page("x")
+    assert exc.value.status_code == 429
+
+
+def test_notion_client_retry_after_date_string_uses_fallback(monkeypatch):
+    """Retry-After가 HTTP-date 형식이면 fallback (60초 default)으로 대기."""
+    from scripts.notion.client import NotionClient
+
+    sleeps: list[float] = []
+    monkeypatch.setattr(_time_mod, "sleep", lambda s: sleeps.append(s))
+
+    calls = {"n": 0}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        calls["n"] += 1
+        if calls["n"] == 1:
+            return httpx.Response(
+                429,
+                headers={"Retry-After": "Tue, 03 Jul 2026 12:00:00 GMT"},
+                text="rate limited",
+            )
+        return httpx.Response(200, json={"id": "ok"})
+
+    client = NotionClient(token="t", transport=httpx.MockTransport(handler))
+    result = client.get_page("x")
+    assert result["id"] == "ok"
+    # fallback 60s가 sleep에 등장
+    assert any(s >= 60.0 for s in sleeps)
