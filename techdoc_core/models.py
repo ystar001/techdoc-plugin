@@ -318,6 +318,7 @@ class TechCard:
     differentiation: str = ""  # ⑥ 차별점·한계·발전방향
     references: str = ""  # ⑦ 근거·인용 (REF 리스트)
     ref_ids: list[str] = field(default_factory=list)
+    self_check: dict | None = None  # F2/F4: 사이즈 무관 self-check (None 허용 — 역호환)
 
     def to_dict(self) -> dict:
         return {
@@ -335,6 +336,7 @@ class TechCard:
                 "references": self.references,
             },
             "ref_ids": self.ref_ids,
+            "self_check": self.self_check,
         }
 
     @classmethod
@@ -353,6 +355,7 @@ class TechCard:
             differentiation=blocks.get("differentiation", ""),
             references=blocks.get("references", ""),
             ref_ids=data.get("ref_ids", []),
+            self_check=data.get("self_check"),
         )
 
 
@@ -383,6 +386,7 @@ class ProjectCard:
     period: str = ""
     budget: str = ""
     sponsor: str = ""
+    self_check: dict | None = None  # F2/F4: 사이즈 무관 self-check (None 허용 — 역호환)
 
     def to_dict(self) -> dict:
         return {
@@ -407,6 +411,7 @@ class ProjectCard:
                 "references": self.references,
             },
             "ref_ids": self.ref_ids,
+            "self_check": self.self_check,
         }
 
     @classmethod
@@ -431,6 +436,7 @@ class ProjectCard:
             followup=blocks.get("followup", ""),
             references=blocks.get("references", ""),
             ref_ids=data.get("ref_ids", []),
+            self_check=data.get("self_check"),
         )
 
 
@@ -456,6 +462,7 @@ class ProductCard:
     market: str = ""  # ⑤ 가격대·시장 위치
     references: str = ""  # ⑥ 근거·인용
     ref_ids: list[str] = field(default_factory=list)
+    self_check: dict | None = None  # F2/F4: 사이즈 무관 self-check (None 허용 — 역호환)
 
     def to_dict(self) -> dict:
         return {
@@ -474,6 +481,7 @@ class ProductCard:
                 "references": self.references,
             },
             "ref_ids": self.ref_ids,
+            "self_check": self.self_check,
         }
 
     @classmethod
@@ -493,6 +501,7 @@ class ProductCard:
             market=blocks.get("market", ""),
             references=blocks.get("references", ""),
             ref_ids=data.get("ref_ids", []),
+            self_check=data.get("self_check"),
         )
 
 

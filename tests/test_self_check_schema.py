@@ -88,3 +88,64 @@ def test_self_check_result_rejects_unknown_field():
     """schema 외 필드는 거부 (pydantic strict)."""
     with pytest.raises(Exception):
         SelfCheckResult(unexpected_key="value")
+
+
+from techdoc_core.models import TechCard, ProjectCard, ProductCard
+
+
+def test_tech_card_round_trip_with_self_check():
+    """TechCard가 self_check 필드를 to_dict/from_dict 모두에서 보존하는지."""
+    src = TechCard(
+        id="1.1.1",
+        name="LoRa-Mesh",
+        importance="high",
+        overview="개요",
+        self_check={
+            "blocks_filled": True,
+            "refs_count": 6,
+            "min_length_ok": True,
+            "ai_inference_below_threshold": True,
+            "no_unverified_markers": True,
+            "notes": [],
+        },
+    )
+    d = src.to_dict()
+    assert "self_check" in d
+    assert d["self_check"]["refs_count"] == 6
+
+    restored = TechCard.from_dict(d)
+    assert restored.self_check == src.self_check
+
+
+def test_tech_card_default_self_check_is_none():
+    """기존 카드(self_check 없음)도 정상 로드되어야 한다 (역호환)."""
+    legacy = {
+        "id": "1.1.1",
+        "name": "LoRa-Mesh",
+        "importance": "high",
+        "blocks": {"overview": "개요"},
+    }
+    card = TechCard.from_dict(legacy)
+    assert card.self_check is None
+
+
+def test_project_card_self_check_round_trip():
+    src = ProjectCard(
+        id="1.1.2",
+        name="SMART-IRRI-2024",
+        importance="high",
+        background="",
+        self_check={"refs_count": 8},
+    )
+    assert ProjectCard.from_dict(src.to_dict()).self_check == {"refs_count": 8}
+
+
+def test_product_card_self_check_round_trip():
+    src = ProductCard(
+        id="1.1.3",
+        name="AgriLink X2",
+        importance="medium",
+        background="",
+        self_check={"refs_count": 4},
+    )
+    assert ProductCard.from_dict(src.to_dict()).self_check == {"refs_count": 4}
