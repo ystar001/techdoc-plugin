@@ -283,6 +283,11 @@ def run_export(
 
 
 def main() -> int:
+    """Task 16: CLI entry point.
+
+    NOTION_TOKEN 환경 변수 필수. 미설정 시 integration 안내 URL 출력 후 exit 1.
+    --archive-stale / --no-archive-stale BooleanOptionalAction 지원.
+    """
     import argparse
 
     ap = argparse.ArgumentParser(prog="export_notion", description="TechDoc → Notion publish")
