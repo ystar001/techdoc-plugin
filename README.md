@@ -1,9 +1,9 @@
 # TechDoc Plugin
 
-> **AI 기술보고서 자동 생성 Claude Code 플러그인** — v1.2.0 (2026-05-13)
+> **AI 기술보고서 자동 생성 Claude Code 플러그인** — v1.3.0 (2026-05-13)
 > 레퍼런스 100% 기반 · 카드 중첩식 섹션 · 별첨 논문 수준 심층분석 · LLM Wiki 통합 · Claude Code 네이티브
 
-[![Version](https://img.shields.io/badge/version-1.2.0-green)]()
+[![Version](https://img.shields.io/badge/version-1.3.0-green)]()
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue)]()
 [![License](https://img.shields.io/badge/license-MIT-green)]()
 [![Plugin](https://img.shields.io/badge/claude--code-plugin-purple)]()
@@ -39,7 +39,7 @@
   - [21. 자주 하는 작업 패턴 6종](#21-자주-하는-작업-패턴-6종)
   - [22. 핵심 파일 예시](#22-핵심-파일-예시)
 - [PART Ⅴ. 명령·옵션 레퍼런스](#part-ⅴ-명령옵션-레퍼런스)
-  - [23. 슬래시 명령 전체 (14종)](#23-슬래시-명령-전체-14종)
+  - [23. 슬래시 명령 전체 (18종)](#23-슬래시-명령-전체-18종)
   - [24. 주요 옵션 상세](#24-주요-옵션-상세)
 - [PART Ⅵ. 운영·배포](#part-ⅵ-운영배포)
   - [25. 설치 경로 4종](#25-설치-경로-4종)
@@ -47,6 +47,7 @@
   - [27. 릴리스·상태](#27-릴리스상태)
   - [28. FAQ·트러블슈팅](#28-faq트러블슈팅)
   - [29. Notion 통합 (v1.2.0 신규)](#29-notion-통합-v120-신규)
+  - [30. Autopilot 자율 모드 (v1.3.0 신규)](#30-autopilot-자율-모드-v130-신규)
 - [관련 문서](#관련-문서)
 
 ---
@@ -66,7 +67,7 @@ TechDoc은 **AI 기술보고서 자동 생성 + LLM Wiki 누적을 지원하는 
 - ⭐ **LLM Wiki 누적** (D 하이브리드: 옵시디언·MkDocs·표준 마크다운 호환)
 - ⭐ **자체 업데이트** (`/techdoc-update`로 새 버전 자동 갱신)
 
-하도록 설계된 **14종 슬래시 명령 + 3종 Subagent + 26종 프롬프트 + 14+ Python 모듈**의 종합 도구입니다.
+하도록 설계된 **18종 슬래시 명령 + 3종 Subagent + 26종 프롬프트 + 14+ Python 모듈**의 종합 도구입니다.
 
 ## 2. 대상 사용자
 
@@ -166,14 +167,19 @@ techdoc-plugin/                                  # 플러그인 루트 (v1.1.0)
 │   ├── plugin.json                              # 이름·버전·설명
 │   └── marketplace.json                         # 자체 마켓플레이스
 │
-├── commands/                                    # 14종 슬래시 명령
+├── commands/                                    # 18종 슬래시 명령
 │   ├── techdoc.md            techdoc-outline.md
 │   ├── techdoc-research.md   techdoc-write.md
 │   ├── techdoc-review.md     techdoc-render.md
 │   ├── techdoc-resume.md     techdoc-rewrite.md
 │   ├── techdoc-deepdive.md   techdoc-doctor.md
 │   ├── techdoc-demo.md       techdoc-update.md          # ⭐ v1.1.0
-│   └── techdoc-export-wiki.md                           # ⭐ v1.1.0
+│   ├── techdoc-export-wiki.md                           # ⭐ v1.1.0
+│   ├── techdoc-export-notion.md                         # ⭐ v1.2.0
+│   ├── techdoc-autopilot.md                             # ⭐ v1.3.0
+│   ├── techdoc-autopilot-status.md                      # ⭐ v1.3.0
+│   ├── techdoc-autopilot-stop.md                        # ⭐ v1.3.0
+│   └── techdoc-autopilot-resume.md                      # ⭐ v1.3.0
 │
 ├── agents/                                      # 3종 Subagent
 │   ├── techdoc-researcher.md                    # 5+6라운드 조사
@@ -878,7 +884,7 @@ techdoc_auto: true
 
 # PART Ⅴ. 명령·옵션 레퍼런스
 
-## 23. 슬래시 명령 전체 (14종)
+## 23. 슬래시 명령 전체 (18종)
 
 | 그룹 | 명령 | 핵심 역할 | 소요 |
 |---|---|---|---|
@@ -895,6 +901,10 @@ techdoc_auto: true
 | | `/techdoc-deepdive` | **별첨 개별** ⭐ | 10~15분 |
 | **Wiki** ⭐ | `/techdoc-export-wiki` | LLM Wiki 변환·누적 | 1~2분 |
 | **Notion** ⭐ | `/techdoc-export-notion` (v1.2.0) | TechDoc 보고서 → Notion publish (페이지 계층 + KeyRef DB) | 30초~3분 |
+| **Autopilot** ⭐ | `/techdoc-autopilot` (v1.3.0) | 자율 모드 보고서 생성 (walk-away) | 1.5~2.5h |
+| | `/techdoc-autopilot-status` | 진행 상태 조회 | 즉시 |
+| | `/techdoc-autopilot-stop` | graceful halt 요청 | 즉시 |
+| | `/techdoc-autopilot-resume` | halt 후 재개 | 즉시 |
 | **통합** | `/techdoc` | 전체 파이프라인 (`--export-wiki` / `--push-notion` 옵션) | 60~130분 |
 
 ## 24. 주요 옵션 상세
@@ -1053,6 +1063,7 @@ unzip techdoc-plugin-v1.1.0-wrapped.zip -d ~/.claude/plugins/
 
 | 버전 | 주요 변경 | 파일 수 | 코드 |
 |---|---|---|---|
+| **v1.3.0** (2026-05-13) | Autopilot 자율 모드: `/techdoc-autopilot` + status/stop/resume. superpowers `/loop` 기반 self-paced. 6 safety 트리거 + 이상 시 chat. SCHEMA 유지. | (변동 없음) | 약 21k줄 |
 | **v1.2.0** (2026-05-13) | Notion 통합: `/techdoc-export-notion` + `/techdoc --push-notion` 옵션. 페이지 계층 + KeyRef inline database. delta sync. v2 호환 4원칙 준수. | (변동 없음) | 약 20k줄 |
 | **v1.1.3** (2026-05-13) | F5 자체 모델 품질 검사: `scripts/check_quality`에 self-model 카드 레이아웃 지원 + mode 자동 라우팅 + F1 변형 본문 키 재귀 합산. `/techdoc-review` Phase A 자동화. SCHEMA 유지. | (변동 없음) | 약 19k줄 |
 | **v1.1.2** (2026-05-13) | F8 자체 모델 호환: `/techdoc-rewrite`·`/techdoc-write` skill에 self-model 카드 레이아웃(`output/cards/<id>_card.json`) fallback + `--single-call` 인자. F1·F3 컨벤션 명문화. SCHEMA 유지. | (변동 없음) | 약 18.5k줄 |
@@ -1200,6 +1211,88 @@ parent_page
 - 양방향 sync는 v1.3.x·v2.0 로드맵.
 
 **spec**: `docs/superpowers/specs/2026-05-13-notion-push-integration-design.md`
+
+---
+
+## 30. Autopilot 자율 모드 (v1.3.0 신규)
+
+`/techdoc-autopilot`이 보고서 1건을 walk-away 가능한 자율 모드로 실행합니다. 사용자가 1~2시간 동안 세션을 지켜볼 필요 없음.
+
+### 동작 원리
+
+superpowers `/loop` dynamic mode 위에 동작. 매 wake-up마다:
+
+1. `autopilot_state.json` + `writer_state.json` 로드
+2. 6 safety 트리거 점검 → 위반 시 즉시 halt
+3. 다음 chunk 결정 (stage dependency graph)
+4. chunk 실행 (researcher/writer/reviewer subagent 또는 Python 호출)
+5. `check_quality` 자동 호출 → 결과를 state·log에 기록
+6. `ScheduleWakeup` 60s (immediate) 또는 1200s (rate limit signal)
+
+### Chunk granularity — 섹션 그룹 단위
+
+| Chunk | 평균 소요 |
+|---|---|
+| `outline` | 30초~2분 |
+| `research_A·B·C` | 5~8분 |
+| `merge_research` | 1분 |
+| `write_A·B·C` | 10~15분 |
+| `review` | 5~8분 |
+| `render` | 2~5분 |
+
+일반 보고서 ~10 wake-ups, 총 1.5~2.5h.
+
+### 6 safety 트리거
+
+| 트리거 | 조건 |
+|---|---|
+| `quality_fail` | check_quality FAIL > 0 |
+| `quality_warn_exceeded` | WARN > `--max-warnings` (기본 10) |
+| `card_failures_exceeded` | retry 3회 초과 카드 수 > `--max-consecutive-card-failures` (기본 5) |
+| `wall_clock_exceeded` | 시작 후 `--max-wall-clock` (기본 4h) 초과 |
+| `state_corruption` | writer_state·autopilot_state 파싱 실패 |
+| `manual_stop` | `$OUTPUT_DIR/autopilot.stop` 파일 존재 |
+
+### 사용 예
+
+```bash
+# 자율 시작 + Notion publish
+/techdoc-autopilot "AI 반도체 기술보고서" \
+  --toc ./toc.txt \
+  --domain tech \
+  --deep-dive-auto 5 \
+  --push-notion 2f1a9b8c4d5e6f7a8b9c0d1e2f3a4b5c
+
+# 다른 일 하다가 진행 확인
+/techdoc-autopilot-status
+
+# 1시간 후 chat 확인 — 완료 또는 halt 알림
+```
+
+### 사용자 개입 시나리오
+
+- **품질 미달로 halt** (`quality_fail` 또는 `quality_warn_exceeded`):
+  ```bash
+  /techdoc-rewrite <문제카드>   # 또는 직접 수정
+  /techdoc-autopilot-resume
+  ```
+- **사용자가 중간 stop**:
+  ```bash
+  /techdoc-autopilot-stop       # autopilot.stop flag 생성
+  # ... 나중에 ...
+  /techdoc-autopilot-resume
+  ```
+
+### 알림 모드
+
+| 모드 | 채팅 알림 |
+|---|---|
+| `anomalies_only` (기본) | 시작·완료·halt만 |
+| `each-wake-up` | 매 wake-up 1줄 (8~10건 메시지) |
+
+silent 모드에서도 `output/autopilot.log`에 모든 wake-up 기록.
+
+상세는 spec `docs/superpowers/specs/2026-05-13-techdoc-autopilot-design.md` 참조.
 
 ---
 
