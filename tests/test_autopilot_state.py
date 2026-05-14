@@ -68,3 +68,45 @@ def test_save_state_writes_pretty_json(tmp_path):
     raw = (tmp_path / "autopilot_state.json").read_text(encoding="utf-8")
     assert "  " in raw  # indented
     assert raw.endswith("\n") or raw.endswith("}")
+
+
+def test_update_stage_changes_status():
+    from scripts.autopilot.state import init_state, update_stage
+
+    s = init_state(Path("/tmp"), title="T", config={}, num_section_groups=3)
+    update_stage(s, "outline", "completed")
+    assert s["stages"]["outline"] == "completed"
+
+
+def test_update_stage_ignores_unknown_chunk():
+    from scripts.autopilot.state import init_state, update_stage
+
+    s = init_state(Path("/tmp"), title="T", config={}, num_section_groups=3)
+    update_stage(s, "nonexistent_chunk", "completed")
+    assert "nonexistent_chunk" not in s["stages"]
+
+
+def test_append_wake_up_records_entry():
+    from scripts.autopilot.state import init_state, append_wake_up
+
+    s = init_state(Path("/tmp"), title="T", config={}, num_section_groups=3)
+    append_wake_up(s, {"ts": "x", "chunk": "outline", "duration_s": 80, "result": "success"})
+    assert len(s["wake_ups"]) == 1
+    assert s["wake_ups"][0]["chunk"] == "outline"
+
+
+def test_mark_completed_sets_timestamp():
+    from scripts.autopilot.state import init_state, mark_completed
+
+    s = init_state(Path("/tmp"), title="T", config={}, num_section_groups=3)
+    assert s["completed_at"] is None
+    mark_completed(s)
+    assert s["completed_at"] is not None
+
+
+def test_mark_halted_sets_reason():
+    from scripts.autopilot.state import init_state, mark_halted
+
+    s = init_state(Path("/tmp"), title="T", config={}, num_section_groups=3)
+    mark_halted(s, "quality_fail")
+    assert s["halt_reason"] == "quality_fail"
