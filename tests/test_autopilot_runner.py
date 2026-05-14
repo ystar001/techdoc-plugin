@@ -93,3 +93,99 @@ def test_run_iteration_with_default_dispatcher_records_attempt(tmp_path):
     assert result["status"] == "continue"
     saved = json.loads((tmp_path / "autopilot_state.json").read_text(encoding="utf-8"))
     assert len(saved["wake_ups"]) == 1
+
+
+# ---------------------------------------------------------------------------
+# Task 10: autopilot.py CLI entry
+# ---------------------------------------------------------------------------
+
+
+def test_main_init_creates_state_file(tmp_path, monkeypatch):
+    """autopilot main이 state 파일을 생성."""
+    from scripts import autopilot
+    import sys
+
+    monkeypatch.chdir(tmp_path)
+    argv_bak = list(sys.argv)
+    try:
+        sys.argv = [
+            "autopilot", "Test Title",
+            "--doc", str(tmp_path),
+            "--print-loop-prompt",  # 실제 /loop 진입 안 함
+        ]
+        rc = autopilot.main()
+    finally:
+        sys.argv = argv_bak
+
+    assert rc == 0
+    state_path = tmp_path / "autopilot_state.json"
+    assert state_path.exists()
+    state = json.loads(state_path.read_text(encoding="utf-8"))
+    assert state["title"] == "Test Title"
+
+
+def test_main_aborts_if_lock_exists(tmp_path, monkeypatch):
+    """autopilot.lock 존재 시 abort."""
+    from scripts import autopilot
+    import sys
+
+    (tmp_path / "autopilot.lock").write_text("", encoding="utf-8")
+
+    monkeypatch.chdir(tmp_path)
+    argv_bak = list(sys.argv)
+    try:
+        sys.argv = ["autopilot", "Test", "--doc", str(tmp_path), "--print-loop-prompt"]
+        rc = autopilot.main()
+    finally:
+        sys.argv = argv_bak
+
+    assert rc != 0  # lock 충돌로 종료
+
+
+# ---------------------------------------------------------------------------
+# Task 11: autopilot_step.py — 단일 step JSON 출력
+# ---------------------------------------------------------------------------
+
+
+def test_autopilot_step_prints_json(tmp_path, monkeypatch, capsys):
+    """autopilot_step.main()이 결과를 JSON으로 stdout에 출력."""
+    from scripts import autopilot_step
+    from scripts.autopilot.state import init_state, save_state
+    import sys
+
+    state = init_state(tmp_path, title="T", config={}, num_section_groups=2)
+    save_state(tmp_path, state)
+
+    argv_bak = list(sys.argv)
+    try:
+        sys.argv = ["autopilot_step", "--doc", str(tmp_path)]
+        rc = autopilot_step.main()
+    finally:
+        sys.argv = argv_bak
+
+    out = capsys.readouterr().out.strip()
+    parsed = json.loads(out)
+    assert parsed["status"] in ("done", "halt", "continue")
+
+
+def test_autopilot_step_halt_outputs_reason(tmp_path, monkeypatch, capsys):
+    """halt 시 reason 포함."""
+    from scripts import autopilot_step
+    from scripts.autopilot.state import init_state, save_state
+    import sys
+
+    state = init_state(tmp_path, title="T", config={}, num_section_groups=2)
+    save_state(tmp_path, state)
+    (tmp_path / "autopilot.stop").write_text("", encoding="utf-8")
+
+    argv_bak = list(sys.argv)
+    try:
+        sys.argv = ["autopilot_step", "--doc", str(tmp_path)]
+        autopilot_step.main()
+    finally:
+        sys.argv = argv_bak
+
+    out = capsys.readouterr().out.strip()
+    parsed = json.loads(out)
+    assert parsed["status"] == "halt"
+    assert parsed["reason"] == "manual_stop"
