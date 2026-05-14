@@ -4,6 +4,33 @@ All notable changes to TechDoc Plugin.
 
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.3.0] — 2026-05-13
+
+### Added
+
+- **TechDoc Autopilot** — 보고서 1건을 사용자 walk-away 가능한 자율 모드로 실행. `/techdoc-autopilot`이 superpowers `/loop` dynamic mode 위에 thin orchestrator로 동작. 매 wake-up마다 1 chunk(섹션 그룹) 처리 → state checkpoint → 다음 ScheduleWakeup. 일반 보고서 ~10 wake-ups, 1.5~2.5h 예산.
+- **4 신규 슬래시 명령**: `/techdoc-autopilot` · `/techdoc-autopilot-status` · `/techdoc-autopilot-stop` · `/techdoc-autopilot-resume`. 총 14종 → 18종.
+- **6 safety 트리거** — quality_fail · quality_warn_exceeded · card_failures_exceeded · wall_clock_exceeded · state_corruption · manual_stop. 위반 즉시 halt + chat 알림.
+- **알림 모델** — silent file log + 이상 시만 chat (`--notify anomalies_only` 기본) + opt-in verbose (`--notify each-wake-up`).
+- **신규 모듈** — `scripts/autopilot/{state,triggers,chunks,notify,runner}.py` + `scripts/autopilot.py` + `scripts/autopilot_step.py`. LLM 호출 0회 (autopilot 자체).
+- **신규 테스트 ~40건** — state·triggers·chunks·notify·runner 각 회귀.
+
+### Changed
+
+- README 양쪽 14종 → 18종 카운트. 새 "Autopilot" 섹션 (PART Ⅵ).
+
+### Compatibility
+
+- SCHEMA_VERSION 0.1.0 유지 (autopilot_state.json은 별도 `schema_version` "0.1.0").
+- 신규 의존성 0개 (superpowers loop skill은 이미 5.1.0 설치).
+- `/techdoc` 동작 변경 없음 — autopilot은 별도 명령 (opt-in).
+- 기존 `/techdoc-resume`·`/techdoc-rewrite`는 autopilot halt 후 사용 가능.
+
+### Spec · Plan
+
+- `docs/superpowers/specs/2026-05-13-techdoc-autopilot-design.md` (380줄, 15 섹션).
+- `docs/superpowers/plans/2026-05-13-techdoc-autopilot.md` (~17 task, 8 phase).
+
 ## [1.2.0] — 2026-05-13
 
 ### Added
