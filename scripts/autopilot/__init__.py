@@ -12,6 +12,7 @@ CLI entry:
 from __future__ import annotations
 
 import argparse
+import os
 import re
 import sys
 from pathlib import Path
@@ -56,6 +57,17 @@ def main(argv: list[str] | None = None) -> int:
         help="state 초기화 + /loop prompt 출력 후 종료 (실제 loop 진입 안 함)",
     )
     args = ap.parse_args(argv)
+
+    if args.push_notion and not os.environ.get("NOTION_TOKEN", "").strip():
+        print(
+            "오류: --push-notion 사용 시 NOTION_TOKEN 환경 변수가 필수입니다.",
+            file=sys.stderr,
+        )
+        print(
+            "Notion integration 생성: https://www.notion.so/my-integrations",
+            file=sys.stderr,
+        )
+        return 1
 
     output_dir = Path(args.doc)
     output_dir.mkdir(parents=True, exist_ok=True)

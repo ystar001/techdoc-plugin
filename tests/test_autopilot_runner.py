@@ -189,3 +189,122 @@ def test_autopilot_step_halt_outputs_reason(tmp_path, monkeypatch, capsys):
     parsed = json.loads(out)
     assert parsed["status"] == "halt"
     assert parsed["reason"] == "manual_stop"
+
+
+# ---------------------------------------------------------------------------
+# C1: lock cleanup regression tests
+# ---------------------------------------------------------------------------
+
+
+def test_run_iteration_deletes_lock_on_done(tmp_path):
+    """모든 stage completed → done 반환 시 autopilot.lock 삭제."""
+    from scripts.autopilot.runner import run_iteration
+    from scripts.autopilot.state import init_state, save_state
+
+    state = init_state(tmp_path, title="T", config={}, num_section_groups=2)
+    for k in state["stages"]:
+        state["stages"][k] = "completed"
+    save_state(tmp_path, state)
+    (tmp_path / "autopilot.lock").write_text("", encoding="utf-8")
+
+    result = run_iteration(tmp_path, dispatcher=None)
+    assert result["status"] == "done"
+    assert not (tmp_path / "autopilot.lock").exists()
+
+
+def test_run_iteration_deletes_lock_on_halt(tmp_path):
+    """manual_stop halt 시 autopilot.lock 삭제."""
+    from scripts.autopilot.runner import run_iteration
+    from scripts.autopilot.state import init_state, save_state
+
+    state = init_state(tmp_path, title="T", config={}, num_section_groups=2)
+    save_state(tmp_path, state)
+    (tmp_path / "autopilot.lock").write_text("", encoding="utf-8")
+    (tmp_path / "autopilot.stop").write_text("", encoding="utf-8")
+
+    result = run_iteration(tmp_path, dispatcher=None)
+    assert result["status"] == "halt"
+    assert not (tmp_path / "autopilot.lock").exists()
+
+
+# ---------------------------------------------------------------------------
+# C2: consecutive_card_failures regression tests
+# ---------------------------------------------------------------------------
+
+
+def test_run_iteration_increments_card_failures_on_failure(tmp_path):
+    """dispatcher failure → consecutive_card_failures 1 증가."""
+    from scripts.autopilot.runner import run_iteration
+    from scripts.autopilot.state import init_state, save_state
+
+    state = init_state(tmp_path, title="T", config={}, num_section_groups=2)
+    save_state(tmp_path, state)
+
+    def failing_dispatcher(chunk_id, output_dir):
+        return {"result": "failure", "duration_s": 5, "quality_fail": 0, "quality_warn": 0}
+
+    run_iteration(tmp_path, dispatcher=failing_dispatcher)
+    saved = json.loads((tmp_path / "autopilot_state.json").read_text(encoding="utf-8"))
+    assert saved["consecutive_card_failures"] == 1
+
+
+def test_run_iteration_resets_card_failures_on_success(tmp_path):
+    """dispatcher success → consecutive_card_failures 0 초기화."""
+    from scripts.autopilot.runner import run_iteration
+    from scripts.autopilot.state import init_state, save_state
+
+    state = init_state(tmp_path, title="T", config={}, num_section_groups=2)
+    state["consecutive_card_failures"] = 3  # 과거 실패 있음
+    save_state(tmp_path, state)
+
+    def ok_dispatcher(chunk_id, output_dir):
+        return {"result": "success", "duration_s": 5, "quality_fail": 0, "quality_warn": 0}
+
+    run_iteration(tmp_path, dispatcher=ok_dispatcher)
+    saved = json.loads((tmp_path / "autopilot_state.json").read_text(encoding="utf-8"))
+    assert saved["consecutive_card_failures"] == 0
+
+
+# ---------------------------------------------------------------------------
+# I1: NOTION_TOKEN validation regression tests
+# ---------------------------------------------------------------------------
+
+
+def test_main_aborts_when_push_notion_without_token(tmp_path, monkeypatch):
+    """--push-notion 인자에 NOTION_TOKEN 미설정 시 abort."""
+    from scripts.autopilot import main
+    import sys
+
+    monkeypatch.delenv("NOTION_TOKEN", raising=False)
+    argv_bak = list(sys.argv)
+    try:
+        sys.argv = [
+            "autopilot", "Test",
+            "--doc", str(tmp_path),
+            "--push-notion", "abc123",
+            "--print-loop-prompt",
+        ]
+        rc = main()
+    finally:
+        sys.argv = argv_bak
+    assert rc == 1
+
+
+def test_main_proceeds_when_push_notion_with_token(tmp_path, monkeypatch):
+    """--push-notion + NOTION_TOKEN 설정 시 정상 진행."""
+    from scripts.autopilot import main
+    import sys
+
+    monkeypatch.setenv("NOTION_TOKEN", "test_token")
+    argv_bak = list(sys.argv)
+    try:
+        sys.argv = [
+            "autopilot", "Test",
+            "--doc", str(tmp_path),
+            "--push-notion", "abc123",
+            "--print-loop-prompt",
+        ]
+        rc = main()
+    finally:
+        sys.argv = argv_bak
+    assert rc == 0

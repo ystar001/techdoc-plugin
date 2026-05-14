@@ -28,6 +28,9 @@ state_path.write_text(json.dumps(s, ensure_ascii=False, indent=2), encoding='utf
 stop_flag = Path('$OUT') / 'autopilot.stop'
 if stop_flag.exists():
     stop_flag.unlink()
+lock_path = Path('$OUT') / 'autopilot.lock'
+if lock_path.exists():
+    lock_path.unlink()
 print(f'resume: halt_reason \"{prev}\" 클리어. /loop 재진입 진행.')
 "
 

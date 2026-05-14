@@ -11,14 +11,24 @@ result ∈ {"success", "failure", "partial", "rate_limited"}.
 
 from __future__ import annotations
 
+import contextlib
 import time
+from collections.abc import Callable
 from datetime import datetime, timezone
-
-__all__ = ["run_iteration", "default_dispatcher", "CHUNK_TO_COMMAND_HINT"]
 from pathlib import Path
-from typing import Callable
 
-from scripts.autopilot import chunks, notify, state as state_module, triggers
+from scripts.autopilot import chunks, notify, triggers
+from scripts.autopilot import state as state_module
+
+__all__ = ["CHUNK_TO_COMMAND_HINT", "default_dispatcher", "run_iteration"]
+
+
+def _cleanup_lock(output_dir: Path) -> None:
+    """autopilot.lock 제거 (완료 또는 halt 시)."""
+    lock_path = Path(output_dir) / "autopilot.lock"
+    if lock_path.exists():
+        with contextlib.suppress(OSError):
+            lock_path.unlink()
 
 
 def run_iteration(
@@ -35,6 +45,7 @@ def run_iteration(
         state_module.mark_halted(state, pre_trigger)
         state_module.save_state(output_dir, state)
         notify.append_log(output_dir, f"HALT pre-flight: {pre_trigger}")
+        _cleanup_lock(output_dir)
         return {"status": "halt", "reason": pre_trigger}
 
     # Phase 2: 다음 chunk 선택
@@ -43,6 +54,7 @@ def run_iteration(
         state_module.mark_completed(state)
         state_module.save_state(output_dir, state)
         notify.append_log(output_dir, "complete")
+        _cleanup_lock(output_dir)
         return {"status": "done"}
 
     # Phase 3: dispatcher 호출
@@ -57,7 +69,7 @@ def run_iteration(
     start = time.monotonic()
     try:
         dispatch_result = dispatcher(next_chunk, output_dir)
-    except Exception as e:  # noqa: BLE001
+    except Exception as e:  # broad-catch intentional: dispatcher is user code
         notify.append_log(output_dir, f"DISPATCHER_ERROR chunk={next_chunk} err={e}")
         state_module.update_stage(state, next_chunk, "failed")
         state_module.save_state(output_dir, state)
@@ -77,6 +89,12 @@ def run_iteration(
         state_module.update_stage(state, next_chunk, "completed")  # 부분 성공도 진행
     elif result_status == "rate_limited":
         state_module.update_stage(state, next_chunk, "pending")  # 다음 wake-up 재시도
+
+    # C2: consecutive_card_failures 갱신
+    if result_status == "failure":
+        state["consecutive_card_failures"] = state.get("consecutive_card_failures", 0) + 1
+    elif result_status == "success":
+        state["consecutive_card_failures"] = 0  # 연속 실패 초기화
 
     state_module.append_wake_up(state, {
         "ts": datetime.now(timezone.utc).isoformat(),
@@ -104,13 +122,11 @@ def run_iteration(
         state_module.mark_halted(state, post_trigger)
         state_module.save_state(output_dir, state)
         notify.append_log(output_dir, f"HALT post-quality: {post_trigger}")
+        _cleanup_lock(output_dir)
         return {"status": "halt", "reason": post_trigger}
 
     # Phase 5: 다음 wake-up 시점
-    if result_status == "rate_limited":
-        next_wake = 1200  # 20분 대기 (quota refresh)
-    else:
-        next_wake = 60  # 즉시 (cache window 안)
+    next_wake = 1200 if result_status == "rate_limited" else 60  # 20분 대기(quota) vs 즉시
 
     return {"status": "continue", "next_wake_up_seconds": next_wake}
 
