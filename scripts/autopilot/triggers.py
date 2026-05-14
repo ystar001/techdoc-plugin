@@ -71,3 +71,36 @@ def check_state_corruption(output_dir: Path) -> str | None:
             return "state_corruption"
 
     return None
+
+
+def check_manual_stop(output_dir: Path) -> str | None:
+    """output/autopilot.stop 파일 존재 시 graceful halt."""
+    if (Path(output_dir) / STOP_FLAG_FILENAME).exists():
+        return "manual_stop"
+    return None
+
+
+def evaluate_all(state: dict, output_dir: Path, quality_report: dict | None) -> str | None:
+    """6 트리거를 순차 평가. 첫 위반 reason 반환, 아니면 None.
+
+    Priority order: manual_stop → state_corruption → wall_clock → card_failures
+                    → quality_fail → quality_warn_exceeded.
+    """
+    config = state.get("config", {})
+    max_warnings = config.get("max_warnings", 10)
+    max_card_failures = config.get("max_consecutive_card_failures", 5)
+
+    for check in (
+        lambda: check_manual_stop(output_dir),
+        lambda: check_state_corruption(output_dir),
+        lambda: check_wall_clock(state),
+        lambda: check_card_failures(state, max_card_failures),
+    ):
+        reason = check()
+        if reason:
+            return reason
+
+    if quality_report is not None:
+        return check_quality_fail(quality_report, max_warnings)
+
+    return None

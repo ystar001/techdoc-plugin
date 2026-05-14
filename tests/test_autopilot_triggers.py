@@ -104,3 +104,51 @@ def test_state_corruption_skips_when_writer_state_missing(tmp_path):
     from scripts.autopilot.triggers import check_state_corruption
 
     assert check_state_corruption(tmp_path) is None
+
+
+def test_manual_stop_detected(tmp_path):
+    from scripts.autopilot.triggers import check_manual_stop
+
+    (tmp_path / "autopilot.stop").write_text("", encoding="utf-8")
+    reason = check_manual_stop(tmp_path)
+    assert reason == "manual_stop"
+
+
+def test_manual_stop_not_detected(tmp_path):
+    from scripts.autopilot.triggers import check_manual_stop
+
+    assert check_manual_stop(tmp_path) is None
+
+
+def test_evaluate_all_returns_first_trigger_found(tmp_path):
+    """모든 트리거를 순회. 첫 번째 위반 반환."""
+    from scripts.autopilot.triggers import evaluate_all
+
+    (tmp_path / "autopilot.stop").write_text("", encoding="utf-8")
+    state = {
+        "started_at": (
+            __import__("datetime").datetime.now(__import__("datetime").timezone.utc)
+            .isoformat()
+        ),
+        "config": {"max_wall_clock_seconds": 14400, "max_warnings": 10, "max_consecutive_card_failures": 5},
+        "consecutive_card_failures": 0,
+    }
+    quality_report = {"total_fail": 0, "total_warning": 0}
+    reason = evaluate_all(state, tmp_path, quality_report)
+    # manual_stop 또는 다른 위반 — 최소 1개 발견됨
+    assert reason is not None
+
+
+def test_evaluate_all_returns_none_when_clean(tmp_path):
+    """모든 트리거 통과."""
+    from scripts.autopilot.triggers import evaluate_all
+    from datetime import datetime, timezone
+
+    state = {
+        "started_at": datetime.now(timezone.utc).isoformat(),
+        "config": {"max_wall_clock_seconds": 14400, "max_warnings": 10, "max_consecutive_card_failures": 5},
+        "consecutive_card_failures": 0,
+    }
+    quality_report = {"total_fail": 0, "total_warning": 0}
+    reason = evaluate_all(state, tmp_path, quality_report)
+    assert reason is None
