@@ -123,11 +123,33 @@ def apply_migration_path(data: dict, to_v: str = SCHEMA_VERSION) -> dict:
     return data
 
 
-# v1 마이그레이션 예시 (현재는 미사용, v0.2.0에서 채움)
-# @register_migration("0.1.0", "0.2.0")
-# def _migrate_010_to_020(data: dict) -> dict:
-#     # 필요한 필드 추가·제거·이름변경
-#     return data
+@register_migration("0.1.0", "0.2.0")
+def _migrate_self_model_0_1_to_0_2(data: dict) -> dict:
+    """self-model 카드 0.1.0 → 0.2.0 (F1·F3·F13·F14).
+
+    self-model 카드만 변환한다(`sections` dict 보유 & `blocks` 미보유).
+    standard 카드·기타 JSON은 그대로 반환.
+    """
+    if "sections" not in data or "blocks" in data:
+        return data
+
+    # F13: 단일 card_id(split marker 포함) + parent_id
+    card_id = data.get("appendix_id") or data.get("card_id") or data.get("id", "")
+    parent_id = data.get("section_id", "")
+    if parent_id == card_id:
+        parent_id = ""
+    data["card_id"] = card_id
+    data["parent_id"] = parent_id
+
+    # F14: title 운영미주 분리
+    title, note = split_title_notes(str(data.get("title", "")))
+    data["title"] = title
+    if note and not data.get("split_summary"):
+        data["split_summary"] = note
+
+    # F1·F3: 섹션 정규화
+    data["sections"] = normalize_sections(data.get("sections", {}))
+    return data
 
 
 def scan_dir(output_dir: Path) -> list[Path]:

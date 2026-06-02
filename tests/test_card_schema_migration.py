@@ -1,7 +1,11 @@
 import pytest
 from pydantic import ValidationError
 
-from scripts.migrate import normalize_sections, split_title_notes
+from scripts.migrate import (
+    apply_migration_path,
+    normalize_sections,
+    split_title_notes,
+)
 from techdoc_core import constants
 from techdoc_core.schemas import SelfModelCardSchema, SelfModelSection
 
@@ -100,3 +104,33 @@ def test_normalize_sections_preserves_existing_title():
     old = {"sec2_principles": {"title": "작동 원리", "body": "x"}}
     new = normalize_sections(old)
     assert new["sec2"]["title"] == "작동 원리"
+
+
+def test_migrate_self_model_0_1_to_0_2_full():
+    old = {
+        "schema_version": "0.1.0",
+        "section_id": "14.1",
+        "appendix_id": "A-14.1.L1",
+        "title": "농업 데이터 표준 — 분할 1/3",
+        "sections": {
+            "sec1_definition_scope": {"narrative": "정의 본문"},
+            "sec3_trends_international": {"content": "동향 본문"},
+        },
+    }
+    new = apply_migration_path(old, "0.2.0")
+    assert new["schema_version"] == "0.2.0"
+    assert new["card_id"] == "A-14.1.L1"      # appendix_id 우선
+    assert new["parent_id"] == "14.1"          # section_id → parent
+    assert new["title"] == "농업 데이터 표준"
+    assert new["split_summary"] == "분할 1/3"
+    assert new["sections"]["sec1"]["body"] == "정의 본문"
+    assert new["sections"]["sec3"]["title"] == "국내외 동향"
+    # 변환 결과가 엄격 스키마를 통과해야 함
+    SelfModelCardSchema(**{k: v for k, v in new.items() if k != "schema_version"})
+
+
+def test_migrate_ignores_standard_blocks_card():
+    std = {"schema_version": "0.1.0", "id": "1.1.1", "blocks": {"overview": "x"}}
+    new = apply_migration_path(std, "0.2.0")
+    assert "card_id" not in new            # 변환 안 함
+    assert new["blocks"]["overview"] == "x"
