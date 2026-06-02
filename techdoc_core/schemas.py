@@ -271,11 +271,13 @@ class SelfCheckResult(BaseModel):
 
 
 class SelfModelSection(BaseModel):
-    """self-model 카드의 한 섹션. `body` 필드만 강제, 나머지는 자유."""
+    """self-model 카드의 한 섹션. title(한글 헤딩) + body(본문)."""
     model_config = {"extra": "allow"}
 
+    title: str = ""
+    """섹션 한글 헤딩. F3: 서술명을 키가 아닌 이 필드로 분리."""
     body: str = ""
-    """섹션 본문. 자체 모델의 body 키 표준화 (F1 해결)."""
+    """섹션 본문. F1: 단일 body 키 강제(narrative·content 변형은 migrate가 흡수)."""
 
 
 class SelfModelCardSchema(BaseModel):
