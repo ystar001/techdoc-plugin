@@ -6,6 +6,7 @@ AI 호출은 Claude Code 네이티브로 전환되어 API 키·모델 설정 불
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 # ── 경로 ──
@@ -192,8 +193,21 @@ DESIGN_TYPE_KEYWORDS = {
     "education_material": ["교육", "가이드", "매뉴얼", "안내서", "교재"],
 }
 
-# ── 스키마 버전 (v1.3 — 모든 JSON 체크포인트에 저장) ──
-SCHEMA_VERSION = "0.1.0"
+# ── 스키마 버전 (v1.4 — self-model 카드 표준화) ──
+SCHEMA_VERSION = "0.2.0"
+
+# self-model 카드 섹션 키: 위치만(sec1~sec6) 표준. 서술명·헤딩은 섹션 title로 (F3).
+SECTION_KEY_RE = re.compile(r"^sec[1-6]$")
+
+# 위치별 기본 한글 헤딩 (migrate 시 섹션 title이 비어 있으면 채움; F12에서 정제).
+DEFAULT_SECTION_TITLES = {
+    "sec1": "정의·범위",
+    "sec2": "원리·구조",
+    "sec3": "국내외 동향",
+    "sec4": "구성요소·방법론",
+    "sec5": "한계·도전",
+    "sec6": "전망",
+}
 
 # ── Researcher 섹션 범위 분할 (v1.3) ──
 RESEARCHER_SECTION_GROUPS = {
