@@ -1,4 +1,4 @@
-from scripts.parse_toc import SECTION_ID_RE
+from scripts.parse_toc import SECTION_ID_RE, map_sizing
 
 
 def _match(line):
@@ -23,3 +23,17 @@ def test_title_starting_with_alphanumeric_is_not_mistaken_for_id():
     # ID 뒤 구분자(공백/마침표) 없으면 ID 아님 → 제목으로 처리됨(여기선 None)
     assert _match("5G/LTE 기반 농촌 광대역") is None
     assert _match("IoT·센서 기술") is None
+
+
+def test_map_sizing_known_values():
+    assert map_sizing("S") == "short"
+    assert map_sizing("M") == "medium"
+    assert map_sizing("L") == "long"
+    assert map_sizing("XL") == "long"
+    assert map_sizing(" l ") == "long"   # 공백·소문자 정규화
+
+
+def test_map_sizing_korean_and_unknown():
+    assert map_sizing("대") == "long"
+    assert map_sizing("") is None
+    assert map_sizing("기타") is None

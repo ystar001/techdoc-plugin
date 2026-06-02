@@ -35,6 +35,18 @@ SECTION_ID_RE = re.compile(
     r"^([A-Za-z0-9]+(?:[.\-][A-Za-z0-9]+)*)\s*(?:장|절)?\.?\s+(.+)$"
 )
 
+# TOC 표의 Sizing/등급 칼럼 값을 estimated_length(short|medium|long)로 매핑.
+# estimated_length는 3단계뿐이므로 XL은 long으로 흡수한다.
+SIZING_TO_LENGTH = {
+    "S": "short", "M": "medium", "L": "long", "XL": "long",
+    "소": "short", "중": "medium", "대": "long",
+}
+
+
+def map_sizing(value: str) -> str | None:
+    """Sizing 칼럼 값 → estimated_length. 미인식 시 None."""
+    return SIZING_TO_LENGTH.get(value.strip().upper())
+
 
 def parse_toc_file(file_path: Path | str) -> list[dict]:
     """TOC 텍스트 파일 → 섹션 리스트 반환.
