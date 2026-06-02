@@ -13,7 +13,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator
 
-from techdoc_core.constants import SCHEMA_VERSION
+from techdoc_core.constants import SCHEMA_VERSION, SECTION_KEY_RE
 
 Importance = Literal["high", "medium", "low"]
 Reliability = Literal["확인됨", "단일출처", "미확인", "AI지식"]
@@ -281,25 +281,39 @@ class SelfModelSection(BaseModel):
 
 
 class SelfModelCardSchema(BaseModel):
-    """plugin이 인정하는 2nd-class 카드 레이아웃 — self-model.
+    """plugin이 인정하는 self-model 카드 레이아웃 — v0.2.0부터 엄격 표준.
 
-    호출 1건 = 단일 카드 (`output/cards/<call_id>_card.json`).
-    카드 = sections dict (키는 프로젝트별 자유, 각 섹션은 body 필수).
+    호출 1건 = 단일 카드 (`output/cards/<card_id>_card.json`).
+    - 섹션 키는 위치만 `sec1`~`sec6` (F3). 서술명·헤딩은 섹션 `title`.
+    - 카드 식별자는 단일 `card_id`(split marker 포함) + `parent_id` (F13).
+    - `title`(정제된 학술 제목) + `split_summary`(운영 미주) 분리 (F14).
+    - 각 섹션 본문은 단일 `body` 키 (F1).
 
-    plugin core renderers는 이 schema를 직접 처리하지 않는다 — `scripts.card_layout`
-    유틸과 `/techdoc-rewrite`·`/techdoc-write` skill fallback이 사용.
-
-    자식 프로젝트는 이 모델을 채택할 수 있으며, plugin은 호환을 유지한다.
-    section 키 컨벤션은 `prompts/_shared/card_layout_conventions.md` 참조.
+    구 0.1.0 카드는 `scripts.migrate`가 0.2.0으로 변환한다.
+    규약: `prompts/_shared/card_layout_conventions.md`.
     """
     model_config = {"extra": "allow"}
 
-    id: str
+    card_id: str
+    parent_id: str = ""
+    title: str = ""
+    split_summary: str = ""
     name: str = ""
-    type: str = ""  # tech | project | product (자유)
+    type: str = ""  # tech | project | product
     importance: str = "medium"
     sections: dict[str, SelfModelSection] = Field(default_factory=dict)
-    self_check: dict | None = None  # Plan A의 self_check 필드 재사용 가능
+    self_check: dict | None = None
+
+    @field_validator("sections")
+    @classmethod
+    def _section_keys_canonical(cls, v: dict) -> dict:
+        bad = [k for k in v if not SECTION_KEY_RE.match(k)]
+        if bad:
+            raise ValueError(
+                f"section 키는 sec1~sec6만 허용 (F3). 비표준 키: {bad}. "
+                "migrate로 변환하세요: python -m scripts.migrate output/"
+            )
+        return v
 
 
 # ── Error Codes (TECHDOC-Exxx) ──
