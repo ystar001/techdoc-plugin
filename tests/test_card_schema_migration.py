@@ -1,7 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
-from scripts.migrate import split_title_notes
+from scripts.migrate import normalize_sections, split_title_notes
 from techdoc_core import constants
 from techdoc_core.schemas import SelfModelCardSchema, SelfModelSection
 
@@ -78,3 +78,25 @@ def test_split_title_notes_extracts_page_label():
 def test_split_title_notes_clean_title_unchanged():
     title, note = split_title_notes("관개 자동화 시스템")
     assert title == "관개 자동화 시스템" and note == ""
+
+
+def test_normalize_sections_unifies_body_variants():
+    old = {
+        "sec1_definition_scope": {"narrative": "정의 본문"},
+        "sec3_trends_international": {"content": "동향 본문"},
+    }
+    new = normalize_sections(old)
+    assert new["sec1"]["body"] == "정의 본문"
+    assert new["sec3"]["body"] == "동향 본문"
+
+
+def test_normalize_sections_fills_default_title():
+    old = {"sec1_definition_scope": {"body": "x"}}
+    new = normalize_sections(old)
+    assert new["sec1"]["title"] == "정의·범위"   # 위치 기본 헤딩
+
+
+def test_normalize_sections_preserves_existing_title():
+    old = {"sec2_principles": {"title": "작동 원리", "body": "x"}}
+    new = normalize_sections(old)
+    assert new["sec2"]["title"] == "작동 원리"

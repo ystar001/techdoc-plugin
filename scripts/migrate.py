@@ -16,7 +16,7 @@ import re
 import sys
 from pathlib import Path
 
-from techdoc_core.constants import SCHEMA_VERSION
+from techdoc_core.constants import DEFAULT_SECTION_TITLES, SCHEMA_VERSION
 from techdoc_core.schemas import format_error
 
 # F14: title 운영 미주 패턴. 매칭 부분을 떼어 split_summary로 보낸다.
@@ -44,6 +44,36 @@ def split_title_notes(title: str) -> tuple[str, str]:
                 cur = cur[: m.start()].rstrip()
                 changed = True
     return cur.strip(), " ".join(n for n in notes if n).strip()
+
+
+_SEC_PREFIX_RE = re.compile(r"^(sec[1-6])")
+_BODY_VARIANT_KEYS = ("body", "narrative", "content")
+
+
+def _section_body(sec: dict) -> str:
+    """body·narrative·content 중 첫 비어있지 않은 값 (F1)."""
+    if not isinstance(sec, dict):
+        return str(sec)
+    for k in _BODY_VARIANT_KEYS:
+        v = sec.get(k)
+        if isinstance(v, str) and v.strip():
+            return v
+    return ""
+
+
+def normalize_sections(sections: dict) -> dict:
+    """섹션 dict를 0.2.0 표준으로 변환 (F1 body + F3 키→secN + title)."""
+    out: dict[str, dict] = {}
+    for key, sec in sections.items():
+        m = _SEC_PREFIX_RE.match(key)
+        canonical = m.group(1) if m else key  # secN prefix면 위치 키로
+        title = ""
+        if isinstance(sec, dict):
+            title = str(sec.get("title", "")).strip()
+        if not title and canonical in DEFAULT_SECTION_TITLES:
+            title = DEFAULT_SECTION_TITLES[canonical]
+        out[canonical] = {"title": title, "body": _section_body(sec)}
+    return out
 
 # 향후 버전별 마이그레이션 핸들러 등록
 # key = (from_version, to_version), value = callable(data: dict) -> dict
