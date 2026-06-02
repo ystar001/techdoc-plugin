@@ -29,6 +29,12 @@ META_BLOCK_PATTERNS = (
     r"^\s*\[.*\]\s*$",  # [작성 지침] 같은 대괄호 메타
 )
 
+# 섹션 ID: 영숫자 prefix(R·G1·AP·A-1·1.1) 허용. ID 뒤 구분자(장/절·마침표·공백)를
+# 요구해 "5G/LTE" 같은 제목이 ID로 오인되는 것을 막는다.
+SECTION_ID_RE = re.compile(
+    r"^([A-Za-z0-9]+(?:[.\-][A-Za-z0-9]+)*)\s*(?:장|절)?\.?\s+(.+)$"
+)
+
 
 def parse_toc_file(file_path: Path | str) -> list[dict]:
     """TOC 텍스트 파일 → 섹션 리스트 반환.
@@ -63,8 +69,8 @@ def parse_toc_file(file_path: Path | str) -> list[dict]:
                 current["subtopics"].append(subtopic)
             continue
 
-        # 섹션 라인 - "1장. ..." 또는 "1.1 ..." 또는 "1.1.2 ..."
-        m = re.match(r"^(\d+(?:\.\d+)*)\s*장?\.?\s*(.+)$", stripped)
+        # 섹션 라인 - "1장. ..." / "1.1 ..." / "G1 ..." / "A-1 ..."
+        m = SECTION_ID_RE.match(stripped)
         if m:
             if current is not None:
                 sections.append(current)
