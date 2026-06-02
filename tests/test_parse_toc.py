@@ -1,4 +1,10 @@
-from scripts.parse_toc import SECTION_ID_RE, map_sizing
+from scripts.parse_toc import (
+    SECTION_ID_RE,
+    is_pure_id,
+    is_separator_row,
+    map_sizing,
+    split_table_row,
+)
 
 
 def _match(line):
@@ -37,3 +43,22 @@ def test_map_sizing_korean_and_unknown():
     assert map_sizing("대") == "long"
     assert map_sizing("") is None
     assert map_sizing("기타") is None
+
+
+def test_split_table_row():
+    assert split_table_row("| 1.1 | 관개 | L |") == ["1.1", "관개", "L"]
+    assert split_table_row("|A-1|벼|XL|") == ["A-1", "벼", "XL"]
+
+
+def test_is_separator_row():
+    assert is_separator_row("|---|---|---|") is True
+    assert is_separator_row("| :--- | ---: |") is True
+    assert is_separator_row("| 1.1 | 관개 |") is False
+
+
+def test_is_pure_id():
+    assert is_pure_id("1.1") is True
+    assert is_pure_id("A-1") is True
+    assert is_pure_id("G1") is True
+    assert is_pure_id("벼") is False         # 한글 제목
+    assert is_pure_id("관개 자동화") is False  # 공백 포함

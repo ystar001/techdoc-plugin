@@ -48,6 +48,25 @@ def map_sizing(value: str) -> str | None:
     return SIZING_TO_LENGTH.get(value.strip().upper())
 
 
+TABLE_SEP_RE = re.compile(r"^\s*\|?(?:\s*:?-{2,}:?\s*\|)+\s*:?-{2,}:?\s*\|?\s*$")
+PURE_ID_RE = re.compile(r"^[A-Za-z0-9]+(?:[.\-][A-Za-z0-9]+)*$")
+
+
+def split_table_row(line: str) -> list[str]:
+    """'| a | b | c |' → ['a', 'b', 'c']."""
+    return [c.strip() for c in line.strip().strip("|").split("|")]
+
+
+def is_separator_row(line: str) -> bool:
+    """'|---|:--:|' 같은 표 구분행인지."""
+    return bool(TABLE_SEP_RE.match(line))
+
+
+def is_pure_id(cell: str) -> bool:
+    """셀 전체가 ID 토큰(영숫자 prefix, 공백 없음)인지."""
+    return bool(PURE_ID_RE.match(cell.strip()))
+
+
 def parse_toc_file(file_path: Path | str) -> list[dict]:
     """TOC 텍스트 파일 → 섹션 리스트 반환.
 
