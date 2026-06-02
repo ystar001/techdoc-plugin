@@ -4,6 +4,22 @@ All notable changes to TechDoc Plugin.
 
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.3.1] — 2026-06-02
+
+### Added
+
+- **F19** `parse_toc`가 영숫자 prefix 섹션 ID(R·G1·AP·A-1·R.1)를 지원. ID 뒤 구분자(공백/마침표)를 요구해 "5G/LTE" 같은 제목이 ID로 오인되는 것을 방지. (findings F19)
+- **F20** `parse_toc`가 마크다운 표 TOC(`| ID | 제목 | … | Sizing | … |`)를 auto-detect 파싱. 헤더에 "제목" 칼럼이 있는 표만 항목 표로 인식해 메타·매핑 표는 자동 제외하고, Sizing 칼럼(S/M/L/XL)을 `estimated_length`로 매핑(XL→long). 자식 프로젝트 `preprocess_toc.py` 우회 흡수. (findings F20)
+
+### Changed
+
+- `scripts/parse_toc.py`: 섹션 ID 정규식을 모듈 상수 `SECTION_ID_RE`로 승격. `parse_toc_file`을 평문/표 auto-detect 디스패처로 분리(기존 평문 로직은 `parse_toc_plain`으로 보존, 시그니처 무변경). `build_outline`이 표의 Sizing을 `estimated_length`로 우선 반영하고 없으면 subtopic 추정으로 폴백.
+- `tests/test_parse_toc.py` 신설 — 16 회귀(영숫자 ID·제목 오인 방지·항목표 식별·Sizing 매핑·평문 보존·깨진 행 skip).
+
+### Compatibility
+
+- SCHEMA_VERSION 0.1.0 유지 (breaking 아님). 평문 TOC 동작 100% 보존. `parse_toc_file(path)->list[dict]` 시그니처 무변경 → 기존 caller·CLI 무영향.
+
 ## [1.3.0] — 2026-05-13
 
 ### Added
