@@ -142,10 +142,9 @@ def parse_toc_table(text: str) -> list[dict]:
             and is_separator_row(lines[i + 1])
         ):
             header = split_table_row(lines[i])
-            title_idx = _find_col(header, ("제목", "title", "내용 항목"))
-            # 메타표의 '내용'은 본문이라 제외하려 '제목'만 title로 인정
-            if title_idx is None:
-                title_idx = _find_col(header, ("제목",))
+            # '제목' 칼럼이 있는 표만 항목 표로 인정. 메타표는 '내용'(본문)이라
+            # 매칭되지 않아 제외된다. 영문 헤더는 'title' 허용.
+            title_idx = _find_col(header, ("제목", "title"))
             sizing_idx = _find_col(header, ("sizing", "분량", "등급"))
             id_idx = _find_col(header, ("id", "번호 id", "항목 id"))
             i += 2  # 헤더 + 구분행 건너뜀
@@ -158,6 +157,7 @@ def parse_toc_table(text: str) -> list[dict]:
                 cells = split_table_row(lines[i])
                 i += 1
                 idx0 = id_idx if id_idx is not None else 0
+                # 헤더보다 칼럼이 적은 깨진 행은 건너뛴다(silent skip이 안전).
                 if idx0 >= len(cells) or title_idx >= len(cells):
                     continue
                 cid = cells[idx0]

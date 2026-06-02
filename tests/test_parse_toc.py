@@ -104,6 +104,24 @@ def test_parse_toc_table_maps_sizing_to_length():
     assert rows["A-1"]["estimated_length"] == "long"    # XL→long
 
 
+def test_parse_toc_table_skips_row_shorter_than_title_column():
+    # title 칼럼(idx 1)에 못 미치는 행(ID만)은 건너뜀
+    incomplete = TABLE_TOC.replace(
+        "| A-1 | 벼 별첨 | 1카드 | XL | 30p |", "| A-1 |"
+    )
+    ids = [r["id"] for r in parse_toc_table(incomplete)]
+    assert ids == ["1.1", "G1"]
+
+
+def test_parse_toc_table_missing_trailing_sizing_falls_back_to_medium():
+    # title은 있고 Sizing 칼럼만 없는 행은 skip이 아니라 medium 폴백
+    no_sizing = TABLE_TOC.replace(
+        "| A-1 | 벼 별첨 | 1카드 | XL | 30p |", "| A-1 | 벼 별첨 |"
+    )
+    rows = {r["id"]: r for r in parse_toc_table(no_sizing)}
+    assert rows["A-1"]["estimated_length"] == "medium"
+
+
 def test_parse_toc_file_autodetects_table(tmp_path):
     f = tmp_path / "toc.md"
     f.write_text(TABLE_TOC, encoding="utf-8")
