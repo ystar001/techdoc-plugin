@@ -352,6 +352,8 @@ TechDoc의 핵심 혁신 — 섹션은 **카드의 집합**이고, 핵심 카드
 - **enhance**: AI가 subtopics 보강·재배열
 - **(TOC 없음)**: 완전 자동 생성
 
+`parse_toc`는 평문 TOC와 **마크다운 표 TOC**(`| ID | 제목 | … | Sizing | … |`)를 자동 판별한다. 표의 Sizing 칼럼(S/M/L/XL)은 `estimated_length`로 매핑되며("제목" 칼럼이 있는 표만 항목 표로 인식해 메타·매핑 표는 제외), 카드 ID는 숫자뿐 아니라 **영숫자 prefix(R·G1·AP·A-1)** 를 지원한다.
+
 ### 📚 기능 2 — 5라운드 심층 조사 (`/techdoc-research`)
 
 3개 researcher subagent 병렬 (섹션 범위 A/B/C 분할):
