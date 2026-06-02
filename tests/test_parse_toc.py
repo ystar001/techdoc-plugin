@@ -1,5 +1,6 @@
 from scripts.parse_toc import (
     SECTION_ID_RE,
+    build_outline,
     is_pure_id,
     is_separator_row,
     map_sizing,
@@ -116,3 +117,16 @@ def test_parse_toc_file_still_parses_plaintext(tmp_path):
     sections = parse_toc_file(f)
     assert sections[0]["id"] == "1.1"
     assert sections[0]["subtopics"] == ["점적관수", "물수요 예측"]
+
+
+def test_build_outline_uses_table_estimated_length():
+    parsed = [{"id": "1.1", "title": "관개", "subtopics": [], "estimated_length": "long"}]
+    outline = build_outline("작물 백과", parsed)
+    assert outline.sections[0].estimated_length == "long"
+
+
+def test_build_outline_falls_back_to_subtopic_count():
+    # estimated_length 키 없는 평문 파싱 결과 → subtopic 수 기반 추정
+    parsed = [{"id": "1.1", "title": "관개", "subtopics": ["a", "b", "c", "d", "e"]}]
+    outline = build_outline("작물 백과", parsed)
+    assert outline.sections[0].estimated_length == "long"  # 5개 ≥ 5 → long

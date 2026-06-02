@@ -206,7 +206,7 @@ def build_outline(title: str, parsed_sections: list[dict]) -> Outline:
                 title=p["title"],
                 subtopics=p["subtopics"],
                 analysis_tags=assign_analysis_tag(p["title"], p["subtopics"]),
-                estimated_length=estimate_length(len(p["subtopics"])),
+                estimated_length=p.get("estimated_length") or estimate_length(len(p["subtopics"])),
             )
         )
     return Outline(title=title, sections=sections)
