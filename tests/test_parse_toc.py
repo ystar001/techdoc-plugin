@@ -3,8 +3,32 @@ from scripts.parse_toc import (
     is_pure_id,
     is_separator_row,
     map_sizing,
+    parse_toc_file,
+    parse_toc_table,
     split_table_row,
 )
+
+TABLE_TOC = """\
+# 작물 백과 목차
+
+| 항목 | 내용 |
+|---|---|
+| 작성일 | 2026-06-02 |
+
+## 작물 매핑
+
+| 번호 | 작물 | 라벨코드 |
+|---|---|---|
+| 1 | 벼 | R |
+
+## 본문
+
+| ID | 제목 | 카드구성 | Sizing | 분량 |
+|---|---|---|---|---|
+| 1.1 | 노지 용수·관개 | 3카드 | L | 12p |
+| G1 | 마늘 생육관리 | 2카드 | S | 6p |
+| A-1 | 벼 별첨 | 1카드 | XL | 30p |
+"""
 
 
 def _match(line):
@@ -62,3 +86,33 @@ def test_is_pure_id():
     assert is_pure_id("G1") is True
     assert is_pure_id("벼") is False         # 한글 제목
     assert is_pure_id("관개 자동화") is False  # 공백 포함
+
+
+def test_parse_toc_table_extracts_only_item_table():
+    rows = parse_toc_table(TABLE_TOC)
+    ids = [r["id"] for r in rows]
+    # 메타표(작성일)·매핑표(1 벼)는 '제목' 칼럼이 없어 제외, 항목표 3건만
+    assert ids == ["1.1", "G1", "A-1"]
+
+
+def test_parse_toc_table_maps_sizing_to_length():
+    rows = {r["id"]: r for r in parse_toc_table(TABLE_TOC)}
+    assert rows["1.1"]["title"] == "노지 용수·관개"
+    assert rows["1.1"]["estimated_length"] == "long"    # L
+    assert rows["G1"]["estimated_length"] == "short"    # S
+    assert rows["A-1"]["estimated_length"] == "long"    # XL→long
+
+
+def test_parse_toc_file_autodetects_table(tmp_path):
+    f = tmp_path / "toc.md"
+    f.write_text(TABLE_TOC, encoding="utf-8")
+    sections = parse_toc_file(f)
+    assert [s["id"] for s in sections] == ["1.1", "G1", "A-1"]
+
+
+def test_parse_toc_file_still_parses_plaintext(tmp_path):
+    f = tmp_path / "toc.txt"
+    f.write_text("1.1 관개\n● 점적관수\n● 물수요 예측\n", encoding="utf-8")
+    sections = parse_toc_file(f)
+    assert sections[0]["id"] == "1.1"
+    assert sections[0]["subtopics"] == ["점적관수", "물수요 예측"]

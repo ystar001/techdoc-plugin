@@ -68,30 +68,29 @@ def is_pure_id(cell: str) -> bool:
 
 
 def parse_toc_file(file_path: Path | str) -> list[dict]:
-    """TOC 텍스트 파일 → 섹션 리스트 반환.
-
-    Returns:
-        [{"id": "1.1", "title": "...", "subtopics": [...]}, ...]
-    """
+    """TOC 파일 → 섹션 리스트. 마크다운 표면 표 파서, 아니면 평문 파서."""
     path = Path(file_path)
     if not path.exists():
         raise FileNotFoundError(format_error("TECHDOC-E010", f"TOC file not found: {file_path}"))
-
     text = path.read_text(encoding="utf-8")
+    if any(is_separator_row(ln) for ln in text.splitlines()):
+        rows = parse_toc_table(text)
+        if rows:
+            return rows
+    return parse_toc_plain(text)
+
+
+def parse_toc_plain(text: str) -> list[dict]:
+    """평문 TOC(『1.1 제목』 + 『● 하위항목』) 파싱. (기존 parse_toc_file 로직)"""
     sections: list[dict] = []
     current: dict | None = None
-
     for raw_line in text.splitlines():
         line = raw_line.rstrip()
         if not line.strip():
             continue
-        # 메타 블록 스킵
         if any(re.match(pat, line) for pat in META_BLOCK_PATTERNS):
             continue
-
         stripped = line.lstrip()
-
-        # 하위 항목 (●, -, *, •로 시작)
         if stripped[:1] in ITEM_MARKERS:
             if current is None:
                 continue
@@ -99,8 +98,6 @@ def parse_toc_file(file_path: Path | str) -> list[dict]:
             if subtopic:
                 current["subtopics"].append(subtopic)
             continue
-
-        # 섹션 라인 - "1장. ..." / "1.1 ..." / "G1 ..." / "A-1 ..."
         m = SECTION_ID_RE.match(stripped)
         if m:
             if current is not None:
@@ -109,18 +106,74 @@ def parse_toc_file(file_path: Path | str) -> list[dict]:
             title = m.group(2).strip()
             current = {"id": section_id, "title": title, "subtopics": []}
         else:
-            # ID 없는 최상위 제목 — 일련번호 자동 부여
             if current is not None:
                 sections.append(current)
             section_id = str(len(sections) + 1)
             current = {"id": section_id, "title": stripped, "subtopics": []}
-
     if current is not None:
         sections.append(current)
-
     if not sections:
         raise ValueError(format_error("TECHDOC-E010", "TOC file produced zero sections", "파일 내용 확인"))
+    return sections
 
+
+def _find_col(header: list[str], keywords: tuple[str, ...]) -> int | None:
+    """헤더 셀에서 keyword를 포함하는 첫 칼럼 인덱스."""
+    for i, cell in enumerate(header):
+        low = cell.lower()
+        if any(kw in low for kw in keywords):
+            return i
+    return None
+
+
+def parse_toc_table(text: str) -> list[dict]:
+    """마크다운 표 TOC에서 항목 추출. '제목' 칼럼이 있는 표만 항목 표로 인정.
+
+    메타표(항목/내용)·매핑표(번호/작물/라벨코드)는 제목 칼럼이 없어 제외된다.
+    """
+    lines = text.splitlines()
+    sections: list[dict] = []
+    i = 0
+    while i < len(lines):
+        # 표 헤더 후보: '|'로 시작하고 다음 줄이 구분행
+        if (
+            lines[i].lstrip().startswith("|")
+            and i + 1 < len(lines)
+            and is_separator_row(lines[i + 1])
+        ):
+            header = split_table_row(lines[i])
+            title_idx = _find_col(header, ("제목", "title", "내용 항목"))
+            # 메타표의 '내용'은 본문이라 제외하려 '제목'만 title로 인정
+            if title_idx is None:
+                title_idx = _find_col(header, ("제목",))
+            sizing_idx = _find_col(header, ("sizing", "분량", "등급"))
+            id_idx = _find_col(header, ("id", "번호 id", "항목 id"))
+            i += 2  # 헤더 + 구분행 건너뜀
+            if title_idx is None:
+                # 항목 표 아님(메타·매핑) → 데이터행 스킵
+                while i < len(lines) and lines[i].lstrip().startswith("|"):
+                    i += 1
+                continue
+            while i < len(lines) and lines[i].lstrip().startswith("|"):
+                cells = split_table_row(lines[i])
+                i += 1
+                idx0 = id_idx if id_idx is not None else 0
+                if idx0 >= len(cells) or title_idx >= len(cells):
+                    continue
+                cid = cells[idx0]
+                if not is_pure_id(cid):
+                    continue
+                length = None
+                if sizing_idx is not None and sizing_idx < len(cells):
+                    length = map_sizing(cells[sizing_idx])
+                sections.append({
+                    "id": cid,
+                    "title": cells[title_idx],
+                    "subtopics": [],
+                    "estimated_length": length or "medium",
+                })
+            continue
+        i += 1
     return sections
 
 
