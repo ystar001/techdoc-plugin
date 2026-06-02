@@ -1,14 +1,16 @@
 {
-  "id": "6.5",
+  "card_id": "6.5",
+  "parent_id": "6",
   "type": "tech",
   "name": "정밀 분무 시스템",
+  "title": "정밀 분무 시스템",
   "importance": "medium",
   "sections": {
-    "sec1_definition_scope": {"body": "정의·범위 본문 ..."},
-    "sec2_principles": {"body": "원리 본문 ..."},
-    "sec3_trends_domestic_global": {"body": "국내외 동향 본문 ..."},
-    "sec4_components_methodology": {"body": "구성요소 본문 ..."},
-    "sec5_limitations_challenges": {"body": "한계 본문 ..."},
-    "sec6_outlook": {"body": "전망 본문 ..."}
+    "sec1": {"title": "정의·범위", "body": "정의·범위 본문 ..."},
+    "sec2": {"title": "원리·구조", "body": "원리 본문 ..."},
+    "sec3": {"title": "국내외 동향", "body": "국내외 동향 본문 ..."},
+    "sec4": {"title": "구성요소·방법론", "body": "구성요소 본문 ..."},
+    "sec5": {"title": "한계·도전", "body": "한계 본문 ..."},
+    "sec6": {"title": "전망", "body": "전망 본문 ..."}
   }
 }

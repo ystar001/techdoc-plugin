@@ -57,8 +57,8 @@ def test_load_self_model_card_returns_dict(tmp_path):
     (cards / "6.5_card.json").write_text(src, encoding="utf-8")
 
     card = load_self_model_card(tmp_path, "6.5")
-    assert card["id"] == "6.5"
-    assert "sec1_definition_scope" in card["sections"]
+    assert card["card_id"] == "6.5"
+    assert "sec1" in card["sections"]
 
 
 def test_load_self_model_card_raises_when_missing(tmp_path):
@@ -106,21 +106,23 @@ def test_self_model_card_schema_validates_fixture():
 
     data = json.loads((FIXTURES / "self_model_layout.json").read_text("utf-8"))
     schema = SelfModelCardSchema.model_validate(data)
-    assert schema.id == "6.5"
-    assert "sec1_definition_scope" in schema.sections
+    assert schema.card_id == "6.5"
+    assert "sec1" in schema.sections
 
 
-def test_self_model_card_schema_accepts_arbitrary_section_keys():
-    """section 키는 자유롭게 — 자식 프로젝트마다 다른 컨벤션 허용."""
+def test_self_model_card_schema_rejects_arbitrary_section_keys():
+    """v0.2.0 엄격 표준: section 키는 sec1~sec6만 허용, 자유 키는 거부."""
+    from pydantic import ValidationError
+
     from techdoc_core.schemas import SelfModelCardSchema
 
     data = {
-        "id": "x.y",
+        "card_id": "x.y",
         "name": "anything",
         "sections": {
             "custom_key_1": {"body": "..."},
             "another_custom_key": {"body": "..."},
         },
     }
-    schema = SelfModelCardSchema.model_validate(data)
-    assert "custom_key_1" in schema.sections
+    with pytest.raises(ValidationError):
+        SelfModelCardSchema.model_validate(data)

@@ -1,3 +1,6 @@
+import json
+from pathlib import Path
+
 import pytest
 from pydantic import ValidationError
 
@@ -8,6 +11,8 @@ from scripts.migrate import (
 )
 from techdoc_core import constants
 from techdoc_core.schemas import SelfModelCardSchema, SelfModelSection
+
+FIXTURE = Path(__file__).parent / "fixtures" / "cards" / "self_model_0_1_0.json"
 
 
 def test_default_section_titles_cover_sec1_to_sec6():
@@ -134,3 +139,16 @@ def test_migrate_ignores_standard_blocks_card():
     new = apply_migration_path(std, "0.2.0")
     assert "card_id" not in new            # 변환 안 함
     assert new["blocks"]["overview"] == "x"
+
+
+def test_real_fixture_migrates_and_validates():
+    old = json.loads(FIXTURE.read_text(encoding="utf-8"))
+    new = apply_migration_path(old, "0.2.0")
+    assert new["card_id"] == "A-14.1.L1"
+    assert new["parent_id"] == "14.1"
+    assert "(§1~§3)" in new["split_summary"]
+    assert set(new["sections"]) == {"sec1", "sec3", "sec5"}
+    assert new["sections"]["sec5"]["title"] == "한계와 과제"  # 기존 title 보존
+    # 엄격 스키마 통과
+    card = SelfModelCardSchema(**{k: v for k, v in new.items() if k != "schema_version"})
+    assert all(s.body for s in card.sections.values())

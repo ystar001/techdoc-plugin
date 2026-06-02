@@ -1,0 +1,14 @@
+{
+  "schema_version": "0.1.0",
+  "section_id": "14.1",
+  "appendix_id": "A-14.1.L1",
+  "title": "농업 데이터 표준 — 정의·표준 패밀리 비교 (§1~§3)",
+  "name": "농업 데이터 표준",
+  "type": "tech",
+  "importance": "high",
+  "sections": {
+    "sec1_definition_scope": {"narrative": "정의 본문 텍스트."},
+    "sec3_trends_comparison": {"content": "동향 비교 본문."},
+    "sec5_limits_challenges": {"body": "한계 본문.", "title": "한계와 과제"}
+  }
+}
