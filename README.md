@@ -497,7 +497,7 @@ LLM 호출 0회. 결정론적 흐름. 자세한 사용은 [26절](#26-자체-업
 
 ```yaml
 ---
-schema_version: "0.1.0"
+schema_version: "0.2.0"
 id: REF-023
 category: 학술                # 정부공공|국제기구|학술|기업R&D|전문연구기관|산업시장|뉴스
 source: MIT CSAIL
@@ -810,7 +810,7 @@ GitHub Releases에서 자동 다운로드·교체. LLM 호출 없이 결정론�
 
 ```json
 {
-  "schema_version": "0.1.0",
+  "schema_version": "0.2.0",
   "section_states": {
     "1.1": {
       "overview": { "status": "completed", "chars": 180 },
@@ -837,7 +837,7 @@ GitHub Releases에서 자동 다운로드·교체. LLM 호출 없이 결정론�
 
 ```json
 {
-  "schema_version": "0.1.0",
+  "schema_version": "0.2.0",
   "document_type": "기술보고서",
   "total_refs": 87,
   "usable_refs": 82,
