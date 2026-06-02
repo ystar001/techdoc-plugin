@@ -1,6 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
+from scripts.migrate import split_title_notes
 from techdoc_core import constants
 from techdoc_core.schemas import SelfModelCardSchema, SelfModelSection
 
@@ -54,3 +55,26 @@ def test_card_schema_rejects_noncanonical_section_keys():
 def test_card_schema_card_id_required():
     with pytest.raises(ValidationError):
         SelfModelCardSchema(sections={})
+
+
+def test_split_title_notes_extracts_division():
+    title, note = split_title_notes("농업 데이터 표준 — 분할 1/3")
+    assert title == "농업 데이터 표준"
+    assert note == "분할 1/3"
+
+
+def test_split_title_notes_extracts_section_summary():
+    title, note = split_title_notes("수확 로봇 — §1 정의·범위 + §2 기술 원리")
+    assert title == "수확 로봇"
+    assert "§1" in note
+
+
+def test_split_title_notes_extracts_page_label():
+    title, note = split_title_notes("농업 데이터 표준 (L1, 10p)")
+    assert title == "농업 데이터 표준"
+    assert note == "(L1, 10p)"
+
+
+def test_split_title_notes_clean_title_unchanged():
+    title, note = split_title_notes("관개 자동화 시스템")
+    assert title == "관개 자동화 시스템" and note == ""

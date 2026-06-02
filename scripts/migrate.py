@@ -12,11 +12,38 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 from pathlib import Path
 
 from techdoc_core.constants import SCHEMA_VERSION
 from techdoc_core.schemas import format_error
+
+# F14: title 운영 미주 패턴. 매칭 부분을 떼어 split_summary로 보낸다.
+_TITLE_NOTE_PATTERNS = [
+    r"\s*[—-]\s*분할\s*\d+\s*/\s*\d+\s*$",          # — 분할 1/3
+    r"\s*\(\s*분할\s*\d+\s*/\s*\d+\s*\)\s*$",        # (분할 1/3)
+    r"\s*[—-]\s*(§\d+[^—()]*?)\s*$",                  # — §1 정의·범위 + §2 ...
+    r"\s*\(\s*§\d+\s*~\s*§\d+\s*\)\s*$",              # (§1~§3)
+    r"\s*\(\s*X?L\d+\s*,\s*\d+p\s*\)\s*$",            # (L1, 10p) / (XL1, 10p)
+    r"\s*[—-]\s*X?L\d+\s*$",                          # — L1 / — XL1
+]
+
+
+def split_title_notes(title: str) -> tuple[str, str]:
+    """title에서 운영 미주를 떼어 (정제 title, split_summary) 반환. (F14)"""
+    notes: list[str] = []
+    cur = title
+    changed = True
+    while changed:
+        changed = False
+        for pat in _TITLE_NOTE_PATTERNS:
+            m = re.search(pat, cur)
+            if m:
+                notes.insert(0, m.group(0).lstrip(" —-").strip())
+                cur = cur[: m.start()].rstrip()
+                changed = True
+    return cur.strip(), " ".join(n for n in notes if n).strip()
 
 # 향후 버전별 마이그레이션 핸들러 등록
 # key = (from_version, to_version), value = callable(data: dict) -> dict
