@@ -141,6 +141,20 @@ def test_migrate_ignores_standard_blocks_card():
     assert new["blocks"]["overview"] == "x"
 
 
+def test_migrate_does_not_mutate_caller_dict():
+    old = {
+        "schema_version": "0.1.0",
+        "appendix_id": "A-1.L1",
+        "title": "원본 — 분할 1/2",
+        "sections": {"sec1_definition_scope": {"narrative": "x"}},
+    }
+    apply_migration_path(old, "0.2.0")
+    # caller의 원본 dict는 변경되지 않아야 함 (handler가 copy 위에서 작업)
+    assert "card_id" not in old
+    assert old["title"] == "원본 — 분할 1/2"
+    assert old["sections"]["sec1_definition_scope"]["narrative"] == "x"
+
+
 def test_real_fixture_migrates_and_validates():
     old = json.loads(FIXTURE.read_text(encoding="utf-8"))
     new = apply_migration_path(old, "0.2.0")

@@ -31,7 +31,11 @@ _TITLE_NOTE_PATTERNS = [
 
 
 def split_title_notes(title: str) -> tuple[str, str]:
-    """title에서 운영 미주를 떼어 (정제 title, split_summary) 반환. (F14)"""
+    """title에서 운영 미주를 떼어 (정제 title, split_summary) 반환. (F14)
+
+    매 iteration마다 후행 미주 1개를 제거한다(패턴은 구체성 순). 어떤 패턴도
+    매칭 안 되면 루프 종료 — 매 매칭이 cur을 짧게 만들므로 무한루프 불가.
+    """
     notes: list[str] = []
     cur = title
     changed = True
@@ -129,9 +133,13 @@ def _migrate_self_model_0_1_to_0_2(data: dict) -> dict:
 
     self-model 카드만 변환한다(`sections` dict 보유 & `blocks` 미보유).
     standard 카드·기타 JSON은 그대로 반환.
+
+    caller의 원본 dict를 변경하지 않도록 shallow copy 위에서 작업한다
+    (normalize_sections는 새 dict를 만들어 nested section도 보존).
     """
     if "sections" not in data or "blocks" in data:
         return data
+    data = dict(data)
 
     # F13: 단일 card_id(split marker 포함) + parent_id
     card_id = data.get("appendix_id") or data.get("card_id") or data.get("id", "")
