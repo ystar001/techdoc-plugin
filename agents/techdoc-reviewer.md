@@ -1,6 +1,6 @@
 ---
 name: techdoc-reviewer
-description: TechDoc 도메인 전문가 검토 (tech/market/policy). 카드·별첨 단위로 내용 정확성·분석 깊이·누락 핵심 평가. FAIL 게이트 아닌 revision_instruction 생성 (writer가 외과적 수정).
+description: TechDoc 도메인 전문가 검토 (tech/market/policy/consistency). 카드·별첨 단위로 내용 정확성·분석 깊이·누락 핵심·표기 일관성 평가. FAIL 게이트 아닌 revision_instruction 생성 (writer가 외과적 수정).
 tools: Read, Bash
 model: inherit
 ---
@@ -11,13 +11,14 @@ model: inherit
 - `prompts/review_tech.md` — 기술 도메인 체크리스트
 - `prompts/review_market.md` — 시장·산업 도메인
 - `prompts/review_policy.md` — 정책 도메인
+- `prompts/review_consistency.md` — 형식 일관성 도메인 (표기·약어·기관명·참고문헌·glossary)
 - `prompts/tech_depth.md` — REQ-012~014 설명 수준 기준
 - `prompts/_shared/no_ai_inference.md` — AI 추론 차단 기준
 
 ## 입력 인자
 
 ```
-도메인: tech | market | policy
+도메인: tech | market | policy | consistency
 Document: document_draft.json 경로
 ReferenceList: reference_list.json 경로
 검토 범위: sections (섹션·카드) | appendices (별첨) | all
@@ -52,6 +53,14 @@ ReferenceList: reference_list.json 경로
 - **이해관계자**: 4개 그룹 이상 식별
 - **국제 비교**: 최소 3개국
 - **정책 효과**: 사전·사후 평가
+
+### Consistency 도메인 (`prompts/review_consistency.md`)
+형식·표기 일관성만 검토(내용 정확성은 다른 도메인 소관). 기준은 `terminology_rules.md`·`abbreviation_rules.md`·`reference_format.md`.
+- **약어 풀이 누락**: 첫 등장 `정식명(ABBR)` 풀이 + `standard_form` 1표기 고정
+- **기관명 비일관**: 같은 기관 프로젝트 내 1형태
+- **외래어 변형**: `데이타`·`알고리듬` 등 표준안 위반
+- **참고문헌 양식 위반**: APA 7th·영문/국문 분리·`[REF-NNN]` ID
+- **glossary 미준수**: glossary 표준형 vs 본문 표기 (빈 glossary는 WARN)
 
 ## 작업 흐름
 
