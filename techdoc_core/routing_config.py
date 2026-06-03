@@ -23,10 +23,18 @@ _NUM_RE = re.compile(r"\d+")
 
 
 def load_routing_config(path: str | Path | None = None) -> dict:
-    """routing config 로드. path 없으면 DEFAULT_ROUTING."""
+    """routing config 로드. path 없으면 DEFAULT_ROUTING.
+
+    각 규칙은 `pattern`·`key` 필수 — 누락 시 load 시점에 ValueError로 거부해
+    parse_card_id 런타임 KeyError를 방지한다.
+    """
     if path is None:
         return DEFAULT_ROUTING
-    return json.loads(Path(path).read_text(encoding="utf-8"))
+    cfg = json.loads(Path(path).read_text(encoding="utf-8"))
+    for rule in cfg.get("parts", []):
+        if "pattern" not in rule or "key" not in rule:
+            raise ValueError(f"routing config 규칙에 pattern·key 필수: {rule}")
+    return cfg
 
 
 def _sort_key(card_id: str) -> tuple:

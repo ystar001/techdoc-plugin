@@ -27,3 +27,11 @@ def test_custom_config_overrides(tmp_path):
 
 def test_unmatched_id_goes_to_misc():
     assert parse_card_id("???", DEFAULT_ROUTING)[0] == "misc"
+
+
+def test_malformed_config_rejected_at_load(tmp_path):
+    import pytest
+    cfg = tmp_path / "bad.json"
+    cfg.write_text('{"parts":[{"dir":"X","label":"X"}]}', encoding="utf-8")  # pattern·key 누락
+    with pytest.raises(ValueError):
+        load_routing_config(cfg)
