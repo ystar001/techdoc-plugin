@@ -385,7 +385,7 @@ tech · market · policy · **consistency**(표기 일관성 — 약어·기관�
 
 ### 📑 기능 7 — 4종 문서 동시 생성 (`/techdoc-render`)
 
-HTML (마스터) + PDF + DOCX + MD. 카드·별첨·MathJax 수식·Mermaid 다이어그램·matplotlib 차트 자동 포함.
+HTML (마스터) + PDF + DOCX + MD. 카드·별첨·MathJax 수식·Mermaid 다이어그램·matplotlib 차트 자동 포함. MD 출력은 단락 break(`renderers/paragraph`, 키워드+800자 ceiling, F10)·섹션 키 한글 헤딩(`renderers/section_heading`, F12) 적용. Part 라우팅은 `routing_config`로 외부화(F21, 프로젝트별 config 교체) — 트리 디렉토리 출력(F15)은 후속 (v1.5).
 
 ### 🌐 기능 8 — LLM Wiki 누적 (`/techdoc-export-wiki`) ⭐ v1.1.0
 
