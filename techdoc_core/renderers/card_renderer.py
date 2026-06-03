@@ -71,6 +71,28 @@ BLOCK_LABELS_PROJECT_APPENDIX = {
 }
 
 
+def render_card_visuals(card) -> str:
+    """카드의 figures·diagrams를 HTML로 출력 (F22). 비어 있으면 빈 문자열."""
+    parts: list[str] = []
+    for fig in getattr(card, "figures", []) or []:
+        path = fig.get("path", "")
+        caption = fig.get("caption", "")
+        if not path:
+            continue
+        cap_html = f"<figcaption>{caption}</figcaption>" if caption else ""
+        parts.append(f'<figure class="card-figure"><img src="{path}" alt="{caption}">{cap_html}</figure>')
+    for dia in getattr(card, "diagrams", []) or []:
+        src = dia.get("mermaid", "")
+        caption = dia.get("caption", "")
+        if not src:
+            continue
+        cap_html = f"<figcaption>{caption}</figcaption>" if caption else ""
+        parts.append(f'<figure class="card-diagram"><pre class="mermaid">{src}</pre>{cap_html}</figure>')
+    if not parts:
+        return ""
+    return '<div class="card-visuals">\n' + "\n".join(parts) + "\n</div>"
+
+
 def render_tech_card(card: TechCard) -> str:
     """본문 기술 카드 HTML 렌더링 (섹션 내 배치용)."""
     importance_class = f"importance-{card.importance}"
@@ -87,6 +109,7 @@ def render_tech_card(card: TechCard) -> str:
             blocks_html += f'<div class="card-block block-{key}">'
             blocks_html += f'<h4>{label}</h4>{content}'
             blocks_html += "</div>\n"
+    blocks_html += render_card_visuals(card)   # F22: 시각 자산을 본문 끝에
 
     return f"""
 <section class="tech-card {importance_class}" id="card-{card.id}">
@@ -128,6 +151,7 @@ def render_project_card(card: ProjectCard) -> str:
         content = getattr(card, key, "")
         if content:
             blocks_html += f'<div class="card-block block-{key}"><h4>{label}</h4>{content}</div>\n'
+    blocks_html += render_card_visuals(card)   # F22: 시각 자산을 본문 끝에
 
     appendix_link = (
         f'<div class="card-footer">→ 본 프로젝트의 단계별 방법·상세 결과는 '
@@ -168,6 +192,7 @@ def render_product_card(card: ProductCard) -> str:
         content = getattr(card, key, "")
         if content:
             blocks_html += f'<div class="card-block block-{key}"><h4>{label}</h4>{content}</div>\n'
+    blocks_html += render_card_visuals(card)   # F22: 시각 자산을 본문 끝에
 
     return f"""
 <section class="product-card {importance_class}" id="card-{card.id}">
