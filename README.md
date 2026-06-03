@@ -67,7 +67,7 @@ TechDoc은 **AI 기술보고서 자동 생성 + LLM Wiki 누적을 지원하는 
 - ⭐ **LLM Wiki 누적** (D 하이브리드: 옵시디언·MkDocs·표준 마크다운 호환)
 - ⭐ **자체 업데이트** (`/techdoc-update`로 새 버전 자동 갱신)
 
-하도록 설계된 **18종 슬래시 명령 + 3종 Subagent + 26종 프롬프트 + 14+ Python 모듈**의 종합 도구입니다.
+하도록 설계된 **18종 슬래시 명령 + 3종 Subagent + 25종 프롬프트(+공통 6종) + 14+ Python 모듈**의 종합 도구입니다.
 
 ## 2. 대상 사용자
 
@@ -186,7 +186,7 @@ techdoc-plugin/                                  # 플러그인 루트 (v1.1.0)
 │   ├── techdoc-writer.md                        # 카드·별첨 작성
 │   └── techdoc-reviewer.md                      # 도메인 검토
 │
-├── prompts/                                     # 26종 프롬프트
+├── prompts/                                     # 25종 프롬프트(+공통 6종)
 │   ├── _shared/                                 # 공통 (5종)
 │   ├── tech_card.md  project_card.md  product_card.md
 │   ├── appendix_tech.md  appendix_project.md
@@ -377,7 +377,7 @@ TechDoc의 핵심 혁신 — 섹션은 **카드의 집합**이고, 핵심 카드
 
 ### 👥 기능 5 — 도메인 전문가 검토 (`/techdoc-review`)
 
-tech · market · policy 3개 도메인 중 선택. reviewer subagent가 카드·별첨 단위로 `revision_instruction` 생성 → writer가 **외과적 수정** (다른 카드 보존).
+tech · market · policy · **consistency**(표기 일관성 — 약어·기관명·외래어·참고문헌·glossary) 4개 도메인 중 선택. reviewer subagent가 카드·별첨 단위로 `revision_instruction` 생성 → writer가 **외과적 수정** (다른 카드 보존). `/techdoc-outline` 단계에서 `extract_glossary`가 KeyRef·카드에서 약어·용어를 자동 추출해 `outline.glossary`를 채우며(비면 WARN), `check_quality`가 표기 일관성을 측정한다 (v1.4).
 
 ### 🔄 기능 6 — 카드 단위 재실행 (`/techdoc-rewrite`)
 
