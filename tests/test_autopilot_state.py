@@ -27,10 +27,16 @@ def test_init_state_creates_default_stages(tmp_path):
     expected_stages = {
         "outline", "research_A", "research_B", "research_C",
         "merge_research", "write_A", "write_B", "write_C",
-        "review", "render",
+        "review", "deepdive", "render",
     }
     assert set(state["stages"].keys()) == expected_stages
-    assert all(v == "pending" for v in state["stages"].values())
+    # deepdive는 config에 요청 없으면 skipped, 나머지는 pending (F9-i)
+    assert state["stages"]["deepdive"] == "skipped"
+    assert all(
+        v == "pending"
+        for k, v in state["stages"].items()
+        if k != "deepdive"
+    )
     assert state["title"] == "T"
     assert state["config"]["max_wall_clock_seconds"] == 14400
 
@@ -110,3 +116,29 @@ def test_mark_halted_sets_reason():
     s = init_state(Path("/tmp"), title="T", config={}, num_section_groups=3)
     mark_halted(s, "quality_fail")
     assert s["halt_reason"] == "quality_fail"
+
+
+# ---------------------------------------------------------------------------
+# F9-i: deepdive stage conditional in init_state
+# ---------------------------------------------------------------------------
+
+
+def test_init_state_includes_deepdive_pending_when_requested(tmp_path):
+    from scripts.autopilot.state import init_state
+
+    state = init_state(tmp_path, "T", {"deep_dive_auto": 5})
+    assert state["stages"]["deepdive"] == "pending"
+
+
+def test_init_state_skips_deepdive_when_not_requested(tmp_path):
+    from scripts.autopilot.state import init_state
+
+    state = init_state(tmp_path, "T", {"deep_dive_auto": 0})
+    assert state["stages"]["deepdive"] == "skipped"
+
+
+def test_init_state_deepdive_before_render(tmp_path):
+    from scripts.autopilot.state import init_state
+
+    keys = list(init_state(tmp_path, "T", {"deep_dive_auto": 3})["stages"])
+    assert keys.index("deepdive") < keys.index("render")

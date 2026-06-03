@@ -16,6 +16,7 @@ ALL_STAGE_IDS = (
     "merge_research",
     "write_A", "write_B", "write_C",
     "review",
+    "deepdive",
     "render",
 )
 
@@ -53,6 +54,9 @@ def init_state(
     for g in groups:
         stages[f"write_{g}"] = "pending"
     stages["review"] = "pending"
+    # deepdive(별첨)는 config 요청 시 pending, 아니면 skipped (F9-i)
+    wants_deepdive = bool(config.get("deep_dive_auto") or config.get("deep_dive"))
+    stages["deepdive"] = "pending" if wants_deepdive else "skipped"
     stages["render"] = "pending"
     state["stages"] = stages
     return state
