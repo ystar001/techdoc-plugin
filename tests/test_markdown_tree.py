@@ -53,3 +53,38 @@ def test_render_merged_md_sequential_sections():
     md = render_merged_md("1.4", cards)
     assert "컴퓨팅" in md and "분할" not in md.split("\n")[0]  # 부모 제목 정리(clean_parent_title)
     assert "a." in md and "b." in md
+
+
+# ── Task 3: 트리 emit + 조건부 시리즈 INDEX (F17) ───────────────
+
+
+def test_export_creates_part_dirs_and_files(tmp_path):
+    from techdoc_core.renderers.markdown_tree import MarkdownTreeExporter
+
+    cards = tmp_path / "cards"
+    cards.mkdir()
+    for cid in ("1.1", "1.2", "A-1"):
+        (cards / f"{cid}_card.json").write_text(
+            f'{{"card_id":"{cid}","title":"제목{cid}","sections":{{"sec1":{{"body":"본문."}}}}}}',
+            encoding="utf-8")
+    out = tmp_path / "tree"
+    MarkdownTreeExporter().export(cards, out)
+    assert (out / "INDEX.md").exists()  # 최상위 표지+TOC
+    md_files = list(out.rglob("*.md"))
+    assert any("1.1" in p.name for p in md_files)
+
+
+def test_f17_single_card_series_skips_index(tmp_path):
+    from techdoc_core.renderers.markdown_tree import MarkdownTreeExporter
+
+    cards = tmp_path / "cards"
+    cards.mkdir()
+    # A-1 시리즈에 카드 1개 → 시리즈 INDEX 생략
+    (cards / "A-1_card.json").write_text(
+        '{"card_id":"A-1","title":"별첨","sections":{"sec1":{"body":"본문."}}}', encoding="utf-8")
+    out = tmp_path / "tree"
+    MarkdownTreeExporter().export(cards, out, emit_series_index=True)
+    # 단일 카드 시리즈 폴더엔 INDEX.md 없음(F17)
+    series_indexes = [p for p in out.rglob("INDEX.md")
+                      if p.parent != out and "Part" not in p.parent.name]
+    assert all(len(list(p.parent.glob("*.md"))) > 2 for p in series_indexes)

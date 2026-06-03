@@ -247,3 +247,198 @@ def _ref_ids(card: dict) -> list[str]:
             if rid:
                 out.append(rid)
     return out
+
+
+# ── 파일명·시리즈 키 ────────────────────────────────────────────
+def make_filename(card_id: str, title: str, max_title_len: int = 80) -> str:
+    """카드 식별자 + 제목 → 안전한 파일명 (확장자 제외).
+
+    예) '1.1', '노지 용수·관개' → '1.1. 노지 용수·관개'.
+    title이 길면 ' (' · ' — ' 앞에서 자르거나 max_title_len에서 절단한다.
+    """
+    if not title:
+        return card_id
+    short = title
+    for sep in (" (", " — "):
+        if sep in short:
+            head = short.split(sep, 1)[0].strip()
+            if 4 <= len(head) <= max_title_len:
+                short = head
+                break
+    if len(short) > max_title_len:
+        short = short[:max_title_len].rstrip() + "…"
+    short = safe_dirname(short).rstrip(".")
+    return f"{card_id}. {short}"
+
+
+def series_key_of(card_id: str, depth: int = 1) -> str:
+    """card_id → 시리즈 그룹 키.
+
+    숫자 컴포넌트 앞 `depth`개 + (있으면) 영문 prefix로 시리즈를 구성한다.
+    예: depth=1 → '1.1'·'1.2' → '1', depth=2 → 'A-1.4.L1' → 'A-1.4'.
+    숫자가 없으면(예: 'A-1') prefix 전체를 키로 사용한다.
+    """
+    cid = parent_of(card_id.strip())
+    m = re.match(r"^([A-Za-z]+-?)?(.*)$", cid)
+    prefix = m.group(1) or ""
+    rest = m.group(2) or ""
+    nums = re.findall(r"\d+", rest)
+    if not nums:
+        return cid
+    head = ".".join(nums[:depth])
+    return f"{prefix}{head}" if prefix else head
+
+
+# ── 트리 빌더 (F15 + F17) ────────────────────────────────────────
+class MarkdownTreeExporter:
+    """카드 JSON 디렉토리 → Part/시리즈 트리 + 계층 INDEX (F15 + F17).
+
+    routing_config(F21)로 part 버킷팅, split 카드는 parent_id로 병합한다.
+    도메인 명칭은 routing_config의 선택적 필드(part rule의 `label`,
+    `series_labels`, `series_depth`)에서 받고, 없으면 part_key/card_id 기반
+    generic 이름으로 폴백한다.
+    """
+
+    def __init__(self, routing_config: dict = DEFAULT_ROUTING) -> None:
+        self.config = routing_config
+
+    def _rule_for(self, part_key: str) -> dict:
+        for rule in self.config.get("parts", []):
+            if rule.get("key") == part_key:
+                return rule
+        return {}
+
+    def _part_dir_name(self, part_key: str) -> str:
+        rule = self._rule_for(part_key)
+        return safe_dirname(rule.get("dir") or f"Part-{part_key}")
+
+    def _part_label(self, part_key: str) -> str:
+        rule = self._rule_for(part_key)
+        return rule.get("label") or part_key
+
+    def _series_label(self, part_key: str, skey: str) -> str:
+        """시리즈 라벨 — config series_labels 매핑 우선, 없으면 skey 그대로."""
+        rule = self._rule_for(part_key)
+        labels = rule.get("series_labels") or {}
+        hint = labels.get(skey)
+        return f"{skey} {hint}" if hint else skey
+
+    def _series_depth(self, part_key: str) -> int:
+        return int(self._rule_for(part_key).get("series_depth", 1))
+
+    def export(
+        self, cards_dir: Path | str, output_dir: Path | str,
+        emit_series_index: bool = False,
+    ) -> dict:
+        """cards_dir의 `*_card.json` → output_dir 트리. 통계 dict 반환."""
+        cards_dir = Path(cards_dir)
+        output_dir = Path(output_dir)
+        output_dir.mkdir(parents=True, exist_ok=True)
+
+        files = sorted(cards_dir.glob("*_card.json"))
+        buckets = bucket_cards(files, self.config)
+
+        stats: dict[str, int] = {}
+        # part_key -> [(skey, series_label, dirname|None, entries)]
+        tree: dict[str, list[tuple]] = {}
+
+        for part_key in self._ordered_parts(buckets):
+            part_dir = output_dir / self._part_dir_name(part_key)
+            part_dir.mkdir(exist_ok=True)
+            depth = self._series_depth(part_key)
+
+            # 시리즈별 그룹 (삽입 순서 보존)
+            series: dict[str, list[Path]] = {}
+            for f in buckets[part_key]:
+                skey = series_key_of(card_id_of(f), depth)
+                series.setdefault(skey, []).append(f)
+
+            part_entries: list[tuple] = []
+            count = 0
+            for skey, sfiles in series.items():
+                label = self._series_label(part_key, skey)
+                s_dir = part_dir / safe_dirname(label)
+                s_dir.mkdir(exist_ok=True)
+                entries = self._emit_series(s_dir, sfiles)
+                count += len(entries)
+                # F17: 시리즈 폴더 INDEX는 2+ 컨텐츠 파일일 때만
+                if emit_series_index and len(entries) > 1:
+                    self._write_series_index(s_dir, label, entries)
+                part_entries.append((skey, label, s_dir.name, entries))
+
+            stats[part_key] = count
+            self._write_part_index(part_dir, self._part_label(part_key), part_entries)
+            tree[part_key] = part_entries
+
+        self._write_cover_index(output_dir, stats, tree)
+        return stats
+
+    def _ordered_parts(self, buckets: dict[str, list[Path]]) -> list[str]:
+        """config part 순서 우선, 나머지(misc 등)는 뒤에 알파벳 순."""
+        ordered = [r["key"] for r in self.config.get("parts", []) if r.get("key") in buckets]
+        rest = sorted(k for k in buckets if k not in ordered)
+        return ordered + rest
+
+    def _emit_series(self, s_dir: Path, sfiles: list[Path]) -> list[tuple]:
+        """시리즈 폴더에 부모당 1파일 생성 → entries [(pid, title, fname)]."""
+        entries: list[tuple] = []
+        for pid, group in group_by_parent(sfiles).items():
+            if len(group) == 1:
+                card = load_card(group[0])
+                title = _card_title(card, pid)
+                md = render_card_md(card, heading_level=1, card_id=pid)
+            else:
+                cards = [load_card(g) for g in group]
+                title = _clean_parent_title(_card_title(cards[0], pid))
+                md = render_merged_md(pid, cards, heading_level=1)
+            fname = make_filename(pid, title) + ".md"
+            (s_dir / fname).write_text(md, encoding="utf-8")
+            entries.append((pid, title, fname))
+        return entries
+
+    @staticmethod
+    def _write_series_index(s_dir: Path, label: str, entries: list[tuple]) -> None:
+        lines = [f"# {label}", "", "| 카드 | 제목 |", "|---|---|"]
+        for pid, title, fname in entries:
+            lines.append(f"| [{pid}]({fname}) | {title} |")
+        (s_dir / "INDEX.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+    @staticmethod
+    def _write_part_index(part_dir: Path, label: str, part_entries: list[tuple]) -> None:
+        lines = [f"# {label}", ""]
+        for _skey, slabel, dirname, entries in part_entries:
+            lines.append(f"## {slabel} · {len(entries)} 문서")
+            lines.append("")
+            for pid, title, fname in entries:
+                lines.append(f"- [{pid} — {title}]({dirname}/{fname})")
+            lines.append("")
+        (part_dir / "INDEX.md").write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
+
+    def _write_cover_index(
+        self, output_dir: Path, stats: dict[str, int], tree: dict[str, list[tuple]]
+    ) -> None:
+        from datetime import date
+
+        total_files = sum(stats.values())
+        cover = [
+            "# 보고서 트리",
+            "",
+            "| 항목 | 값 |",
+            "|---|---|",
+            f"| 발행일 | {date.today().isoformat()} |",
+            f"| 총 산출 문서 | **{total_files}건** |",
+        ]
+        for part_key, entries in tree.items():
+            cover.append(f"| {self._part_label(part_key)} | {len(entries)} 시리즈 |")
+        cover += ["| 형식 | Markdown · 트리 구조 |", "", "---", "", "# 목차", ""]
+
+        for part_key, part_entries in tree.items():
+            part_dirname = self._part_dir_name(part_key)
+            cover.append(f"## {self._part_label(part_key)}")
+            cover.append("")
+            for _skey, slabel, dirname, entries in part_entries:
+                cover.append(f"- **{slabel}**")
+                for pid, title, fname in entries:
+                    cover.append(f"  - [{pid} — {title}]({part_dirname}/{dirname}/{fname})")
+            cover.append("")
+        (output_dir / "INDEX.md").write_text("\n".join(cover).rstrip() + "\n", encoding="utf-8")
