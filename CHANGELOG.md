@@ -4,6 +4,17 @@ All notable changes to TechDoc Plugin.
 
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.7.0] — 2026-06-04
+
+### Added (Plan N — render 트리 디렉토리 생성)
+
+- **F15** `/techdoc-render --tree` — config 기반 트리 디렉토리 출력. 신규 `techdoc_core/renderers/markdown_tree.py`(`MarkdownTreeExporter`): `routing_config.parse_card_id`로 카드를 Part/시리즈로 분류, split 카드(L1/L2/L3)는 `parent_id`로 부모당 1파일 병합, Part별·최상위 표지/TOC INDEX 생성. 자식 `render_md.py` `write_tree` 일반화 — openfieldtech 도메인 명칭(카테고리·시리즈 라벨)은 routing config 선택 필드로 분리(없으면 card_id 기반 generic 폴백). `paragraph.format_paragraphs`(F10)·`section_heading.section_key_to_heading`(F12) 재사용. `--cards-dir`·`--routing-config`·`--with-series-index` 인자. (findings F15)
+- **F17** 단일 카드 시리즈 폴더의 INDEX.md 생략 — `len(entries) > 1`일 때만 시리즈 INDEX 생성(Part·최상위 INDEX는 항상). 중복 INDEX로 인한 1-클릭 추가 진입 제거. (findings F17)
+
+### Compatibility
+
+- non-breaking. `--tree`는 opt-in(단일파일 render 무변경). SCHEMA_VERSION 0.2.0 유지. 신규 모듈·명령 옵션만 추가.
+
 ## [1.6.0] — 2026-06-03
 
 ### Added (Plan L — autopilot deepdive chunk + 중반 재개)
