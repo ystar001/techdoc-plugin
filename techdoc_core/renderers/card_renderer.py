@@ -6,6 +6,8 @@ v1.4/v1.5 구조.
 
 from __future__ import annotations
 
+import html
+
 from techdoc_core.models import (
     ProductCard,
     ProjectAppendix,
@@ -72,21 +74,30 @@ BLOCK_LABELS_PROJECT_APPENDIX = {
 
 
 def render_card_visuals(card) -> str:
-    """카드의 figures·diagrams를 HTML로 출력 (F22). 비어 있으면 빈 문자열."""
+    """카드의 figures·diagrams를 HTML로 출력 (F22). 비어 있으면 빈 문자열.
+
+    path·caption은 평문 메타데이터이므로 escape한다. mermaid 소스는 mermaid.js가
+    파싱하는 다이어그램 코드이므로 escape하지 않는다.
+    """
     parts: list[str] = []
     for fig in getattr(card, "figures", []) or []:
+        if not isinstance(fig, dict):
+            continue
         path = fig.get("path", "")
         caption = fig.get("caption", "")
         if not path:
             continue
-        cap_html = f"<figcaption>{caption}</figcaption>" if caption else ""
-        parts.append(f'<figure class="card-figure"><img src="{path}" alt="{caption}">{cap_html}</figure>')
+        esc_path, esc_cap = html.escape(path, quote=True), html.escape(caption, quote=True)
+        cap_html = f"<figcaption>{esc_cap}</figcaption>" if caption else ""
+        parts.append(f'<figure class="card-figure"><img src="{esc_path}" alt="{esc_cap}">{cap_html}</figure>')
     for dia in getattr(card, "diagrams", []) or []:
+        if not isinstance(dia, dict):
+            continue
         src = dia.get("mermaid", "")
         caption = dia.get("caption", "")
         if not src:
             continue
-        cap_html = f"<figcaption>{caption}</figcaption>" if caption else ""
+        cap_html = f"<figcaption>{html.escape(caption)}</figcaption>" if caption else ""
         parts.append(f'<figure class="card-diagram"><pre class="mermaid">{src}</pre>{cap_html}</figure>')
     if not parts:
         return ""

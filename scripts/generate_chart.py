@@ -169,6 +169,10 @@ def specs_to_figures(specs: list[dict], output_dir: Path) -> list[dict]:
 
     각 spec은 generate_figure가 받는 형식. 반환은 카드 `figures` 필드에 그대로
     넣을 수 있는 [{"path","caption"}] 리스트.
+
+    spec은 사전 검증됐다고 가정한다 — 알 수 없는 chart type 등 잘못된 spec은
+    generate_figure가 ValueError를 던지며, 이 함수는 이를 그대로 전파한다
+    (fail-fast). 부분 실패 허용이 필요하면 generate_from_specs를 쓴다.
     """
     figures: list[dict] = []
     for spec in specs:

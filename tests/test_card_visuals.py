@@ -75,6 +75,25 @@ def test_render_card_visuals_empty_is_blank():
     assert render_card_visuals(TechCard(id="1", name="x")) == ""
 
 
+def test_render_card_visuals_escapes_caption_and_path():
+    card = TechCard(
+        id="1", name="x",
+        figures=[{"path": 'a&b.png', "caption": 'Sales < 100% "q"'}],
+    )
+    html_out = render_card_visuals(card)
+    # 평문 메타데이터는 escape되어 마크업을 깨지 않아야 함
+    assert "Sales &lt; 100%" in html_out
+    assert "a&amp;b.png" in html_out
+    assert "Sales < 100%" not in html_out
+
+
+def test_render_card_visuals_does_not_escape_mermaid_source():
+    card = TechCard(id="1", name="x", diagrams=[{"mermaid": "graph TD; A-->B"}])
+    html_out = render_card_visuals(card)
+    # mermaid 소스는 그대로 (mermaid.js가 파싱)
+    assert "graph TD; A-->B" in html_out
+
+
 def test_render_tech_card_includes_visuals():
     card = TechCard(id="1.1.1", name="관개", overview="개요",
                     figures=[{"path": "g.png", "caption": "c"}])
