@@ -96,6 +96,18 @@ def test_run_iteration_with_default_dispatcher_records_attempt(tmp_path):
 
 
 # ---------------------------------------------------------------------------
+# F9-i: deepdive command hint
+# ---------------------------------------------------------------------------
+
+
+def test_deepdive_command_hint_present():
+    from scripts.autopilot.runner import CHUNK_TO_COMMAND_HINT
+
+    assert "deepdive" in CHUNK_TO_COMMAND_HINT
+    assert "techdoc-deepdive" in CHUNK_TO_COMMAND_HINT["deepdive"]
+
+
+# ---------------------------------------------------------------------------
 # Task 10: autopilot.py CLI entry
 # ---------------------------------------------------------------------------
 

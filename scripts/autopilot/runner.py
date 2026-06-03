@@ -145,6 +145,7 @@ CHUNK_TO_COMMAND_HINT: dict[str, str] = {
     "write_B": "/techdoc-write --group B ...",
     "write_C": "/techdoc-write --group C ...",
     "review": "/techdoc-review ...",
+    "deepdive": "/techdoc-deepdive (importance=high 카드 자동 선정, --deep-dive-auto N)",
     "render": "/techdoc-render ...",
 }
 
