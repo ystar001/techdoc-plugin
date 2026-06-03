@@ -30,10 +30,14 @@
 - 서술형 ↔ 개조식 혼재 금지
 - 문단 단위로 스타일 통일
 
-## 용어 통일 (glossary 기반)
-- `outline.glossary`에 정의된 표준 용어 강제
-- 불일치 단어 자동 교체
-- 영문 약어 첫 등장 시 풀이 병기
+## 용어·표기 통일 (glossary 기반)
+상세 기준: `prompts/terminology_rules.md`(표기 7항) · `prompts/abbreviation_rules.md`(약어 정책) · `prompts/reference_format.md`(APA 참고문헌).
+
+- `outline.glossary`에 정의된 표준 용어 강제, 불일치 단어 자동 교체.
+- **약어 첫 등장 풀이 강제**: 카드 내 영문 약어 첫 등장에 `정식명(ABBR)` 풀이가 없으면 보강. 정착 약어 50선은 예외(`abbreviation_rules.md`).
+- **외래어 표준안 사전 적용**: `데이타→데이터` · `알고리듬→알고리즘` 등 흔한 변형을 표준형으로 교체(국립국어원 표기법).
+- **기관명 표기 통일**: 같은 기관은 1형태로 고정(`미국 농무부(USDA)` → 이후 `USDA` 일관). 변형 표기 발견 시 표준형으로 정렬.
+- **빈 `outline.glossary`면 WARN**: glossary가 비어 있으면 용어 자동 통일이 동작하지 않으므로 `WARN: outline.glossary 비어 있음 — extract_glossary 실행 또는 수동 보강 권장`을 남기고, 카드 내 풀이만으로 보완한다(역호환 — 교정 자체는 진행).
 
 ## 인용 형식 통일
 - [REF-xxx] 문장 끝 배치 (REQ-010)
