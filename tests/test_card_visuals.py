@@ -1,8 +1,12 @@
 from pathlib import Path
 
-from techdoc_core.models import TechCard, ProjectCard, ProductCard
-from techdoc_core.renderers.card_renderer import render_card_visuals, render_tech_card
 from scripts.generate_chart import specs_to_figures
+from techdoc_core.models import ProductCard, ProjectCard, TechCard
+from techdoc_core.renderers.card_renderer import (
+    has_math_or_mermaid,
+    render_card_visuals,
+    render_tech_card,
+)
 
 
 def _roundtrip(card):
@@ -76,3 +80,17 @@ def test_render_tech_card_includes_visuals():
                     figures=[{"path": "g.png", "caption": "c"}])
     html = render_tech_card(card)
     assert "<figure" in html and 'src="g.png"' in html
+
+
+def test_has_mermaid_detects_card_diagram():
+    card = TechCard(id="1", name="x", diagrams=[{"mermaid": "graph TD; A-->B"}])
+    assert has_math_or_mermaid([], cards=[card]) is True
+
+
+def test_has_math_or_mermaid_false_when_none():
+    assert has_math_or_mermaid([], cards=[TechCard(id="1", name="x")]) is False
+
+
+def test_has_math_or_mermaid_appendices_still_work():
+    # 기존 호출(appendices만)도 동작 — 빈 입력은 False
+    assert has_math_or_mermaid([]) is False

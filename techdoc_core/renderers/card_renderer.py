@@ -350,8 +350,8 @@ def render_mermaid_header() -> str:
 """.strip()
 
 
-def has_math_or_mermaid(appendices: list) -> bool:
-    """별첨에 MathJax/Mermaid 필요 여부 확인."""
+def has_math_or_mermaid(appendices: list, cards: list | None = None) -> bool:
+    """별첨·본문 카드에 MathJax/Mermaid 필요 여부 확인."""
     for a in appendices:
         blocks_content = ""
         if isinstance(a, TechAppendix):
@@ -362,4 +362,8 @@ def has_math_or_mermaid(appendices: list) -> bool:
             return True
         if "```mermaid" in blocks_content or "<pre class=\"mermaid\"" in blocks_content:
             return True
+    for c in cards or []:
+        for dia in getattr(c, "diagrams", []) or []:
+            if dia.get("mermaid"):
+                return True
     return False

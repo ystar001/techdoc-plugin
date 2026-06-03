@@ -60,7 +60,12 @@ def build_final_html(document: Document, css: str, ref_list: ReferenceList | Non
     # 3. document.metadata에 별첨·시각화 헤더 추가
     headers = ""
     all_appendices = list(document.tech_appendices) + list(document.project_appendices)
-    if has_math_or_mermaid(all_appendices):
+    all_cards = (
+        list(document.tech_cards)
+        + list(document.project_cards)
+        + list(document.product_cards)
+    )
+    if has_math_or_mermaid(all_appendices, cards=all_cards):
         headers += render_mathjax_header() + "\n" + render_mermaid_header() + "\n"
 
     # 4. HTMLRenderer 호출 (기본 섹션 + 표지 + 목차 + 참고문헌)
@@ -86,8 +91,13 @@ def render_html(
     # 별첨 HTML을 </body> 직전에 삽입
     appendices_html = render_all_appendices(document.tech_appendices, document.project_appendices)
     all_appendices = list(document.tech_appendices) + list(document.project_appendices)
+    all_cards = (
+        list(document.tech_cards)
+        + list(document.project_cards)
+        + list(document.product_cards)
+    )
     extra_headers = ""
-    if has_math_or_mermaid(all_appendices):
+    if has_math_or_mermaid(all_appendices, cards=all_cards):
         extra_headers = render_mathjax_header() + "\n" + render_mermaid_header()
 
     if appendices_html or extra_headers:
