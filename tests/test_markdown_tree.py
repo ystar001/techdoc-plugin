@@ -88,3 +88,42 @@ def test_f17_single_card_series_skips_index(tmp_path):
     series_indexes = [p for p in out.rglob("INDEX.md")
                       if p.parent != out and "Part" not in p.parent.name]
     assert all(len(list(p.parent.glob("*.md"))) > 2 for p in series_indexes)
+
+
+# ── Task 4: render.py --tree 통합 ──────────────────────────────
+
+
+def test_render_md_tree_helper(tmp_path):
+    from scripts.render import render_md_tree
+
+    cards = tmp_path / "cards"
+    cards.mkdir()
+    for cid in ("1.1", "1.2"):
+        (cards / f"{cid}_card.json").write_text(
+            f'{{"card_id":"{cid}","title":"제목{cid}","sections":{{"sec1":{{"body":"본문."}}}}}}',
+            encoding="utf-8")
+    out = tmp_path / "tree"
+    stats = render_md_tree(cards, out)
+    assert (out / "INDEX.md").exists()
+    assert isinstance(stats, dict) and sum(stats.values()) >= 1
+
+
+def test_render_main_tree_flag(tmp_path, capsys):
+    import sys
+
+    from scripts import render
+
+    cards = tmp_path / "cards"
+    cards.mkdir()
+    (cards / "1.1_card.json").write_text(
+        '{"card_id":"1.1","title":"제목","sections":{"sec1":{"body":"본문."}}}', encoding="utf-8")
+    out = tmp_path / "tree"
+    argv = ["render", "--tree", "--cards-dir", str(cards), "-o", str(out)]
+    old = sys.argv
+    sys.argv = argv
+    try:
+        rc = render.main()
+    finally:
+        sys.argv = old
+    assert rc == 0
+    assert (out / "INDEX.md").exists()

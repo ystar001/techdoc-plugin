@@ -68,9 +68,6 @@ def build_final_html(document: Document, css: str, ref_list: ReferenceList | Non
     if has_math_or_mermaid(all_appendices, cards=all_cards):
         headers += render_mathjax_header() + "\n" + render_mermaid_header() + "\n"
 
-    # 4. HTMLRenderer 호출 (기본 섹션 + 표지 + 목차 + 참고문헌)
-    renderer = HTMLRenderer()
-
     # 별첨·헤더를 metadata에 임시 저장 (HTMLRenderer가 사용할 수 있도록)
     document.metadata["_appendices_html"] = appendices_html
     document.metadata["_extra_headers"] = headers
@@ -147,14 +144,51 @@ def render_md(document: Document, output_dir: Path, filename: str,
     return exporter.export(document, output_dir, filename, ref_list=ref_list)
 
 
+def render_md_tree(
+    cards_dir: Path | str, output_dir: Path | str,
+    routing_config: dict | None = None, emit_series_index: bool = False,
+) -> dict:
+    """카드 JSON 디렉토리 → config 기반 markdown 트리 (F15 + F17).
+
+    LLM 호출 0회·결정론적. MarkdownTreeExporter를 호출해 Part/시리즈 트리 +
+    계층 INDEX를 생성하고 통계 dict를 반환한다.
+    """
+    from techdoc_core.renderers.markdown_tree import MarkdownTreeExporter
+    from techdoc_core.routing_config import DEFAULT_ROUTING
+
+    exporter = MarkdownTreeExporter(routing_config or DEFAULT_ROUTING)
+    return exporter.export(Path(cards_dir), Path(output_dir), emit_series_index=emit_series_index)
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description="Render Document to HTML/PDF/DOCX/MD")
-    ap.add_argument("-i", "--input", required=True, help="document_final.json")
+    ap.add_argument("-i", "--input", help="document_final.json")
     ap.add_argument("--refs", help="reference_list.json")
     ap.add_argument("--type", dest="design_type", help="디자인 타입 (auto-detect)")
     ap.add_argument("-o", "--output", default="./output", help="출력 디렉토리")
     ap.add_argument("--formats", default="html,pdf,docx,md", help="생성 형식 (콤마 구분)")
+    # ── F15: config 기반 트리 디렉토리 출력 (opt-in) ──
+    ap.add_argument("--tree", action="store_true",
+                    help="카드 디렉토리를 Part/시리즈 트리 + 계층 INDEX로 출력 (F15)")
+    ap.add_argument("--cards-dir", help="--tree 입력 카드 디렉토리 (*_card.json)")
+    ap.add_argument("--routing-config", help="--tree part 라우팅 config JSON (F21)")
+    ap.add_argument("--with-series-index", action="store_true",
+                    help="단일 카드 시리즈를 제외한 시리즈 폴더에 INDEX 생성 (F17)")
     args = ap.parse_args()
+
+    # ── 트리 모드: 단일파일 render 경로와 독립 (non-breaking) ──
+    if args.tree:
+        if not args.cards_dir:
+            ap.error("--tree 사용 시 --cards-dir 필수")
+        from techdoc_core.routing_config import load_routing_config
+        routing = load_routing_config(args.routing_config) if args.routing_config else None
+        out_dir = Path(args.output)
+        stats = render_md_tree(args.cards_dir, out_dir, routing, args.with_series_index)
+        print(f"OK: {out_dir / 'INDEX.md'} ({sum(stats.values())} 문서)")
+        return 0
+
+    if not args.input:
+        ap.error("-i/--input 필수 (또는 --tree 사용)")
 
     doc = Document.load(Path(args.input))
     ref_list = None
