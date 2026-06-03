@@ -430,6 +430,10 @@ LLM 호출 0회. 결정론적 흐름. 자세한 사용은 [26절](#26-자체-업
 
 메타 헤더: 모델명·제조사·국가 3개 필드.
 
+### 본문 카드 시각 필드 (v1.4)
+
+본문 카드(tech/project/product)는 블록 외에 선택적 `figures`(`{path, caption}` — `generate_chart`로 렌더)·`diagrams`(`{mermaid, caption}`) 필드를 가질 수 있다. 렌더러가 HTML `<figure>`·Mermaid로 출력하며 MD/PDF에도 보존된다 (별첨 전용이던 시각 필드를 본문 카드로 확장).
+
 ### 섹션당 카드 수 (기본)
 
 | 유형 | 개수 |
