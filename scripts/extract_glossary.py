@@ -17,9 +17,11 @@
 from __future__ import annotations
 
 import io
+import json
 import re
 import sys
-from collections import Counter
+from collections import Counter, defaultdict
+from pathlib import Path
 
 # Windows cp949 콘솔 안전화
 if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
@@ -206,3 +208,151 @@ def find_explanation_pairs(text: str) -> list[dict]:
             "english": "",
         })
     return pairs
+
+
+# ---------------------------------------------------------------------------
+# reference_list / KeyRef institution 필드에서 기관명·풀이 추출
+# ---------------------------------------------------------------------------
+
+# institution 필드는 보통 "미국 농무부 자연자원보전국 (USDA NRCS)" 형식
+_INST_RE = re.compile(r"^(.+?)\s*\(([A-Z][A-Z0-9 \-]+)\)\s*$")
+
+
+def extract_institution_pairs(refs: list[dict]) -> list[dict]:
+    """reference_list.json 또는 KeyRef frontmatter의 institution 필드에서 풀이 페어 추출."""
+    pairs: list[dict] = []
+    for ref in refs:
+        inst = (ref.get("institution") or "").strip()
+        if not inst:
+            continue
+        m = _INST_RE.match(inst)
+        if not m:
+            continue
+        korean_or_english = m.group(1).strip()
+        abbr_field = m.group(2).strip()
+        # "USDA NRCS" 같이 여러 약어가 들어있으면 각각 분리
+        for abbr in abbr_field.split():
+            if not abbr.isupper() or len(abbr) < 2:
+                continue
+            # 한글이 포함되면 korean 슬롯, 아니면 english 슬롯
+            if re.search(r"[가-힣]", korean_or_english):
+                pairs.append({"abbr": abbr, "korean": korean_or_english, "english": ""})
+            else:
+                pairs.append({"abbr": abbr, "korean": "", "english": korean_or_english})
+    return pairs
+
+
+# ---------------------------------------------------------------------------
+# standard_form 결정 (빈도 1위 변형)
+# ---------------------------------------------------------------------------
+
+def decide_standard_form(pairs: list[dict]) -> dict[str, dict]:
+    """약어별 standard_form 결정 — 빈도 1위 (korean, english) 페어 채택."""
+    by_abbr: dict[str, Counter] = defaultdict(Counter)
+    for p in pairs:
+        key = (p.get("korean", ""), p.get("english", ""))
+        by_abbr[p["abbr"]][key] += 1
+    result: dict[str, dict] = {}
+    for abbr, counter in by_abbr.items():
+        # 빈도 1위 페어 중 정보량 많은 것 (korean + english 모두 있는 것 우선)
+        top = sorted(
+            counter.items(),
+            key=lambda kv: (-kv[1], -(bool(kv[0][0]) + bool(kv[0][1]))),
+        )[0][0]
+        result[abbr] = {"korean": top[0], "english": top[1]}
+    return result
+
+
+# ---------------------------------------------------------------------------
+# Glossary dict 빌드
+# ---------------------------------------------------------------------------
+
+def build_glossary_dict(pairs: list[dict], abbr_counts: Counter) -> dict:
+    """약어·용어 통합 dict 생성. standard_form + variants + frequency.
+
+    키는 약어(abbr). 값은 {standard_form, variants, frequency} 구조.
+    """
+    by_abbr: dict[str, Counter] = defaultdict(Counter)
+    for p in pairs:
+        key = (p.get("korean", ""), p.get("english", ""))
+        by_abbr[p["abbr"]][key] += 1
+    result: dict = {}
+    all_abbrs = set(abbr_counts) | set(by_abbr)
+    for abbr in all_abbrs:
+        variants_counter = by_abbr.get(abbr, Counter())
+        # decide_standard_form과 동일 타이브레이크 (정보량 많은 쪽 우선)
+        variants_sorted = sorted(
+            variants_counter.items(),
+            key=lambda kv: (-kv[1], -(bool(kv[0][0]) + bool(kv[0][1]))),
+        )
+        if variants_sorted:
+            top_key, _ = variants_sorted[0]
+            standard = {"korean": top_key[0], "english": top_key[1]}
+        else:
+            standard = {"korean": "", "english": ""}
+        variants_list = [
+            {"korean": k[0], "english": k[1], "count": c}
+            for k, c in variants_sorted
+        ]
+        result[abbr] = {
+            "standard_form": standard,
+            "variants": variants_list,
+            "frequency": abbr_counts.get(abbr, 0),
+        }
+    return result
+
+
+# ---------------------------------------------------------------------------
+# 오케스트레이션: output_dir → flat glossary dict (outline.glossary 용)
+# ---------------------------------------------------------------------------
+
+def _glossary_definition(entry: dict) -> str:
+    """rich glossary entry → outline.glossary 용 한 줄 정의 문자열."""
+    std = entry.get("standard_form", {})
+    kor = (std.get("korean") or "").strip()
+    eng = (std.get("english") or "").strip()
+    if kor and eng:
+        return f"{kor} ({eng})"
+    return kor or eng
+
+
+def extract_from_output(output_dir) -> dict[str, str]:
+    """output_dir 의 cards·reference_list 에서 약어·용어를 추출해 flat glossary dict 반환.
+
+    반환: {abbr_or_term: 정의 문자열}. outline.glossary(dict[str, str]) 에 바로 주입 가능.
+    카드 본문 키는 self-model 0.2.0(sections[*].body)·standard(blocks) 모두 robust 처리.
+    """
+    output_dir = Path(output_dir)
+    abbr_counts: Counter = Counter()
+    pairs: list[dict] = []
+
+    # 1) 카드 본문 수집
+    cards_dir = output_dir / "cards"
+    if cards_dir.exists():
+        for card_path in sorted(cards_dir.glob("*_card.json")):
+            try:
+                card = json.loads(card_path.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError):
+                continue
+            text = extract_card_text(card)
+            abbr_counts.update(find_abbreviations(text))
+            pairs.extend(find_explanation_pairs(text))
+
+    # 2) reference_list institution 페어
+    ref_list_path = output_dir / "reference_list.json"
+    if ref_list_path.exists():
+        try:
+            ref_list = json.loads(ref_list_path.read_text(encoding="utf-8"))
+            refs = ref_list.get("refs") or ref_list.get("references") or []
+            pairs.extend(extract_institution_pairs(refs))
+        except (OSError, json.JSONDecodeError):
+            pass
+
+    # 3) glossary 빌드 → flat dict 평탄화
+    rich = build_glossary_dict(pairs, abbr_counts)
+    flat: dict[str, str] = {}
+    for abbr, entry in rich.items():
+        definition = _glossary_definition(entry)
+        if definition:
+            flat[abbr] = definition
+    return flat
