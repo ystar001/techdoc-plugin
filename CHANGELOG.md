@@ -14,7 +14,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Note
 
-- **F15**(render 트리 디렉토리 생성)는 본 release에서 분리 — 후속에서 `routing_config` 위에 `write_tree` 흡수 예정. open 유지.
+- F15 (render 트리 디렉토리 생성)는 본 release에서 **분리**(deferred) — 후속에서 `routing_config` 위에 `write_tree` 흡수 예정. open 유지(미closed). (※ 닫힘 아님 — sync 마커 미부착)
 
 ### Compatibility
 
