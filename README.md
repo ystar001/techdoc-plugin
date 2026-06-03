@@ -206,7 +206,7 @@ techdoc-plugin/                                  # 플러그인 루트 (v1.1.0)
 │       ├── markers.py      frontmatter.py
 │       ├── filename.py     conflict.py
 │       ├── assets.py       lint.py
-│       ├── mkdocs_setup.py
+│       ├── mkdocs_setup.py  postprocess.py    # postprocess: ⭐ v1.6.0 (F18)
 │       └── builders/
 │           ├── source.py   entity.py
 │           ├── appendix.py concept.py
@@ -395,6 +395,7 @@ HTML (마스터) + PDF + DOCX + MD. 카드·별첨·MathJax 수식·Mermaid 다�
 - **충돌 감지**: 같은 엔티티의 다른 보고서가 다른 수치(연도·기관 등)를 가지면 페이지에 `> ⚠️ **정보 충돌 감지**` callout 자동 추가
 - **사용자 메모 보존**: `<!-- techdoc:auto-* -->` 마커 외부의 사용자 메모는 재export에도 절대 손대지 않음
 - **MkDocs 옵션** (`--mkdocs`): vault에 mkdocs.yml 자동 생성 → `mkdocs build`로 정적 사이트
+- **후처리** ⭐ v1.6.0 (`--enhance`, 기본 on): "학술" 과잉 수식어 정리·메타 표시(`(확장)`) 제거·긴 문단 분리·영문 slug 부분 한국어화·문서 안내 섹션. `[REF]`·수치·고유명사 보존, AI 마커 영역만 적용. `--no-enhance`로 비활성 (F18)
 - **LLM 호출 0회** (결정론적 변환)
 
 ### 🔧 기능 9 — Plugin 자체 업데이트 (`/techdoc-update`) ⭐ v1.1.0

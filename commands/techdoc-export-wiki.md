@@ -1,7 +1,7 @@
 ---
 description: TechDoc 보고서 산출물을 옵시디언 vault로 변환·누적 (LLM 호출 0회, D 하이브리드)
 allowed-tools: Bash
-argument-hint: "--vault <경로> [--doc <output>] [--create-vault] [--lint]"
+argument-hint: "--vault <경로> [--doc <output>] [--create-vault] [--lint] [--no-enhance]"
 ---
 
 # /techdoc-export-wiki — Obsidian/MkDocs LLM Wiki 변환
@@ -16,6 +16,7 @@ argument-hint: "--vault <경로> [--doc <output>] [--create-vault] [--lint]"
 - `--doc <output>` (선택) — 보고서 출력 디렉토리. 기본값: 현재 디렉토리.
 - `--create-vault` (선택) — vault가 없으면 신규 생성.
 - `--lint` (선택) — vault 점검만 수행 (충돌 callout 잔존·끊어진 링크).
+- `--enhance` / `--no-enhance` (선택, 기본 on) — 카드 .md 후처리: "학술" 과잉 수식어 정리·메타 표시(`(확장)`·`(보강)`) 제거·긴 문단 분리·영문 slug 부분 한국어화·문서 안내 섹션. `[REF-xxx]`·수치·고유명사는 보존. AI 마커 영역만 적용(사용자 메모 무손상). `--no-enhance`로 비활성 (F18).
 
 ## 실행
 
