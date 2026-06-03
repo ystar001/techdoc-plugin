@@ -236,6 +236,8 @@ techdoc-plugin/                                  # 플러그인 루트 (v1.1.0)
 └── LICENSE
 ```
 
+> **테스트 컨벤션 (재사용성):** 프로젝트 특화 검증은 `@pytest.mark.project`로 분리 — 자식 프로젝트는 `pytest -m "not project"`로 코어만 실행(재사용성, F23). 컨벤션: `tests/README.md`.
+
 ## 7. 데이터 흐름 (Data Flow)
 
 ```
