@@ -99,7 +99,9 @@ def bucket_cards(
     buckets: dict[str, list[tuple[tuple, Path]]] = {}
     for f in files:
         cid = card_id_of(f)
-        part_key, sort_key = parse_card_id(cid, config)
+        # parent_of로 라우팅 — split 카드(2.1.L1)도 부모(2.1) 기준으로 Part 분류해야
+        # anchored body 패턴(^\d+...$)이 .L1 suffix로 미스매치되어 misc로 빠지지 않는다.
+        part_key, sort_key = parse_card_id(parent_of(cid), config)
         buckets.setdefault(part_key, []).append((sort_key, f))
     return {k: [f for _, f in sorted(v)] for k, v in buckets.items()}
 

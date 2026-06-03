@@ -23,6 +23,14 @@ def test_bucket_cards_by_part(tmp_path):
     assert len(buckets["body"]) == 2 and len(buckets["appendix"]) == 1
 
 
+def test_bucket_split_body_card_routes_to_body_not_misc(tmp_path):
+    # split body 카드(2.1.L1)는 부모(2.1) 기준으로 body Part에 들어가야 함(misc 아님)
+    files = [_card(tmp_path, "2.1.L1"), _card(tmp_path, "2.1.L2")]
+    buckets = bucket_cards(files)
+    assert "body" in buckets and len(buckets["body"]) == 2
+    assert "misc" not in buckets
+
+
 def test_group_by_parent_merges_splits(tmp_path):
     files = [_card(tmp_path, "1.4.L1"), _card(tmp_path, "1.4.L2"), _card(tmp_path, "1.5")]
     groups = group_by_parent(files)
