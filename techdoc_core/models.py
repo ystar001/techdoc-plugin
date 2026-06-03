@@ -319,6 +319,8 @@ class TechCard:
     references: str = ""  # ⑦ 근거·인용 (REF 리스트)
     ref_ids: list[str] = field(default_factory=list)
     self_check: dict | None = None  # F2/F4: 사이즈 무관 self-check (None 허용 — 역호환)
+    figures: list[dict] = field(default_factory=list)  # F22: [{"path","caption"}] 렌더된 이미지
+    diagrams: list[dict] = field(default_factory=list)  # F22: [{"mermaid","caption"}] Mermaid 소스
 
     def to_dict(self) -> dict:
         return {
@@ -337,6 +339,8 @@ class TechCard:
             },
             "ref_ids": self.ref_ids,
             "self_check": self.self_check,
+            "figures": self.figures,
+            "diagrams": self.diagrams,
         }
 
     @classmethod
@@ -356,6 +360,8 @@ class TechCard:
             references=blocks.get("references", ""),
             ref_ids=data.get("ref_ids", []),
             self_check=data.get("self_check"),
+            figures=data.get("figures", []),
+            diagrams=data.get("diagrams", []),
         )
 
 
@@ -387,6 +393,8 @@ class ProjectCard:
     budget: str = ""
     sponsor: str = ""
     self_check: dict | None = None  # F2/F4: 사이즈 무관 self-check (None 허용 — 역호환)
+    figures: list[dict] = field(default_factory=list)  # F22: [{"path","caption"}] 렌더된 이미지
+    diagrams: list[dict] = field(default_factory=list)  # F22: [{"mermaid","caption"}] Mermaid 소스
 
     def to_dict(self) -> dict:
         return {
@@ -412,6 +420,8 @@ class ProjectCard:
             },
             "ref_ids": self.ref_ids,
             "self_check": self.self_check,
+            "figures": self.figures,
+            "diagrams": self.diagrams,
         }
 
     @classmethod
@@ -437,6 +447,8 @@ class ProjectCard:
             references=blocks.get("references", ""),
             ref_ids=data.get("ref_ids", []),
             self_check=data.get("self_check"),
+            figures=data.get("figures", []),
+            diagrams=data.get("diagrams", []),
         )
 
 
@@ -463,6 +475,8 @@ class ProductCard:
     references: str = ""  # ⑥ 근거·인용
     ref_ids: list[str] = field(default_factory=list)
     self_check: dict | None = None  # F2/F4: 사이즈 무관 self-check (None 허용 — 역호환)
+    figures: list[dict] = field(default_factory=list)  # F22: [{"path","caption"}] 렌더된 이미지
+    diagrams: list[dict] = field(default_factory=list)  # F22: [{"mermaid","caption"}] Mermaid 소스
 
     def to_dict(self) -> dict:
         return {
@@ -482,6 +496,8 @@ class ProductCard:
             },
             "ref_ids": self.ref_ids,
             "self_check": self.self_check,
+            "figures": self.figures,
+            "diagrams": self.diagrams,
         }
 
     @classmethod
@@ -502,6 +518,8 @@ class ProductCard:
             references=blocks.get("references", ""),
             ref_ids=data.get("ref_ids", []),
             self_check=data.get("self_check"),
+            figures=data.get("figures", []),
+            diagrams=data.get("diagrams", []),
         )
 
 
