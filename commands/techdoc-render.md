@@ -1,7 +1,7 @@
 ---
 description: Step 12 - document_final.json → HTML + PDF + DOCX + MD 렌더링 (카드·별첨 포함)
 allowed-tools: Bash, Read
-argument-hint: "--input FILE [--refs FILE] [--type DESIGN] [--formats html,pdf,docx,md] [-o OUTPUT]"
+argument-hint: "--input FILE [--refs FILE] [--type DESIGN] [--formats html,pdf,docx,md] [-o OUTPUT] | --tree --cards-dir DIR [--routing-config FILE] [--with-series-index]"
 ---
 
 # /techdoc-render — 4종 출력 생성
@@ -14,6 +14,14 @@ argument-hint: "--input FILE [--refs FILE] [--type DESIGN] [--formats html,pdf,d
 - `--type DESIGN` (옵션, 자동 판별 안 할 때 명시)
 - `--formats LIST` (기본: `html,pdf,docx,md`)
 - `-o DIR` (기본: `./output`)
+
+### 트리 디렉토리 출력 (--tree, F15·F17)
+- `--tree` — 단일파일 대신 config 기반 트리 디렉토리 출력 (`--input` 대신 `--cards-dir` 사용)
+- `--cards-dir DIR` — 입력 카드 JSON 디렉토리 (`*_card.json`)
+- `--routing-config FILE` — 카드 ID → Part 라우팅 config (기본 `DEFAULT_ROUTING`; 프로젝트별 교체로 도메인 Part·카테고리·시리즈 라벨 지정)
+- `--with-series-index` — 시리즈 폴더 INDEX 강제 (기본: F17 — 단일 카드 시리즈는 INDEX 생략)
+
+출력: `Part-*/` 디렉토리 + (2+ 카드) 시리즈 하위폴더 + 부분별 INDEX + 최상위 표지·TOC INDEX. split 카드(L1/L2/L3)는 부모당 1파일 병합.
 
 ## 실행
 
