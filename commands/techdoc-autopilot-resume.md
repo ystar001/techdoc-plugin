@@ -1,12 +1,22 @@
 ---
 description: halted autopilot 재개. halt_reason 클리어 + /loop 재진입.
 allowed-tools: Bash, Read
-argument-hint: "[-o OUTPUT]"
+argument-hint: "[--resume-from-disk] [-o OUTPUT]"
 ---
 
 # /techdoc-autopilot-resume
 
 `autopilot_state.halt_reason` 클리어 + `autopilot.stop` 삭제 후 /loop 재진입. `quality_fail`·`card_failures_exceeded`의 경우 사용자가 문제 해결(`/techdoc-rewrite` 등) 후 호출하길 권장.
+
+## 중반 재개 (`--resume-from-disk`)
+
+`autopilot_state.json`이 유실되었거나 외부에서 일부 산출물(`/techdoc` 부분 실행 등)을 만든 상태에서 자율 모드로 이어가려면, state 신규 생성 시 디스크 산출물을 스캔해 완료 stage를 자동 마킹할 수 있다.
+
+```bash
+python -m scripts.autopilot "<title>" --doc "$OUT" --resume-from-disk --print-loop-prompt
+```
+
+`scan_completed_stages`가 `draft_outline.json`(outline)·`reference_list.json`(merge_research)·`research_*.json`(research_A/B/C)·`cards/*_card.json`(write_*)·`reviews/*.md`(review)·`document_final.json`(render)를 검사해 해당 stage를 `completed`로 표시한다. 산출물이 없는 stage는 `pending`을 유지하므로, autopilot은 중단 지점부터 이어서 처리한다. (결정론적·LLM 호출 0회)
 
 ```bash
 OUT="${OUTPUT_DIR:-./output}"

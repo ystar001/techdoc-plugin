@@ -4,6 +4,17 @@ All notable changes to TechDoc Plugin.
 
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased]
+
+### Added (Plan L — autopilot deepdive chunk + 중반 재개)
+
+- **F9-i** autopilot `deepdive`(별첨) chunk — `chunks.STAGE_ORDER`의 review와 render 사이에 삽입. `_prerequisites`에 `deepdive ← review`·`render ← deepdive` 추가. `runner.CHUNK_TO_COMMAND_HINT["deepdive"]` → `/techdoc-deepdive` 매핑. `state.init_state`가 `config.deep_dive_auto`/`deep_dive` 요청 시 `pending`, 아니면 `skipped`(흐름 무변경). autopilot CLI에 `--deep-dive-auto N`·`--deep-dive <ids>` 인자 추가. (findings F9)
+- **F9-ii** `state.scan_completed_stages(output_dir)` + `init_state(resume_from_disk=True)` — 디스크 산출물(outline·reference_list·research_*·cards·reviews·document_final)을 스캔해 완료 stage를 `completed`로 자동 마킹(중반 재개). autopilot CLI에 `--resume-from-disk` 인자 추가. 결정론적·LLM 호출 0회. (findings F9)
+
+### Compatibility
+
+- non-breaking. deepdive 미요청 시 `skipped`(render 흐름 유지, `_is_satisfied`가 skipped를 충족 처리). `resume_from_disk` 기본 `False`(기존 init_state 동작 보존). SCHEMA_VERSION 0.2.0 유지.
+
 ## [1.5.0] — 2026-06-03
 
 ### Added (Plan I 코어 — render 일반화)

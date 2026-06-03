@@ -52,6 +52,22 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--export-wiki", default=None, help="Wiki vault 디렉토리")
     ap.add_argument("--num-section-groups", type=int, default=3, choices=[1, 2, 3])
     ap.add_argument(
+        "--deep-dive-auto",
+        type=int,
+        default=0,
+        help="importance=high 카드 N개를 별첨(deepdive)으로 자동 선정 (0이면 deepdive skip)",
+    )
+    ap.add_argument(
+        "--deep-dive",
+        default=None,
+        help="별첨 카드 ID 직접 지정 (쉼표 구분). 지정 시 deepdive stage 활성화",
+    )
+    ap.add_argument(
+        "--resume-from-disk",
+        action="store_true",
+        help="기존 디스크 산출물을 스캔해 완료 stage를 자동 마킹 (중반 재개, F9-ii)",
+    )
+    ap.add_argument(
         "--print-loop-prompt",
         action="store_true",
         help="state 초기화 + /loop prompt 출력 후 종료 (실제 loop 진입 안 함)",
@@ -94,12 +110,15 @@ def main(argv: list[str] | None = None) -> int:
         "notify": args.notify,
         "push_notion_parent_page": args.push_notion,
         "export_wiki_vault": args.export_wiki,
+        "deep_dive_auto": args.deep_dive_auto,
+        "deep_dive": args.deep_dive,
     }
     state = state_module.init_state(
         output_dir,
         title=args.title,
         config=config,
         num_section_groups=args.num_section_groups,
+        resume_from_disk=args.resume_from_disk,
     )
     state_module.save_state(output_dir, state)
 

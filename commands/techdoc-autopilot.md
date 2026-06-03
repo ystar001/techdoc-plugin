@@ -1,12 +1,14 @@
 ---
 description: TechDoc 보고서를 자율 모드(walk-away)로 실행. /loop 기반 self-paced 에이전트. 매 wake-up 1 chunk (섹션 그룹) 처리. 6 safety 트리거 + 이상 시 chat 알림.
 allowed-tools: Bash, Read, Write, Agent
-argument-hint: "\"<title>\" --toc FILE --domain tech|market|policy [--max-wall-clock 4h] [--max-warnings 10] [--notify anomalies_only|each-wake-up] [--push-notion <id>] [--export-wiki <vault>] [-o OUTPUT]"
+argument-hint: "\"<title>\" --toc FILE --domain tech|market|policy [--deep-dive-auto N] [--max-wall-clock 4h] [--max-warnings 10] [--notify anomalies_only|each-wake-up] [--push-notion <id>] [--export-wiki <vault>] [--resume-from-disk] [-o OUTPUT]"
 ---
 
 # /techdoc-autopilot — 자율 보고서 생성
 
 `/techdoc`이 60~130분 동기 실행이라 사용자가 watching해야 하는 부담을 해소. autopilot은 매 wake-up마다 1 chunk(섹션 그룹)를 처리하고 다음 wake-up을 스스로 스케줄. 사용자는 walk-away 가능.
+
+chunk 파이프라인은 `outline → research_{A,B,C} → merge_research → write_{A,B,C} → review → deepdive → render` 순서로 진행한다. **deepdive(별첨)** chunk는 review와 render 사이에서 `--deep-dive-auto N`(또는 `--deep-dive <ids>`) 지정 시 `/techdoc-deepdive`로 자동 실행되며, 별첨 요청이 없으면 `skipped`되어 흐름이 그대로 render로 이어진다.
 
 ## 사용법
 
@@ -51,6 +53,7 @@ argument-hint: "\"<title>\" --toc FILE --domain tech|market|policy [--max-wall-c
 | `--notify anomalies_only\|each-wake-up` | `anomalies_only` | 알림 모드 |
 | `--push-notion <id>` | (없음) | render 단계에서 Notion publish |
 | `--export-wiki <vault>` | (없음) | render 단계에서 wiki export |
+| `--resume-from-disk` | `false` | 기존 디스크 산출물(outline·reference_list·cards·reviews·document_final)을 스캔해 완료 stage를 자동 마킹(중반 재개) |
 
 ## 자동 정지 트리거 (6)
 

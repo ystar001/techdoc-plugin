@@ -907,10 +907,10 @@ techdoc_auto: true
 | | `/techdoc-deepdive` | **별첨 개별** ⭐ | 10~15분 |
 | **Wiki** ⭐ | `/techdoc-export-wiki` | LLM Wiki 변환·누적 | 1~2분 |
 | **Notion** ⭐ | `/techdoc-export-notion` (v1.2.0) | TechDoc 보고서 → Notion publish (페이지 계층 + KeyRef DB) | 30초~3분 |
-| **Autopilot** ⭐ | `/techdoc-autopilot` (v1.3.0) | 자율 모드 보고서 생성 (walk-away) | 1.5~2.5h |
+| **Autopilot** ⭐ | `/techdoc-autopilot` (v1.3.0) | 자율 모드 보고서 생성 (walk-away). deepdive(별첨) chunk 자동 처리(`--deep-dive-auto N`)·`--resume-from-disk` 중반 재개(기존 산출물 스캔) | 1.5~2.5h |
 | | `/techdoc-autopilot-status` | 진행 상태 조회 | 즉시 |
 | | `/techdoc-autopilot-stop` | graceful halt 요청 | 즉시 |
-| | `/techdoc-autopilot-resume` | halt 후 재개 | 즉시 |
+| | `/techdoc-autopilot-resume` | halt 후 재개 (`--resume-from-disk` 지원) | 즉시 |
 | **통합** | `/techdoc` | 전체 파이프라인 (`--export-wiki` / `--push-notion` 옵션) | 60~130분 |
 
 ## 24. 주요 옵션 상세
