@@ -8,6 +8,7 @@ from pathlib import Path
 from rich.console import Console
 
 from techdoc_core.models import Document, ReferenceList
+from techdoc_core.renderers.paragraph import format_paragraphs
 
 console = Console()
 
@@ -46,6 +47,7 @@ class MarkdownExporter:
         for sec in document.sections:
             if sec.html_content:
                 md = self._html_to_markdown(sec.html_content)
+                md = format_paragraphs(md)  # F10: 단락 break (키워드+길이 ceiling)
                 parts.append(md)
                 parts.append("")  # 섹션 구분
 
