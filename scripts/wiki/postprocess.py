@@ -38,3 +38,42 @@ def strip_meta_markers(line: str) -> str:
 def split_long_paragraphs(text: str) -> str:
     """긴 문단 분리 — Plan I paragraph.format_paragraphs 재사용(800자 ceiling)."""
     return format_paragraphs(text)
+
+
+# 빈출 영문 slug → 한국어 (고유명사·제품명 제외)
+_SLUG_REPLACEMENTS = {"framework": "프레임워크"}
+# 고유명사 보호: 대문자로 시작하는 토큰은 치환 안 함(Climate FieldView 등)
+_PROPER_RE = re.compile(r"\b[A-Z][A-Za-z]+\b")
+
+
+def koreanize_slug(text: str) -> str:
+    """빈출 소문자 영문 slug를 한국어로. 고유명사(대문자 시작)는 보존."""
+    proper = set(_PROPER_RE.findall(text))
+    for en, ko in _SLUG_REPLACEMENTS.items():
+        if en.capitalize() in proper or en.upper() in {p.upper() for p in proper}:
+            continue
+        text = re.sub(rf"\b{re.escape(en)}\b", ko, text)
+    return text
+
+
+def build_guide_section(body: str, min_chars: int = 30000) -> str:
+    """긴 문서 앞 '문서 안내' 1단락(주요 H2 미리보기). 짧으면 빈 문자열."""
+    if len(body) < min_chars:
+        return ""
+    heads = re.findall(r"^##\s+(.+)$", body, re.M)
+    preview = " · ".join(h.strip() for h in heads[:6])
+    return f"> **문서 안내**: 원문 보존·정리본. 주요 절 — {preview}\n"
+
+
+def enhance_markdown(md: str, *, guide: bool = False) -> str:
+    """카드 .md 전체 후처리(멱등). 줄 단위 메타 제거 + 톤·slug + 문단 분리."""
+    lines = [strip_meta_markers(ln) if ln.startswith("#") else ln for ln in md.splitlines()]
+    text = "\n".join(lines)
+    text = soften_tone(text)
+    text = koreanize_slug(text)
+    text = split_long_paragraphs(text)
+    if guide:
+        g = build_guide_section(text)
+        if g and "**문서 안내**" not in text:
+            text = g + "\n" + text
+    return text
