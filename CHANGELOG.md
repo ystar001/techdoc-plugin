@@ -4,6 +4,42 @@ All notable changes to TechDoc Plugin.
 
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.4.0] — 2026-06-03
+
+> ⚠️ **BREAKING (SCHEMA_VERSION 0.1.0 → 0.2.0)** — self-model 카드 스키마 표준화.
+> 기존 self-model 카드(`output/cards/*_card.json`)를 쓰는 자식 프로젝트는 흡수 후
+> **`python -m scripts.migrate output/`** 를 1회 실행해 0.2.0으로 변환한다. plugin
+> 표준 카드(`document_final.json`·`blocks`)·KeyRef·writer_state는 무영향.
+
+### Migration 가이드 (자식 프로젝트)
+
+1. `/techdoc-update` 로 v1.4.0 흡수.
+2. `python -m scripts.migrate output/` — self-model 카드를 0.2.0으로 변환
+   (body 키 통일·섹션 키 `sec1~sec6`·`card_id`/`parent_id`·`title`/`split_summary` 분리).
+3. `python ../../techdoc_work/scripts/sync_findings.py --check` 로 일관성 게이트 통과 확인.
+
+### Added (Plan G — 카드 스키마 표준화, breaking)
+
+- **F1** self-model 섹션 본문을 단일 `body` 키로 표준화(narrative·content 변형은 migrate가 흡수). (findings F1)
+- **F3** self-model 섹션 키를 위치 기반 `sec1`~`sec6`로 강제하고, 서술 헤딩은 섹션 `title` 필드로 분리. `field_validator`가 비표준 키 거부. (findings F3)
+- **F13** self-model 카드 식별자를 단일 `card_id`(split marker 포함) + `parent_id`로 통합(구 `section_id`/`appendix_id` 이중 필드 폐지). (findings F13)
+- **F14** 카드 `title`에서 운영 미주(분할 N/M·§구성·페이지)를 `split_summary`로 분리. (findings F14)
+- `scripts/migrate.py`: 0.1.0→0.2.0 self-model 변환 등록(standard `blocks` 카드 무영향 가드). `SCHEMA_VERSION = "0.2.0"`.
+
+### Added (Plan J — 본문 카드 시각 필드, additive)
+
+- **F22** 본문 카드(Tech/Project/Product)에 `figures`(`{path, caption}`)·`diagrams`(`{mermaid, caption}`) 필드 추가(별첨 전용이던 시각 필드 흡수). `generate_chart.specs_to_figures`로 차트 연결, card_renderer가 `<figure>`·Mermaid 출력(path·caption HTML escape), `has_math_or_mermaid`가 카드 diagrams도 스캔. (findings F22)
+
+### Added (Plan H — 공공문서 작성 품질 표준)
+
+- **F11** writer 본문에 운영 메타·시그너처('학술' 과잉 수식·1발 PASS·PRD 정합·전수 인용 류) 인라인 금지 — `self_check`/`self_review`로 분리. (findings F11)
+- **F16** 신설 프롬프트 4종(`terminology_rules`·`abbreviation_rules`·`reference_format` APA 7th·`review_consistency`) + `citation_rules`·`edit_rules`·`section_write` 확장 + reviewer **consistency** 도메인(tech/market/policy → +1) + `scripts/extract_glossary.py`(KeyRef·카드 → `outline.glossary` 자동추출, 비면 WARN) + `check_quality` 표기 일관성 지표 2종. (findings F16)
+
+### Compatibility
+
+- **breaking**: self-model 카드만(migrate 필요). standard 카드·KeyRef·writer_state·autopilot_state·notion_state 무영향.
+- Plan J·H는 additive — 기존 카드 호환. 프롬프트 추가/확장은 런타임 무영향.
+
 ## [1.3.1] — 2026-06-02
 
 ### Added
