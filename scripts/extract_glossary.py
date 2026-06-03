@@ -316,10 +316,10 @@ def _glossary_definition(entry: dict) -> str:
     return kor or eng
 
 
-def extract_from_output(output_dir) -> dict[str, str]:
-    """output_dir 의 cards·reference_list 에서 약어·용어를 추출해 flat glossary dict 반환.
+def build_rich_glossary(output_dir) -> dict:
+    """output_dir 의 cards·reference_list 에서 rich glossary dict 빌드.
 
-    반환: {abbr_or_term: 정의 문자열}. outline.glossary(dict[str, str]) 에 바로 주입 가능.
+    반환: {abbr: {standard_form, variants, frequency}} (build_glossary_dict 형식).
     카드 본문 키는 self-model 0.2.0(sections[*].body)·standard(blocks) 모두 robust 처리.
     """
     output_dir = Path(output_dir)
@@ -348,11 +348,140 @@ def extract_from_output(output_dir) -> dict[str, str]:
         except (OSError, json.JSONDecodeError):
             pass
 
-    # 3) glossary 빌드 → flat dict 평탄화
-    rich = build_glossary_dict(pairs, abbr_counts)
+    return build_glossary_dict(pairs, abbr_counts)
+
+
+def flatten_glossary(rich: dict) -> dict[str, str]:
+    """rich glossary dict → outline.glossary 용 flat {abbr: 정의} dict."""
     flat: dict[str, str] = {}
     for abbr, entry in rich.items():
         definition = _glossary_definition(entry)
         if definition:
             flat[abbr] = definition
     return flat
+
+
+def extract_from_output(output_dir) -> dict[str, str]:
+    """output_dir → flat glossary dict (outline.glossary 용). dict[str, str] 에 바로 주입 가능."""
+    return flatten_glossary(build_rich_glossary(output_dir))
+
+
+# ---------------------------------------------------------------------------
+# review.md 렌더링 (사용자 spot-check 입력)
+# ---------------------------------------------------------------------------
+
+def render_review_markdown(glossary: dict) -> str:
+    """spot-check 용 markdown. 분기 후보(변형 2개 이상) 가장 위에 강조."""
+    by_branching = sorted(
+        glossary.items(),
+        key=lambda kv: (-len(kv[1].get("variants", [])), -kv[1].get("frequency", 0)),
+    )
+    lines: list[str] = [
+        "# Glossary spot-check (F16)",
+        "",
+        "다음 약어들 중 standard_form 이 적절한지 확인하세요. "
+        "변형이 여러 개인 경우 가장 빈도 높은 것이 자동 채택됐습니다.",
+        "",
+        "## 분기 후보 (변형 2개 이상)",
+        "",
+    ]
+    for abbr, entry in by_branching:
+        variants = entry.get("variants", [])
+        if len(variants) < 2:
+            continue
+        lines.append(f"### {abbr} (총 등장 {entry['frequency']}회)")
+        std = entry["standard_form"]
+        lines.append(f"- **standard_form**: `{std['korean']}` / `{std['english']}`")
+        lines.append("- variants:")
+        for v in variants:
+            lines.append(f"  - `{v['korean']}` / `{v['english']}` ({v['count']}회)")
+        lines.append("")
+    lines.append("## 단일 변형")
+    lines.append("")
+    for abbr, entry in by_branching:
+        if len(entry.get("variants", [])) >= 2:
+            continue
+        std = entry["standard_form"]
+        lines.append(
+            f"- {abbr}: `{std['korean']}` / `{std['english']}` ({entry['frequency']}회)"
+        )
+    return "\n".join(lines)
+
+
+# ---------------------------------------------------------------------------
+# outline 주입 (기존 비어있는 glossary 슬롯만 채움)
+# ---------------------------------------------------------------------------
+
+def inject_into_outline(outline_path, glossary: dict[str, str]) -> int:
+    """draft_outline.json 의 glossary 필드에 추출 glossary 를 주입.
+
+    기존 glossary 에 없는 키만 추가(사용자 수동 항목 보존). 추가된 항목 수 반환.
+    """
+    outline_path = Path(outline_path)
+    outline = json.loads(outline_path.read_text(encoding="utf-8"))
+    existing = outline.get("glossary")
+    if not isinstance(existing, dict):
+        existing = {}
+    added = 0
+    for key, val in glossary.items():
+        if key not in existing or not str(existing.get(key) or "").strip():
+            existing[key] = val
+            added += 1
+    outline["glossary"] = existing
+    outline_path.write_text(
+        json.dumps(outline, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+    return added
+
+
+# ---------------------------------------------------------------------------
+# CLI
+# ---------------------------------------------------------------------------
+
+def main(argv: list[str] | None = None) -> int:
+    import argparse
+
+    parser = argparse.ArgumentParser(description="F16: 약어·용어 자동 추출 → outline.glossary")
+    parser.add_argument("--output", default="output", help="output 디렉토리")
+    parser.add_argument(
+        "--outline", default=None,
+        help="draft_outline.json 경로 (생략 시 <output>/draft_outline.json)",
+    )
+    parser.add_argument(
+        "--no-write", action="store_true",
+        help="outline·산출 파일을 쓰지 않고 추출만 (dry-run)",
+    )
+    args = parser.parse_args(argv)
+
+    output_dir = Path(args.output)
+    rich = build_rich_glossary(output_dir)
+    flat = flatten_glossary(rich)
+
+    print(f"[extract_glossary] 약어·용어 {len(flat)}건 추출")
+
+    if not flat:
+        print("WARN: glossary 비어 있음 — 수동 보강 권장")
+        return 0
+
+    if not args.no_write:
+        output_dir.mkdir(parents=True, exist_ok=True)
+        (output_dir / "glossary.json").write_text(
+            json.dumps(rich, ensure_ascii=False, indent=2, sort_keys=True),
+            encoding="utf-8",
+        )
+        (output_dir / "glossary_review.md").write_text(
+            render_review_markdown(rich), encoding="utf-8"
+        )
+
+        outline_path = Path(args.outline) if args.outline else output_dir / "draft_outline.json"
+        if outline_path.exists():
+            added = inject_into_outline(outline_path, flat)
+            print(f"[extract_glossary] outline.glossary 에 {added}건 주입 → {outline_path}")
+        else:
+            print(f"[extract_glossary] outline 없음(skip): {outline_path}")
+
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
