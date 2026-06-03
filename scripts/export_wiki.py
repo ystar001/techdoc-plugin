@@ -12,21 +12,20 @@ import argparse
 import inspect
 import json
 import sys
-import tempfile
 from datetime import date as _date
 from pathlib import Path
 
 from scripts.wiki.assets import copy_figures
 from scripts.wiki.builders.appendix import (
-    build_tech_appendix_page,
-    build_project_appendix_page,
     appendix_filename,
+    build_project_appendix_page,
+    build_tech_appendix_page,
 )
 from scripts.wiki.builders.concept import build_concept_page
 from scripts.wiki.builders.entity import (
-    build_tech_page,
-    build_project_page,
     build_product_page,
+    build_project_page,
+    build_tech_page,
     entity_filename,
 )
 from scripts.wiki.builders.index import build_index
@@ -36,6 +35,20 @@ from scripts.wiki.builders.source import build_source_page, source_filename
 from scripts.wiki.conflict import detect_conflicts, extract_facts, format_conflict_callout
 from scripts.wiki.filename import sanitize_name
 from scripts.wiki.markers import extract_ai_region, replace_ai_region
+from scripts.wiki.postprocess import enhance_markdown
+
+
+def _enhance_card_page(page: str, enhance: bool) -> str:
+    """카드 .md의 AI 마커 영역만 후처리(F18). 마커 밖 사용자 메모는 보존.
+
+    enhance=False면 무변경. AI 영역이 없으면(마커 부재) 그대로 반환.
+    """
+    if not enhance:
+        return page
+    ai = extract_ai_region(page)
+    if ai is None:
+        return page
+    return replace_ai_region(page, enhance_markdown(ai, guide=True))
 
 
 def _read_json(path: Path) -> dict:
@@ -107,6 +120,13 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--lint", action="store_true", help="lint만 수행, export 안 함")
     parser.add_argument("--mkdocs", action="store_true",
                         help="vault에 mkdocs.yml 작성 (D 하이브리드 정적 사이트 옵션)")
+    parser.add_argument(
+        "--enhance",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="카드 .md 후처리(학술 수식어 정리·메타 제거·긴 문단 분리·문서 안내, "
+             "REF·수치 보존). --no-enhance로 비활성 (F18)",
+    )
     args = parser.parse_args(argv)
 
     doc_dir = Path(args.doc)
@@ -180,7 +200,7 @@ def main(argv: list[str] | None = None) -> int:
             has_appendix=c.get("id") in tech_appendix_parents,
             stats=stats,
         )
-        _write(target, page)
+        _write(target, _enhance_card_page(page, args.enhance))
 
     for c in document.get("project_cards", []):
         target = vault / "Projects" / entity_filename(c)
@@ -193,7 +213,7 @@ def main(argv: list[str] | None = None) -> int:
             has_appendix=c.get("id") in project_appendix_parents,
             stats=stats,
         )
-        _write(target, page)
+        _write(target, _enhance_card_page(page, args.enhance))
 
     for c in document.get("product_cards", []):
         target = vault / "Products" / entity_filename(c)
@@ -205,7 +225,7 @@ def main(argv: list[str] | None = None) -> int:
             existing_page=_read_existing(target),
             stats=stats,
         )
-        _write(target, page)
+        _write(target, _enhance_card_page(page, args.enhance))
 
     # 4. 별첨 — source_card_id → parent name 매핑
     name_by_id = {c["id"]: c.get("name", "") for c in document.get("tech_cards", [])}
@@ -218,7 +238,7 @@ def main(argv: list[str] | None = None) -> int:
         page = build_tech_appendix_page(
             a, parent_name=parent_name, report_title=title, existing_page=_read_existing(target)
         )
-        _write(target, page)
+        _write(target, _enhance_card_page(page, args.enhance))
 
     for a in document.get("project_appendices", []):
         parent_name = name_by_id.get(a.get("source_card_id"), a.get("name", "unknown"))
@@ -227,7 +247,7 @@ def main(argv: list[str] | None = None) -> int:
         page = build_project_appendix_page(
             a, parent_name=parent_name, report_title=title, existing_page=_read_existing(target)
         )
-        _write(target, page)
+        _write(target, _enhance_card_page(page, args.enhance))
 
     # 5. Concepts (glossary)
     for term, definition in glossary.items():
