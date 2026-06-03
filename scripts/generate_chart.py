@@ -164,6 +164,22 @@ def generate_figure(spec: dict, output_dir: Path) -> Path:
     return out_path
 
 
+def specs_to_figures(specs: list[dict], output_dir: Path) -> list[dict]:
+    """차트 spec 리스트를 렌더해 카드 figures용 참조 리스트로 변환 (F22).
+
+    각 spec은 generate_figure가 받는 형식. 반환은 카드 `figures` 필드에 그대로
+    넣을 수 있는 [{"path","caption"}] 리스트.
+    """
+    figures: list[dict] = []
+    for spec in specs:
+        path = generate_figure(spec, output_dir)
+        figures.append({
+            "path": str(path),
+            "caption": spec.get("caption", spec.get("title", "")),
+        })
+    return figures
+
+
 def generate_from_specs(specs_path: Path, output_dir: Path) -> list[dict]:
     """specs 파일 (단일 dict 또는 list) → 여러 PNG."""
     data = json.loads(specs_path.read_text(encoding="utf-8"))
