@@ -16,8 +16,11 @@ model: inherit
 - `prompts/section_analysis.md` — 종합 분석 블록
 - `prompts/card_length_rules.md` — 중요도별 차등 분량
 - `prompts/tech_depth.md` — REQ-012~014 설명 수준
-- `prompts/_shared/citation_rules.md` — 인용 규칙
+- `prompts/_shared/citation_rules.md` — 인용 규칙 (APA 본문 인용 포함)
 - `prompts/_shared/no_ai_inference.md` — AI 추론 차단
+- `prompts/terminology_rules.md` — 표기 7항 (학술용어·약어·기관명·제품명·외래어·단위·표현부호)
+- `prompts/abbreviation_rules.md` — 약어 풀이 정책 (첫 등장 풀이·정착 약어 50선·standard_form)
+- `prompts/reference_format.md` — 참고문헌 APA 7th 양식
 - `prompts/_shared/style_narrative.md` 또는 `style_bullet.md` (style에 따라)
 - `prompts/_shared/analysis_tags.md` — 7종 분석 태그
 
