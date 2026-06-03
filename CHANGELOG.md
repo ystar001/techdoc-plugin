@@ -4,6 +4,22 @@ All notable changes to TechDoc Plugin.
 
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.5.0] — 2026-06-03
+
+### Added (Plan I 코어 — render 일반화)
+
+- **F10** MD 출력 단락 break — `techdoc_core/renderers/paragraph.py`(키워드 break + 800자 길이 ceiling, 자식 render_md 흡수, 멱등). `MarkdownExporter`가 섹션별 적용(표·인용 안전). 메타 단락 필터는 Plan H(prompt) 담당이라 미포함. (findings F10)
+- **F12** 섹션 키 → 한글 헤딩 — `techdoc_core/renderers/section_heading.py`. Plan G `DEFAULT_SECTION_TITLES` 재사용, 구 서술형 키(`sec3_trends_*`)도 위치(sec3)로 정규화. (findings F12)
+- **F21** Part 라우팅 config 외부화 — `techdoc_core/routing_config.py`. openfieldtech 하드코딩을 데이터 기반 config + schema-agnostic `parse_card_id(card_id, config)`로 재설계(프로젝트별 config 교체). `load_routing_config`가 규칙 필수 키 검증. (findings F21)
+
+### Note
+
+- **F15**(render 트리 디렉토리 생성)는 본 release에서 분리 — 후속에서 `routing_config` 위에 `write_tree` 흡수 예정. open 유지.
+
+### Compatibility
+
+- non-breaking. SCHEMA_VERSION 0.2.0 유지. F10은 MD 출력에만 적용(HTML/PDF/DOCX 무영향)·멱등. F12·F21은 신규 유틸(기존 호출 무변경).
+
 ## [1.4.0] — 2026-06-03
 
 > ⚠️ **BREAKING (SCHEMA_VERSION 0.1.0 → 0.2.0)** — self-model 카드 스키마 표준화.
