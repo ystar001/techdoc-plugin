@@ -4,16 +4,28 @@ All notable changes to TechDoc Plugin.
 
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [Unreleased]
+## [1.6.0] — 2026-06-03
 
 ### Added (Plan L — autopilot deepdive chunk + 중반 재개)
 
 - **F9-i** autopilot `deepdive`(별첨) chunk — `chunks.STAGE_ORDER`의 review와 render 사이에 삽입. `_prerequisites`에 `deepdive ← review`·`render ← deepdive` 추가. `runner.CHUNK_TO_COMMAND_HINT["deepdive"]` → `/techdoc-deepdive` 매핑. `state.init_state`가 `config.deep_dive_auto`/`deep_dive` 요청 시 `pending`, 아니면 `skipped`(흐름 무변경). autopilot CLI에 `--deep-dive-auto N`·`--deep-dive <ids>` 인자 추가. (findings F9)
 - **F9-ii** `state.scan_completed_stages(output_dir)` + `init_state(resume_from_disk=True)` — 디스크 산출물(outline·reference_list·research_*·cards·reviews·document_final)을 스캔해 완료 stage를 `completed`로 자동 마킹(중반 재개). autopilot CLI에 `--resume-from-disk` 인자 추가. 결정론적·LLM 호출 0회. (findings F9)
 
+### Added (Plan K — export-wiki 후처리)
+
+- **F18** `/techdoc-export-wiki`에 후처리 단계 추가 — `scripts/wiki/postprocess.py`. "학술" 과잉 수식어 정리(학술 framework→프레임워크 등)·메타 표시 제거(`## 헤더 (확장)`)·긴 문단 분리(Plan I `paragraph.format_paragraphs` 재사용)·영문 slug 부분 한국어화(고유명사 보존)·문서 안내 섹션. `[REF-xxx]`·수치·고유명사 보존, 멱등, AI 마커 영역만 적용(사용자 메모 보존). `--enhance/--no-enhance`(기본 on). (findings F18)
+
+### Added (Plan M — 테스트 재사용성)
+
+- **F23** `@pytest.mark.project` 마커 등록(`pyproject.toml`) + 컨벤션 문서(`tests/README.md`) — 프로젝트 특화 검증을 분리해 자식 프로젝트가 `pytest -m "not project"`로 코어만 실행 가능. plugin 자체 테스트는 이미 fixtures 기반. (findings F23)
+
+### Note
+
+- F15(render 트리 생성)·F17(시리즈 INDEX 과잉)은 render 트리 후속에서 함께 처리 예정 — open 유지(닫힘 아님).
+
 ### Compatibility
 
-- non-breaking. deepdive 미요청 시 `skipped`(render 흐름 유지, `_is_satisfied`가 skipped를 충족 처리). `resume_from_disk` 기본 `False`(기존 init_state 동작 보존). SCHEMA_VERSION 0.2.0 유지.
+- non-breaking. deepdive 미요청 시 `skipped`(render 흐름 유지). `resume_from_disk`·`--enhance` 기본값이 기존 동작 보존. 마커 등록은 테스트 무영향. SCHEMA_VERSION 0.2.0 유지.
 
 ## [1.5.0] — 2026-06-03
 
