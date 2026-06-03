@@ -26,6 +26,29 @@ def _write_self_model_card(cards_dir: Path, card_id: str, body_text: str) -> Non
     )
 
 
+def test_undefined_abbreviation_detected():
+    # 풀이 없이 처음 등장한 약어 → 미정의로 카운트
+    from scripts.check_quality import check_abbreviation_consistency
+
+    n = check_abbreviation_consistency("본문에서 XYZ 기술을 쓴다.", defined=set())
+    assert n >= 1
+
+
+def test_defined_abbreviation_not_flagged():
+    from scripts.check_quality import check_abbreviation_consistency
+
+    n = check_abbreviation_consistency("사물인터넷(IoT) 기반. 이후 IoT 재등장.", defined={"IOT"})
+    assert n == 0
+
+
+def test_terminology_consistency_uses_glossary():
+    # glossary 용어가 본문에 일관 사용되는지 — 변형 발견 시 카운트
+    from scripts.check_quality import check_terminology_consistency
+
+    miss = check_terminology_consistency("데이타 처리", glossary={"데이터": "data"})
+    assert miss >= 1
+
+
 def test_run_quality_check_unknown_mode(tmp_path):
     from scripts.check_quality import run_quality_check
 

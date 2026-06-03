@@ -18,6 +18,11 @@ import re
 import sys
 from pathlib import Path
 
+from scripts.extract_glossary import (
+    _looks_like_abbr,
+    find_abbreviations,
+    find_explanation_pairs,
+)
 from techdoc_core.constants import (
     CARD_LENGTH_RULES,
     CARDS_PER_SECTION,
@@ -79,8 +84,74 @@ def check_project_pattern(html: str) -> int:
     return len(pat.findall(text))
 
 
-def measure_document(document: Document, reference_list: dict | None = None) -> dict:
-    """Phase A 23개 지표 측정."""
+# ── 표기 일관성 지표 (F16, Plan H) ──────────────────────────────────────────
+#
+# extract_glossary 의 약어 정규식·페어 추출을 재사용(상단 import).
+# LLM 호출 0회·결정론적. glossary 미제공 시 두 지표 모두 0.
+
+# 외래어 표준안 ↔ 흔한 변형 사전 (국립국어원 외래어 표기법 기준 일부).
+# key = 표준어, value = 본문에서 발견 시 비표준으로 카운트할 변형 목록.
+_KNOWN_VARIANTS: dict[str, tuple[str, ...]] = {
+    "데이터": ("데이타",),
+    "센서": ("센써",),
+    "메시지": ("메세지",),
+    "로봇": ("로보트",),
+    "디지털": ("디지탈",),
+    "콘텐츠": ("컨텐츠", "컨텐트"),
+    "알고리즘": ("알고리듬",),
+    "네트워크": ("네트웍",),
+}
+
+
+def check_abbreviation_consistency(html: str, defined: set | None = None) -> int:
+    """풀이 없이 처음 등장한 미정의 약어 수.
+
+    `정식명(ABBR)` 풀이 페어로 본문에서 정의됐거나 `defined`(대문자 집합)에 있으면 정의됨.
+    그 외 약어는 미정의로 카운트(약어 종류 기준, 등장 횟수 아님).
+    """
+    text = strip_html(html)
+    defined_upper = {d.upper() for d in (defined or set())}
+    # 본문 내 풀이 페어로 정의된 약어
+    for pair in find_explanation_pairs(text):
+        defined_upper.add(pair["abbr"].upper())
+
+    undefined: set[str] = set()
+    for abbr in find_abbreviations(text):
+        if not _looks_like_abbr(abbr):
+            continue
+        if abbr.upper() in defined_upper:
+            continue
+        undefined.add(abbr.upper())
+    return len(undefined)
+
+
+def check_terminology_consistency(text: str, glossary: dict | None = None) -> int:
+    """glossary 표준어의 알려진 변형이 본문에 등장한 횟수.
+
+    내장 변형 사전(_KNOWN_VARIANTS) + glossary 키를 표준어로 간주.
+    표준어에 변형이 등록돼 있고 그 변형이 본문에 나타나면 카운트.
+    """
+    plain = strip_html(text)
+    glossary = glossary or {}
+    count = 0
+    # glossary 키 + 내장 사전의 표준어를 검사 대상으로
+    standards = set(_KNOWN_VARIANTS) | set(glossary.keys())
+    for std in standards:
+        variants = _KNOWN_VARIANTS.get(std, ())
+        for variant in variants:
+            count += plain.count(variant)
+    return count
+
+
+def measure_document(
+    document: Document,
+    reference_list: dict | None = None,
+    glossary: dict | None = None,
+) -> dict:
+    """Phase A 23개 지표 + 표기 일관성 2개 측정.
+
+    glossary 미제공 시 표기 일관성 지표는 0(기존 흐름 무변경).
+    """
     metrics: dict = {}
     issues: list[QualityIssueSchema] = []
 
@@ -145,6 +216,33 @@ def measure_document(document: Document, reference_list: dict | None = None) -> 
     metrics["product_spec_patterns"] = product_patterns
     metrics["project_period_patterns"] = project_patterns
 
+    # ── 표기 일관성 2개 (F16) ──
+    # glossary 미제공 시 두 지표 모두 0 (기존 흐름 무변경).
+    glossary = glossary or {}
+    defined_abbrs = {str(k).upper() for k in glossary}
+    undefined_abbreviations = check_abbreviation_consistency(all_content, defined=defined_abbrs)
+    terminology_inconsistencies = check_terminology_consistency(all_content, glossary=glossary)
+    metrics["undefined_abbreviations"] = undefined_abbreviations
+    metrics["terminology_inconsistencies"] = terminology_inconsistencies
+
+    # 임계: 미정의 약어 3종 초과 / 표기 변형 1회 이상 → medium WARN
+    if glossary and undefined_abbreviations > 3:
+        issues.append(QualityIssueSchema(
+            metric="undefined_abbreviations",
+            severity="WARNING",
+            expected="<=3",
+            actual=str(undefined_abbreviations),
+            action="첫 등장 약어 풀이(정식명(ABBR)) 추가 또는 glossary 보강",
+        ))
+    if terminology_inconsistencies > 0:
+        issues.append(QualityIssueSchema(
+            metric="terminology_inconsistencies",
+            severity="WARNING",
+            expected="0",
+            actual=str(terminology_inconsistencies),
+            action="외래어 표준 표기로 통일 (terminology_rules 참조)",
+        ))
+
     if reference_list:
         cat_counts = {c["category"]: c["count"] for c in reference_list.get("category_coverage", [])}
         total = reference_list.get("total_refs", 1)
@@ -171,8 +269,8 @@ def measure_document(document: Document, reference_list: dict | None = None) -> 
             ))
 
     # ── 카드 시스템 6개 ──
-    tech_min, tech_max = CARDS_PER_SECTION["tech"]
-    proj_min, proj_max = CARDS_PER_SECTION["project"]
+    tech_min, _tech_max = CARDS_PER_SECTION["tech"]
+    proj_min, _proj_max = CARDS_PER_SECTION["project"]
 
     section_ids = [s.section_id for s in document.sections]
     sections_with_tech_cards: dict[str, int] = {sid: 0 for sid in section_ids}
@@ -386,6 +484,23 @@ def measure_self_model(output_dir: Path) -> dict:
     }
 
 
+def _load_glossary(output_dir: Path) -> dict:
+    """draft_outline.json 의 glossary(flat dict) 우선, 없으면 빈 dict.
+
+    glossary 미존재 시 표기 일관성 지표는 0(기존 흐름 무변경).
+    """
+    outline_path = output_dir / "draft_outline.json"
+    if outline_path.exists():
+        try:
+            data = json.loads(outline_path.read_text(encoding="utf-8"))
+            g = data.get("glossary")
+            if isinstance(g, dict):
+                return g
+        except (OSError, json.JSONDecodeError):
+            pass
+    return {}
+
+
 def run_quality_check(output_dir: Path) -> dict:
     """mode 자동 판별 후 적절한 측정 함수로 라우팅 (v1.1.3+ entry point).
 
@@ -416,7 +531,8 @@ def run_quality_check(output_dir: Path) -> dict:
         refs = None
         if refs_path.exists():
             refs = json.loads(refs_path.read_text(encoding="utf-8"))
-        result = measure_document(doc, refs)
+        glossary = _load_glossary(output_dir)
+        result = measure_document(doc, refs, glossary)
         result["mode"] = "standard"
         return result
     return {
