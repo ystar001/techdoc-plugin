@@ -93,7 +93,7 @@ def test_pick_next_chunk_review_after_all_writes():
     assert pick_next_chunk(state) == "review"
 
 
-def test_pick_next_chunk_render_after_review():
+def test_pick_next_chunk_deepdive_after_review():
     from scripts.autopilot.chunks import pick_next_chunk
 
     state = {
@@ -103,6 +103,42 @@ def test_pick_next_chunk_render_after_review():
             "merge_research": "completed",
             "write_A": "completed",
             "review": "completed",
+            "deepdive": "pending",
+            "render": "pending",
+        }
+    }
+    assert pick_next_chunk(state) == "deepdive"
+
+
+def test_pick_next_chunk_render_after_deepdive():
+    from scripts.autopilot.chunks import pick_next_chunk
+
+    state = {
+        "stages": {
+            "outline": "completed",
+            "research_A": "completed",
+            "merge_research": "completed",
+            "write_A": "completed",
+            "review": "completed",
+            "deepdive": "completed",
+            "render": "pending",
+        }
+    }
+    assert pick_next_chunk(state) == "render"
+
+
+def test_pick_next_chunk_render_when_deepdive_skipped():
+    """deepdive 미요청(skipped) 시에도 render는 진행 (F9-i non-breaking)."""
+    from scripts.autopilot.chunks import pick_next_chunk
+
+    state = {
+        "stages": {
+            "outline": "completed",
+            "research_A": "completed",
+            "merge_research": "completed",
+            "write_A": "completed",
+            "review": "completed",
+            "deepdive": "skipped",
             "render": "pending",
         }
     }
@@ -141,3 +177,27 @@ def test_pick_next_chunk_skips_completed_and_skipped():
         }
     }
     assert pick_next_chunk(state) == "merge_research"
+
+
+# ---------------------------------------------------------------------------
+# F9-i: deepdive chunk between review and render
+# ---------------------------------------------------------------------------
+
+
+def test_deepdive_chunk_between_review_and_render():
+    from scripts.autopilot.chunks import STAGE_ORDER
+
+    assert "deepdive" in STAGE_ORDER
+    assert STAGE_ORDER.index("review") < STAGE_ORDER.index("deepdive") < STAGE_ORDER.index("render")
+
+
+def test_deepdive_prerequisite_is_review():
+    from scripts.autopilot.chunks import STAGE_ORDER, _prerequisites
+
+    assert _prerequisites("deepdive", list(STAGE_ORDER)) == ["review"]
+
+
+def test_render_prerequisite_includes_deepdive():
+    from scripts.autopilot.chunks import STAGE_ORDER, _prerequisites
+
+    assert "deepdive" in _prerequisites("render", list(STAGE_ORDER))

@@ -9,7 +9,8 @@ dependency graph (chunk → 의존하는 prerequisite chunks):
   merge_research    ← 모든 research_*
   write_A·B·C       ← merge_research
   review            ← 모든 write_*
-  render            ← review
+  deepdive          ← review  (deepdive 미요청 시 skipped)
+  render            ← deepdive
 """
 
 from __future__ import annotations
@@ -21,6 +22,7 @@ STAGE_ORDER = (
     "merge_research",
     "write_A", "write_B", "write_C",
     "review",
+    "deepdive",
     "render",
 )
 
@@ -41,8 +43,11 @@ def _prerequisites(chunk_id: str, all_stages: list[str]) -> list[str]:
         return ["merge_research"]
     if chunk_id == "review":
         return [s for s in all_stages if s.startswith("write_")]
-    if chunk_id == "render":
+    if chunk_id == "deepdive":
         return ["review"]
+    if chunk_id == "render":
+        # deepdive가 skipped면 _is_satisfied가 True라 흐름 유지 (F9-i)
+        return ["deepdive"]
     return []
 
 
