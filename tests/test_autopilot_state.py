@@ -142,3 +142,40 @@ def test_init_state_deepdive_before_render(tmp_path):
 
     keys = list(init_state(tmp_path, "T", {"deep_dive_auto": 3})["stages"])
     assert keys.index("deepdive") < keys.index("render")
+
+
+# ---------------------------------------------------------------------------
+# F9-ii: scan_completed_stages + resume_from_disk (중반 재개)
+# ---------------------------------------------------------------------------
+
+
+def _touch(p):
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text("{}", encoding="utf-8")
+
+
+def test_scan_detects_outline_and_refs(tmp_path):
+    from scripts.autopilot.state import scan_completed_stages
+
+    _touch(tmp_path / "draft_outline.json")
+    _touch(tmp_path / "reference_list.json")
+    done = scan_completed_stages(tmp_path)
+    assert "outline" in done and "merge_research" in done
+
+
+def test_scan_detects_review_dir(tmp_path):
+    from scripts.autopilot.state import scan_completed_stages
+
+    (tmp_path / "reviews").mkdir()
+    (tmp_path / "reviews" / "tech.md").write_text("x", encoding="utf-8")
+    assert "review" in scan_completed_stages(tmp_path)
+
+
+def test_init_state_resume_marks_completed(tmp_path):
+    from scripts.autopilot.state import init_state
+
+    _touch(tmp_path / "draft_outline.json")
+    state = init_state(tmp_path, "T", {"deep_dive_auto": 0}, resume_from_disk=True)
+    assert state["stages"]["outline"] == "completed"
+    # 산출물 없는 stage는 pending 유지
+    assert state["stages"]["review"] == "pending"

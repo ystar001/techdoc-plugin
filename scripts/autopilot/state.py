@@ -35,13 +35,46 @@ def _empty_state() -> dict:
     }
 
 
+# 디스크 산출물 → 완료 stage 매핑 (F9-ii). (파일/디렉토리, stage)
+_ARTIFACT_STAGES = [
+    ("draft_outline.json", "outline"),
+    ("reference_list.json", "merge_research"),
+    ("document_final.json", "render"),  # 최종 문서까지 있으면 render도
+]
+
+
+def scan_completed_stages(output_dir: Path) -> set[str]:
+    """output_dir의 산출물을 스캔해 완료된 stage 집합 반환 (F9-ii)."""
+    out = Path(output_dir)
+    done: set[str] = set()
+    for fname, stage in _ARTIFACT_STAGES:
+        if (out / fname).exists():
+            done.add(stage)
+    # cards/*_card.json 있으면 write 완료로 간주
+    cards = out / "cards"
+    if cards.is_dir() and any(cards.glob("*_card.json")):
+        done.update({"write_A", "write_B", "write_C"})
+    # reviews/ 비어있지 않으면 review 완료
+    reviews = out / "reviews"
+    if reviews.is_dir() and any(reviews.glob("*.md")):
+        done.add("review")
+    # research_*.json 있으면 해당 research 완료
+    for rp in out.glob("research_*.json"):
+        done.add(rp.stem)  # e.g. research_A
+    return done
+
+
 def init_state(
     output_dir: Path,
     title: str,
     config: dict,
     num_section_groups: int = 3,
+    resume_from_disk: bool = False,
 ) -> dict:
-    """신규 autopilot_state 생성. 섹션 그룹 수에 따라 research_*·write_*만 포함."""
+    """신규 autopilot_state 생성. 섹션 그룹 수에 따라 research_*·write_*만 포함.
+
+    resume_from_disk=True면 디스크 산출물을 스캔해 완료 stage를 completed로 마킹(F9-ii).
+    """
     state = _empty_state()
     state["started_at"] = datetime.now(timezone.utc).isoformat()
     state["title"] = title
@@ -58,6 +91,11 @@ def init_state(
     wants_deepdive = bool(config.get("deep_dive_auto") or config.get("deep_dive"))
     stages["deepdive"] = "pending" if wants_deepdive else "skipped"
     stages["render"] = "pending"
+    if resume_from_disk:
+        done = scan_completed_stages(output_dir)
+        for s in done:
+            if s in stages:
+                stages[s] = "completed"
     state["stages"] = stages
     return state
 
