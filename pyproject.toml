@@ -102,3 +102,6 @@ ignore = ["E501"]  # line-length은 format이 처리
 testpaths = ["tests"]
 python_files = ["test_*.py"]
 asyncio_mode = "auto"
+markers = [
+    "project: 프로젝트 특화 검증(특정 산출물·약어에 결합). 신규 프로젝트는 -m 'not project'로 skip (findings F23)",
+]
