@@ -130,6 +130,11 @@ def check_terminology_consistency(text: str, glossary: dict | None = None) -> in
 
     내장 변형 사전(_KNOWN_VARIANTS) + glossary 키를 표준어로 간주.
     표준어에 변형이 등록돼 있고 그 변형이 본문에 나타나면 카운트.
+
+    참고: _KNOWN_VARIANTS(예: 데이타→데이터)는 국립국어원 표기 기준이라
+    glossary와 무관하게 검사한다. 따라서 이 지표는 abbreviation 지표와 달리
+    glossary 미제공 시에도 발화할 수 있다(의도된 비대칭). 단 WARNING이라
+    FAIL/exit code에는 영향 없음.
     """
     plain = strip_html(text)
     glossary = glossary or {}

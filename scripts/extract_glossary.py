@@ -247,7 +247,11 @@ def extract_institution_pairs(refs: list[dict]) -> list[dict]:
 # ---------------------------------------------------------------------------
 
 def decide_standard_form(pairs: list[dict]) -> dict[str, dict]:
-    """약어별 standard_form 결정 — 빈도 1위 (korean, english) 페어 채택."""
+    """약어별 standard_form 결정 — 빈도 1위 (korean, english) 페어 채택.
+
+    자식 reference 구현 parity용 공개 API. 현재 오케스트레이션은
+    build_glossary_dict가 동일 tiebreak를 inline 처리하므로 직접 호출하지 않는다.
+    """
     by_abbr: dict[str, Counter] = defaultdict(Counter)
     for p in pairs:
         key = (p.get("korean", ""), p.get("english", ""))
@@ -416,9 +420,14 @@ def inject_into_outline(outline_path, glossary: dict[str, str]) -> int:
     """draft_outline.json 의 glossary 필드에 추출 glossary 를 주입.
 
     기존 glossary 에 없는 키만 추가(사용자 수동 항목 보존). 추가된 항목 수 반환.
+    파일 부재·깨진 JSON이면 -1 반환(크래시 대신 보고).
     """
     outline_path = Path(outline_path)
-    outline = json.loads(outline_path.read_text(encoding="utf-8"))
+    try:
+        outline = json.loads(outline_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as e:
+        print(f"[extract_glossary] outline 읽기 실패 ({outline_path}): {e}", file=sys.stderr)
+        return -1
     existing = outline.get("glossary")
     if not isinstance(existing, dict):
         existing = {}
@@ -476,7 +485,8 @@ def main(argv: list[str] | None = None) -> int:
         outline_path = Path(args.outline) if args.outline else output_dir / "draft_outline.json"
         if outline_path.exists():
             added = inject_into_outline(outline_path, flat)
-            print(f"[extract_glossary] outline.glossary 에 {added}건 주입 → {outline_path}")
+            if added >= 0:
+                print(f"[extract_glossary] outline.glossary 에 {added}건 주입 → {outline_path}")
         else:
             print(f"[extract_glossary] outline 없음(skip): {outline_path}")
 
