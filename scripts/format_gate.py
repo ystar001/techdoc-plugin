@@ -48,3 +48,29 @@ def analyze_lists(text: str) -> tuple[int, int]:
 def count_nonbullet_indent(text: str) -> int:
     """불릿 아닌 2·3칸 들여쓰기 텍스트 줄 수 (설명을 리스트에 욱여넣은 흔적)."""
     return len(NONBULLET_INDENT.findall(text))
+
+
+def count_inline_hierarchy(text: str) -> int:
+    """인라인 계층번호 (i)(ii)/(a-1) 등장 수."""
+    return len(INLINE_ROMAN.findall(text)) + len(INLINE_ALPHA.findall(text))
+
+
+def count_top_plain(text: str) -> int:
+    """상위 평문 분류 라벨 (a)(b)(c) 등장 수 (줄머리/마침표 뒤)."""
+    return len(TOP_PLAIN.findall(text))
+
+
+def count_redundant_summary(text: str) -> int:
+    """중복 요약 단락 신호어(종합하면/정리하면/종합적으로) 등장 수."""
+    return len(REDUNDANT_SUMMARY.findall(text))
+
+
+def list_ratio_by_section(sections: dict[str, str]) -> dict[str, int]:
+    """섹션별 불릿 줄 비율이 50% 초과인 섹션만 {키: 퍼센트(정수)}."""
+    out: dict[str, int] = {}
+    for k, v in sections.items():
+        lines = [ln for ln in v.split("\n") if ln.strip()]
+        bullets = [ln for ln in lines if re.match(r"^ *[-*] ", ln)]
+        if lines and len(bullets) / len(lines) > 0.5:
+            out[k] = len(bullets) * 100 // len(lines)
+    return out
