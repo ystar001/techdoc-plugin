@@ -4,6 +4,16 @@ All notable changes to TechDoc Plugin.
 
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased]
+
+### Added (서식 게이트 — check_quality format_gate)
+
+- **F27** 신규 `scripts/format_gate.py` + `check_quality` self_model 경로 통합 — 자식 `verify_rewrite.py` 게이트 이식. 리스트 비율·인라인 계층번호 `(i)(ii)/(a-1)`·상위 평문 라벨 `(a)(b)(c)`·비-불릿 들여쓰기·평탄화 위험(4배수 아닌 들여쓰기)·중복 요약(종합하면/정리하면)·REF/수치/분량 회귀 측정. 전부 WARNING 기본·`--strict`로 구조 결함 FAIL 승격·optional `--baseline` 회귀 검사·self_model 전용·`markdown` optional(미설치 시 render_nesting만 생략). `check_quality`에 `_collect_body_text`(F1 변형 robust 본문 추출) 추가. `agents/techdoc-reviewer.md`에 형식 정량화는 check_quality 소관 명문화. 신규 테스트 28건(`test_format_gate.py` 16 + `test_check_quality.py` +12). (findings F27, F28, F30)
+
+### Compatibility
+
+- non-breaking. optional 인자(`--baseline`·`--strict`·`--tolerance`) 기본값으로 기존 호출 100% 호환. standard 모드 무변경. SCHEMA_VERSION 0.2.0 유지. 신규 의존성 0개.
+
 ## [1.7.0] — 2026-06-04
 
 ### Added (Plan N — render 트리 디렉토리 생성)

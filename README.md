@@ -197,8 +197,8 @@ techdoc-plugin/                                  # 플러그인 루트 (v1.1.0)
 │   ├── parse_toc.py       select_design.py
 │   ├── build_reflist.py   merge_research.py
 │   ├── migrate.py         generate_chart.py
-│   ├── check_quality.py   render.py
-│   ├── monitor.py         doctor.py
+│   ├── check_quality.py   format_gate.py             # 서식 게이트(self_model)
+│   ├── render.py          monitor.py     doctor.py
 │   ├── build_release.py
 │   ├── update_plugin.py                                 # ⭐ v1.1.0
 │   ├── export_wiki.py                                   # ⭐ v1.1.0
@@ -556,6 +556,8 @@ projects:
 | 기본 | 12 | 섹션 길이·인용 수·AI추정 비율·h2 여부·용어 일치 |
 | 기술연구 | 5 | 대학+수치 패턴·기업+제품 스펙·학술 비율≥35%·R&D≥24% |
 | 카드 시스템 | 6 | 섹션당 카드 수·7블록 충족률·최소 길이·종합분석 존재 |
+
+self_model 모드는 추가로 **서식 게이트**(`scripts/format_gate.py`)를 적용한다 — 리스트 비율·인라인 계층번호 `(i)(ii)`·평문 라벨 `(a)(b)`·비-불릿/평탄화 들여쓰기·중복 요약을 측정하고, 전부 WARNING 기본·`--strict`로 구조 결함 FAIL 차단·optional `--baseline`으로 재작성 회귀(REF·수치·분량)를 검사한다 (findings F27·F28·F30).
 
 ### Phase B: Subagent 도메인 검토
 
