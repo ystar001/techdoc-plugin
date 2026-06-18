@@ -146,3 +146,59 @@ def test_collect_body_text_variant_keys_and_blocks():
     assert _collect_body_text({"narrative": "N"}) == "N"
     assert _collect_body_text({"content": "C"}) == "C"
     assert _collect_body_text({"blocks": [{"body": "B1"}, {"body": "B2"}]}) == "B1\nB2"
+
+
+def test_self_model_card_merges_format_metrics():
+    from scripts.check_quality import _check_self_model_card
+
+    r = _check_self_model_card(FIX / "format_dirty.json")
+    assert "format" in r
+    fmt_issues = [i for i in r["issues"] if "metric" in i]
+    metrics = {i["metric"] for i in fmt_issues}
+    assert "inline_hierarchy" in metrics
+    assert "redundant_summary" in metrics
+    # 기본 모드: 서식 이슈는 전부 WARNING (사이즈 축과 무관하게 format은 비차단)
+    assert all(i["severity"] == "WARNING" for i in fmt_issues)
+
+
+def test_self_model_card_strict_fails_structural():
+    from scripts.check_quality import _check_self_model_card
+
+    r = _check_self_model_card(FIX / "format_dirty.json", strict=True)
+    assert any(
+        i["severity"] == "FAIL" and i.get("metric") == "inline_hierarchy"
+        for i in r["issues"]
+    )
+    assert r["status"] == "FAIL"
+
+
+def test_self_model_card_clean_passes_format():
+    from scripts.check_quality import _check_self_model_card
+
+    r = _check_self_model_card(FIX / "format_clean.json")
+    assert all(i.get("metric") != "inline_hierarchy" for i in r["issues"])
+    assert r["format"]["inline_hierarchy"] == 0
+
+
+def test_self_model_card_baseline_regression_warns():
+    from scripts.check_quality import _check_self_model_card
+
+    r = _check_self_model_card(
+        FIX / "format_baseline_after.json",
+        baseline_path=FIX / "format_baseline_before.json",
+    )
+    assert r["format"]["ref_loss"] == 1
+    assert any(i.get("metric") == "ref_loss" for i in r["issues"])
+
+
+def test_self_model_card_missing_baseline_warns_gracefully():
+    from scripts.check_quality import _check_self_model_card
+
+    r = _check_self_model_card(
+        FIX / "format_clean.json",
+        baseline_path=FIX / "does_not_exist.json",
+    )
+    # baseline 누락은 graceful WARN (FAIL로 escalate하지 않음 — 사이즈 축과 분리)
+    baseline_issues = [i for i in r["issues"] if i.get("metric") == "baseline"]
+    assert baseline_issues
+    assert all(i["severity"] == "WARNING" for i in baseline_issues)

@@ -446,8 +446,10 @@ def _collect_body_text(node) -> str:
     return ""
 
 
-def _check_self_model_card(card_path: Path) -> dict:
-    """self-model 카드 1건 검사 (verify_cards 패턴)."""
+def _check_self_model_card(card_path: Path, baseline_path=None, strict=False, tolerance=0.15) -> dict:
+    """self-model 카드 1건 검사 (사이즈 임계 + 서식 게이트)."""
+    from scripts import format_gate
+
     issues: list[dict] = []
     try:
         data = json.loads(card_path.read_text(encoding="utf-8"))
@@ -458,6 +460,7 @@ def _check_self_model_card(card_path: Path) -> dict:
             "size": "?",
             "chars": 0,
             "issues": [{"severity": "FAIL", "msg": f"JSON parse 실패: {e}"}],
+            "format": {},
         }
 
     size = _parse_call_id(card_path.stem)
@@ -475,6 +478,32 @@ def _check_self_model_card(card_path: Path) -> dict:
             "msg": f"본문 부족: {chars}자 (임계 {threshold})",
         })
 
+    # 서식 게이트 (format_gate)
+    sections = data.get("sections", {})
+    sec_text = (
+        {k: _collect_body_text(v) for k, v in sections.items()}
+        if isinstance(sections, dict) else {}
+    )
+    base_text = None
+    if baseline_path is not None:
+        bp = Path(baseline_path)
+        if not bp.exists():
+            issues.append({"severity": "WARNING", "metric": "baseline",
+                           "msg": f"baseline 카드 없음: {bp}"})
+        else:
+            try:
+                bdata = json.loads(bp.read_text(encoding="utf-8"))
+                bsec = bdata.get("sections", {})
+                base_text = (
+                    {k: _collect_body_text(v) for k, v in bsec.items()}
+                    if isinstance(bsec, dict) else {}
+                )
+            except (OSError, json.JSONDecodeError):
+                issues.append({"severity": "WARNING", "metric": "baseline",
+                               "msg": f"baseline 파싱 실패: {bp}"})
+    fmt = format_gate.measure_format(sec_text, base_text, strict=strict, tolerance=tolerance)
+    issues.extend(fmt["issues"])
+
     status = (
         "FAIL" if any(i["severity"] == "FAIL" for i in issues)
         else ("WARNING" if issues else "PASS")
@@ -485,6 +514,7 @@ def _check_self_model_card(card_path: Path) -> dict:
         "size": size,
         "chars": chars,
         "issues": issues,
+        "format": fmt["metrics"],
     }
 
 
