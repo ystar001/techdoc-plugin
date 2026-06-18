@@ -120,3 +120,29 @@ def test_check_quality_cli_dir_mode_writes_report(tmp_path):
     assert data["mode"] == "self_model"
     # 충분히 긴 본문이면 PASS, exit 0
     assert rc == 0
+
+
+# ── 서식 게이트 (format_gate 통합, F27·F28·F30) ──────────────────────────────
+
+FIX = Path(__file__).parent / "fixtures" / "cards"
+
+
+def test_collect_body_text_str_direct():
+    from scripts.check_quality import _collect_body_text
+
+    assert _collect_body_text("본문 그대로") == "본문 그대로"
+
+
+def test_collect_body_text_title_body_dict_excludes_title():
+    from scripts.check_quality import _collect_body_text
+
+    node = {"title": "§1 정의·범위", "body": "본문 내용"}
+    assert _collect_body_text(node) == "본문 내용"
+
+
+def test_collect_body_text_variant_keys_and_blocks():
+    from scripts.check_quality import _collect_body_text
+
+    assert _collect_body_text({"narrative": "N"}) == "N"
+    assert _collect_body_text({"content": "C"}) == "C"
+    assert _collect_body_text({"blocks": [{"body": "B1"}, {"body": "B2"}]}) == "B1\nB2"

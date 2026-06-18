@@ -1,0 +1,8 @@
+{
+  "card_id": "X-var.S",
+  "sections": {
+    "sec1": "문자열 직접 본문이다.",
+    "sec2": {"narrative": "narrative 키 본문."},
+    "sec3": {"blocks": [{"content": "blocks content 본문."}]}
+  }
+}

@@ -423,6 +423,29 @@ def _collect_body_chars(node) -> int:
     return 0
 
 
+def _collect_body_text(node) -> str:
+    """section value에서 본문 markdown만 추출 (F1 변형 robust, title 등 비-본문 키 제외).
+
+    - str 직접 → 그대로 (자식 schema: sections[k] == 본문 문자열)
+    - dict → BODY_KEYS(body/narrative/content/...) 문자열만 + dict/list 컨테이너만 재귀
+      (title 같은 비-본문 leaf 문자열은 무시 → 헤딩이 형식 분석에 섞이지 않음)
+    - list → 요소 재귀 연결
+    """
+    if isinstance(node, str):
+        return node
+    if isinstance(node, dict):
+        parts = []
+        for k, v in node.items():
+            if k in BODY_KEYS and isinstance(v, str):
+                parts.append(v)
+            elif isinstance(v, (dict, list)):
+                parts.append(_collect_body_text(v))
+        return "\n".join(p for p in parts if p)
+    if isinstance(node, list):
+        return "\n".join(_collect_body_text(x) for x in node)
+    return ""
+
+
 def _check_self_model_card(card_path: Path) -> dict:
     """self-model 카드 1건 검사 (verify_cards 패턴)."""
     issues: list[dict] = []
