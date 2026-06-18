@@ -97,3 +97,86 @@ def render_nesting(sections: dict[str, str]) -> dict[str, int] | None:
         html = markdown.markdown(v, extensions=["sane_lists", "tables"])
         out[k] = len(re.findall(r"<li>(?:(?!</li>).)*?<ul>", html, re.S))
     return out
+
+
+def measure_format(
+    sections: dict[str, str],
+    baseline: dict[str, str] | None = None,
+    strict: bool = False,
+    tolerance: float = 0.15,
+) -> dict:
+    """서식 지표 측정 + issue 목록 생성. 전부 WARNING 기본, strict 시 구조 결함 FAIL."""
+    alltext = "\n".join(sections.values())
+    metrics: dict = {}
+    issues: list[dict] = []
+
+    def sev(metric: str) -> str:
+        return "FAIL" if (strict and metric in STRICT_FAIL_METRICS) else "WARNING"
+
+    def emit(metric: str, msg: str) -> None:
+        issues.append({"severity": sev(metric), "metric": metric, "msg": msg})
+
+    inline = count_inline_hierarchy(alltext)
+    metrics["inline_hierarchy"] = inline
+    if inline:
+        emit("inline_hierarchy", f"인라인 계층번호 (i)(ii)/(a-1) {inline}건 — 중첩 md 리스트로")
+
+    top = count_top_plain(alltext)
+    metrics["top_plain_label"] = top
+    if top:
+        emit("top_plain_label", f"상위 평문 라벨 (a)(b)(c) {top}건 — 리스트/표로")
+
+    nb = count_nonbullet_indent(alltext)
+    metrics["nonbullet_indent"] = nb
+    if nb:
+        emit("nonbullet_indent", f"비-불릿 2·3칸 들여쓰기 텍스트 {nb}건 — 논문형 서술로")
+
+    _indent4, bad = analyze_lists(alltext)
+    metrics["flatten_risk_indent"] = bad
+    if bad:
+        emit("flatten_risk_indent", f"4배수 아닌 들여쓰기(평탄화 위험) {bad}건 — 2·3칸→4칸")
+
+    ratio = list_ratio_by_section(sections)
+    metrics["high_list_ratio"] = ratio
+    if ratio:
+        emit(
+            "high_list_ratio",
+            "리스트 비율 과다: " + ", ".join(f"{k}={v}%" for k, v in ratio.items())
+            + " (설명형이면 서술로)",
+        )
+
+    redundant = count_redundant_summary(alltext)
+    metrics["redundant_summary"] = redundant
+    if redundant:
+        emit(
+            "redundant_summary",
+            f"중복 요약 단락(종합하면/정리하면) {redundant}건 — 위 설명 반복이면 삭제",
+        )
+
+    metrics["render_nesting"] = render_nesting(sections)
+
+    # baseline 회귀 (미제공 시 None)
+    metrics["ref_loss"] = None
+    metrics["num_token_loss"] = None
+    metrics["length_delta"] = None
+    if baseline is not None:
+        basetext = "\n".join(baseline.values())
+        lost = refs(basetext) - refs(alltext)
+        metrics["ref_loss"] = len(lost)
+        if lost:
+            emit("ref_loss", f"REF 손실 {len(lost)}: {sorted(lost)}")
+        num_lost = nums(basetext) - nums(alltext)
+        metrics["num_token_loss"] = len(num_lost)
+        if num_lost:
+            emit("num_token_loss", f"수치 토큰 {len(num_lost)}개 baseline에만 존재(확인)")
+        bl, cl = len(basetext), len(alltext)
+        if bl:
+            delta = (cl - bl) / bl
+            metrics["length_delta"] = round(delta, 3)
+            if abs(delta) > tolerance:
+                emit(
+                    "length_delta",
+                    f"분량 {bl}->{cl} ({delta * 100:+.1f}% > ±{tolerance * 100:.0f}%)",
+                )
+
+    return {"metrics": metrics, "issues": issues}

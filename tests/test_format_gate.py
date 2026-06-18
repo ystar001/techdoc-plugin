@@ -67,3 +67,51 @@ def test_render_nesting_returns_none_when_markdown_absent(monkeypatch):
 
     monkeypatch.setattr(builtins, "__import__", fake_import)
     assert format_gate.render_nesting({"sec1": "- a\n    - b"}) is None
+
+
+DIRTY = {
+    "sec1": "방법은 (i) 첫째 (ii) 둘째.\n- a\n- b\n- c\n서술",
+    "sec2": "종합하면 핵심은 두 축이다.",
+}
+CLEAN = {"sec1": "본 절은 정의를 서술한다. 근거가 명확하다."}
+
+
+def test_measure_format_clean_has_no_issues():
+    r = format_gate.measure_format(CLEAN)
+    assert r["issues"] == []
+    assert r["metrics"]["inline_hierarchy"] == 0
+    assert r["metrics"]["ref_loss"] is None
+
+
+def test_measure_format_dirty_warns_not_fail_by_default():
+    r = format_gate.measure_format(DIRTY)
+    sev = {i["metric"]: i["severity"] for i in r["issues"]}
+    assert sev["inline_hierarchy"] == "WARNING"
+    assert sev["high_list_ratio"] == "WARNING"
+    assert sev["redundant_summary"] == "WARNING"
+    assert all(i["severity"] != "FAIL" for i in r["issues"])
+
+
+def test_measure_format_strict_promotes_structural_to_fail():
+    r = format_gate.measure_format(DIRTY, strict=True)
+    sev = {i["metric"]: i["severity"] for i in r["issues"]}
+    assert sev["inline_hierarchy"] == "FAIL"        # 구조 결함 승격
+    assert sev["redundant_summary"] == "WARNING"    # 비구조는 WARN 유지
+    assert sev["high_list_ratio"] == "WARNING"
+
+
+def test_measure_format_baseline_regression():
+    base = {"sec1": "근거 [REF-001] [REF-002]. 수확 1,200kg." + "긴내용" * 200}
+    cur = {"sec1": "근거 [REF-001]."}  # REF-002 손실 + 분량 급감
+    r = format_gate.measure_format(cur, baseline=base)
+    assert r["metrics"]["ref_loss"] == 1
+    assert r["metrics"]["length_delta"] < -0.15
+    metrics_emitted = {i["metric"] for i in r["issues"]}
+    assert "ref_loss" in metrics_emitted and "length_delta" in metrics_emitted
+
+
+def test_measure_format_baseline_none_keeps_regression_null():
+    r = format_gate.measure_format(CLEAN, baseline=None)
+    assert r["metrics"]["ref_loss"] is None
+    assert r["metrics"]["num_token_loss"] is None
+    assert r["metrics"]["length_delta"] is None
