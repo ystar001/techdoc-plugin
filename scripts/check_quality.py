@@ -518,13 +518,24 @@ def _check_self_model_card(card_path: Path, baseline_path=None, strict=False, to
     }
 
 
-def measure_self_model(output_dir: Path) -> dict:
-    """self-model 모드 — cards/*_card.json 일괄 검사."""
+def measure_self_model(output_dir: Path, baseline_dir=None, strict=False, tolerance=0.15) -> dict:
+    """self-model 모드 — cards/*_card.json 일괄 검사 (사이즈 + 서식 게이트)."""
+    output_dir = Path(output_dir)
     cards_dir = output_dir / "cards"
     card_files = sorted(cards_dir.glob("*_card.json"))
-    results = [_check_self_model_card(p) for p in card_files]
+    results = []
+    for p in card_files:
+        bpath = (Path(baseline_dir) / p.name) if baseline_dir else None
+        results.append(_check_self_model_card(p, bpath, strict, tolerance))
+
     total_fail = sum(1 for c in results if c["status"] == "FAIL")
     total_warning = sum(1 for c in results if c["status"] == "WARNING")
+
+    def _has_format_issue(card, sev):
+        return any(i.get("metric") and i["severity"] == sev for i in card.get("issues", []))
+
+    format_warn_cards = sum(1 for c in results if _has_format_issue(c, "WARNING"))
+    format_fail_cards = sum(1 for c in results if _has_format_issue(c, "FAIL"))
     overall = 5.0 - min(5.0, total_fail * 0.5 + total_warning * 0.1)
     return {
         "schema_version": "0.1.0",
@@ -534,6 +545,8 @@ def measure_self_model(output_dir: Path) -> dict:
             "PASS": sum(1 for c in results if c["status"] == "PASS"),
             "WARNING": total_warning,
             "FAIL": total_fail,
+            "format_warn_cards": format_warn_cards,
+            "format_fail_cards": format_fail_cards,
         },
         "cards": results,
         "total_fail": total_fail,
@@ -559,18 +572,18 @@ def _load_glossary(output_dir: Path) -> dict:
     return {}
 
 
-def run_quality_check(output_dir: Path) -> dict:
+def run_quality_check(output_dir: Path, baseline_dir=None, strict=False, tolerance=0.15) -> dict:
     """mode 자동 판별 후 적절한 측정 함수로 라우팅 (v1.1.3+ entry point).
 
     standard 모드는 document_final.json·reference_list.json을 기대;
-    self_model 모드는 cards/*_card.json을 기대.
+    self_model 모드는 cards/*_card.json을 기대. baseline/strict/tolerance는 self_model 전용.
     """
     from scripts.card_layout import detect_mode
 
     output_dir = Path(output_dir)
     mode = detect_mode(output_dir)
     if mode == "self_model":
-        return measure_self_model(output_dir)
+        return measure_self_model(output_dir, baseline_dir, strict, tolerance)
     if mode == "standard":
         doc_path = output_dir / "document_final.json"
         if not doc_path.exists():
@@ -613,6 +626,10 @@ def main() -> int:
         "-o", "--output", default="./output/quality_report.json",
         help="리포트 저장 경로",
     )
+    ap.add_argument("--baseline", help="self_model 회귀 검사용 보완 전 카드 디렉토리")
+    ap.add_argument("--strict", action="store_true", help="서식 구조 결함을 FAIL로 승격")
+    ap.add_argument("--tolerance", type=float, default=0.15,
+                    help="분량 회귀 허용 비율 (기본 0.15)")
     args = ap.parse_args()
 
     if not args.input:
@@ -621,7 +638,7 @@ def main() -> int:
     input_path = Path(args.input)
     if input_path.is_dir():
         # v1.1.3+ self-model/standard 자동 판별 모드
-        result = run_quality_check(input_path)
+        result = run_quality_check(input_path, args.baseline, args.strict, args.tolerance)
     else:
         # 기존 동작 — document_final.json 직접 지정
         doc = Document.load(input_path)

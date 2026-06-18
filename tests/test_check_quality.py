@@ -202,3 +202,51 @@ def test_self_model_card_missing_baseline_warns_gracefully():
     baseline_issues = [i for i in r["issues"] if i.get("metric") == "baseline"]
     assert baseline_issues
     assert all(i["severity"] == "WARNING" for i in baseline_issues)
+
+
+def _mk_cards_dir(tmp_path, *fixture_names):
+    cards = tmp_path / "cards"
+    cards.mkdir()
+    for name in fixture_names:
+        src = (FIX / name).read_text(encoding="utf-8")
+        dest = name.replace("format_", "").replace(".json", "_card.json")
+        (cards / dest).write_text(src, encoding="utf-8")
+    return tmp_path
+
+
+def test_measure_self_model_aggregates_format_counts(tmp_path):
+    from scripts.check_quality import measure_self_model
+
+    out = _mk_cards_dir(tmp_path, "format_dirty.json", "format_clean.json")
+    r = measure_self_model(out)
+    assert r["phase_a"]["format_warn_cards"] >= 1
+    assert r["phase_a"]["format_fail_cards"] == 0  # 기본 WARNING
+
+
+def test_measure_self_model_strict_counts_fail(tmp_path):
+    from scripts.check_quality import measure_self_model
+
+    out = _mk_cards_dir(tmp_path, "format_dirty.json")
+    r = measure_self_model(out, strict=True)
+    assert r["phase_a"]["format_fail_cards"] == 1
+    assert r["total_fail"] >= 1
+
+
+def test_run_quality_check_threads_args(tmp_path):
+    from scripts.check_quality import run_quality_check
+
+    out = _mk_cards_dir(tmp_path, "format_dirty.json")
+    r = run_quality_check(out, strict=True)
+    assert r["mode"] == "self_model"
+    assert r["total_fail"] >= 1
+
+
+def test_run_quality_check_backward_compatible(tmp_path):
+    from scripts.check_quality import run_quality_check
+
+    # 인자 없이 호출 → 기존 키 보존 + JSON 직렬화 안전(회귀 지표 null 포함)
+    out = _mk_cards_dir(tmp_path, "format_clean.json")
+    r = run_quality_check(out)
+    assert r["mode"] == "self_model"
+    assert "cards" in r and "overall" in r
+    json.dumps(r, ensure_ascii=False)
