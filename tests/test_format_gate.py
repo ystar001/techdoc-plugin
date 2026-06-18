@@ -44,3 +44,26 @@ def test_list_ratio_by_section_over_half_only():
     }
     out = format_gate.list_ratio_by_section(sections)
     assert out == {"sec1": 75}
+
+
+def test_refs_extracts_ids():
+    assert format_gate.refs("근거 [REF-001] 및 [REF-1234] 참조") == {"REF-001", "REF-1234"}
+
+
+def test_nums_excludes_ref_numbers_and_keeps_decimals():
+    # REF-001 의 001 은 제외, 1,200 과 3.5 는 단일 토큰
+    assert format_gate.nums("[REF-001] 수확량 1,200kg 증가 3.5%") == {"1,200", "3.5"}
+
+
+def test_render_nesting_returns_none_when_markdown_absent(monkeypatch):
+    import builtins
+
+    real_import = builtins.__import__
+
+    def fake_import(name, *a, **k):
+        if name == "markdown":
+            raise ImportError("no markdown")
+        return real_import(name, *a, **k)
+
+    monkeypatch.setattr(builtins, "__import__", fake_import)
+    assert format_gate.render_nesting({"sec1": "- a\n    - b"}) is None

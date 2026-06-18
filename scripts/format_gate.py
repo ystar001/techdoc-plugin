@@ -74,3 +74,26 @@ def list_ratio_by_section(sections: dict[str, str]) -> dict[str, int]:
         if lines and len(bullets) / len(lines) > 0.5:
             out[k] = len(bullets) * 100 // len(lines)
     return out
+
+
+def refs(text: str) -> set[str]:
+    """본문 내 REF-xxx 식별자 집합."""
+    return set(REF_RE.findall(text))
+
+
+def nums(text: str) -> set[str]:
+    """숫자 토큰 집합(콤마·소수점 포함). REF 번호는 제외."""
+    return set(NUM_RE.findall(REF_RE.sub("", text)))
+
+
+def render_nesting(sections: dict[str, str]) -> dict[str, int] | None:
+    """python-markdown(sane_lists)로 섹션별 중첩 <ul> 수. markdown 미설치 시 None."""
+    try:
+        import markdown
+    except ImportError:
+        return None
+    out: dict[str, int] = {}
+    for k, v in sections.items():
+        html = markdown.markdown(v, extensions=["sane_lists", "tables"])
+        out[k] = len(re.findall(r"<li>(?:(?!</li>).)*?<ul>", html, re.S))
+    return out
