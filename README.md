@@ -3,7 +3,7 @@
 > **AI 기술보고서 자동 생성 Claude Code 플러그인** — v1.3.0 (2026-05-13)
 > 레퍼런스 100% 기반 · 카드 중첩식 섹션 · 별첨 논문 수준 심층분석 · LLM Wiki 통합 · Claude Code 네이티브
 
-[![Version](https://img.shields.io/badge/version-1.3.0-green)]()
+[![Version](https://img.shields.io/badge/version-1.8.0-green)]()
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue)]()
 [![License](https://img.shields.io/badge/license-MIT-green)]()
 [![Plugin](https://img.shields.io/badge/claude--code-plugin-purple)]()
@@ -557,7 +557,7 @@ projects:
 | 기술연구 | 5 | 대학+수치 패턴·기업+제품 스펙·학술 비율≥35%·R&D≥24% |
 | 카드 시스템 | 6 | 섹션당 카드 수·7블록 충족률·최소 길이·종합분석 존재 |
 
-self_model 모드는 추가로 **서식 게이트**(`scripts/format_gate.py`)를 적용한다 — 리스트 비율·인라인 계층번호 `(i)(ii)`·평문 라벨 `(a)(b)`·비-불릿/평탄화 들여쓰기·중복 요약을 측정하고, 전부 WARNING 기본·`--strict`로 구조 결함 FAIL 차단·optional `--baseline`으로 재작성 회귀(REF·수치·분량)를 검사한다 (findings F27·F28·F30).
+self_model 모드는 추가로 **서식 게이트**(`scripts/format_gate.py`)를 적용한다 — 리스트 비율·인라인 계층번호 `(i)(ii)`·평문 라벨 `(a)(b)`·비-불릿/평탄화 들여쓰기·중복 요약·제어문자(BEL·BS·VT·FF·CR)·mermaid 라벨 미인용·인라인 병렬 열거(첫째/둘째)를 측정하고, 전부 WARNING 기본·`--strict`로 구조 결함(제어문자 포함) FAIL 차단·optional `--baseline`으로 재작성 회귀(REF·수치·분량)를 검사한다. 문서 단위로 캡션(`표·그림 N-M`) 유일성·순번·참조 정합도 점검한다 (findings F27·F28·F30·F37·F39·F40·F41·F42).
 
 ### Phase B: Subagent 도메인 검토
 
@@ -1074,6 +1074,8 @@ unzip techdoc-plugin-v1.1.0-wrapped.zip -d ~/.claude/plugins/
 
 | 버전 | 주요 변경 | 파일 수 | 코드 |
 |---|---|---|---|
+| **v1.8.0** (2026-07-06) | 서식 게이트 확장: `format_gate`에 제어문자(F40)·mermaid 라벨 sanity(F39)·인라인 열거(F41) 지표 + `render_nesting` fenced_code(F37), `check_quality`에 캡션 정합 게이트(F42). writer 프롬프트 서식·mermaid 저작 규칙(`card_layout_conventions.md`). F38·F43은 F15 렌더러 흡수 종속으로 유보. SCHEMA 유지. | (변동 없음) | 약 22k줄 |
+| **v1.3.0**–**v1.7.0** | 상세 이력은 `CHANGELOG.md` 참조 (Notion·Autopilot·self-model 표준화·render 일반화/트리·서식 게이트 도입 F27·F28·F30). | (변동 없음) | — |
 | **v1.3.0** (2026-05-13) | Autopilot 자율 모드: `/techdoc-autopilot` + status/stop/resume. superpowers `/loop` 기반 self-paced. 6 safety 트리거 + 이상 시 chat. SCHEMA 유지. | (변동 없음) | 약 21k줄 |
 | **v1.2.0** (2026-05-13) | Notion 통합: `/techdoc-export-notion` + `/techdoc --push-notion` 옵션. 페이지 계층 + KeyRef inline database. delta sync. v2 호환 4원칙 준수. | (변동 없음) | 약 20k줄 |
 | **v1.1.3** (2026-05-13) | F5 자체 모델 품질 검사: `scripts/check_quality`에 self-model 카드 레이아웃 지원 + mode 자동 라우팅 + F1 변형 본문 키 재귀 합산. `/techdoc-review` Phase A 자동화. SCHEMA 유지. | (변동 없음) | 약 19k줄 |

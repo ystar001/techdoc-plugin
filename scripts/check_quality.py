@@ -148,6 +148,46 @@ def check_terminology_consistency(text: str, glossary: dict | None = None) -> in
     return count
 
 
+# ── 캡션 정합 게이트 (F42) ──────────────────────────────────────────────────
+#
+# 장 단위 통번호 캡션(표 N-M·그림 N-M·식 N-M)의 유일성·순번·본문 참조 정합을 점검.
+# 정의(줄머리/볼드 시작)와 참조(문장 중간)를 휴리스틱으로 구분. LLM 0회·결정론적.
+
+CAPTION_RE = re.compile(r"(표|그림|식)\s*(\d+)-(\d+)")
+
+
+def check_captions(text: str) -> dict:
+    """캡션 정합 3종 점검 → {duplicate, gap, dangling_ref}.
+
+    - duplicate: 같은 캡션이 정의로 2회 이상 등장.
+    - gap: 장별 캡션 순번의 결번(예: 표 10-1·10-2·10-4 → 10-3 누락).
+    - dangling_ref: 정의 없는 캡션을 본문이 참조.
+    정의 = 캡션 토큰이 줄머리(볼드 ``**`` 무시) 시작. 그 외 = 참조.
+    """
+    defs: dict[str, int] = {}
+    refs: list[str] = []
+    per_chapter: dict[tuple[str, str], set[int]] = {}
+    for line in text.split("\n"):
+        for m in CAPTION_RE.finditer(line):
+            kind, ch, num = m.group(1), m.group(2), m.group(3)
+            cap = f"{kind} {ch}-{num}"
+            prefix = line[: m.start()].lstrip().lstrip("*").lstrip()
+            if prefix == "":  # 줄머리(볼드 포함) → 정의
+                defs[cap] = defs.get(cap, 0) + 1
+                per_chapter.setdefault((kind, ch), set()).add(int(num))
+            else:
+                refs.append(cap)
+
+    duplicate = sorted(c for c, n in defs.items() if n > 1)
+    gap: list[str] = []
+    for (kind, ch), nums_set in per_chapter.items():
+        for i in range(1, max(nums_set) + 1):
+            if i not in nums_set:
+                gap.append(f"{kind} {ch}-{i}")
+    dangling = sorted({c for c in refs if c not in defs})
+    return {"duplicate": duplicate, "gap": sorted(gap), "dangling_ref": dangling}
+
+
 def measure_document(
     document: Document,
     reference_list: dict | None = None,
@@ -365,6 +405,20 @@ def measure_document(
     )
     metrics["sections_without_analysis_block"] = sections_without_analysis
 
+    # 캡션 정합(F42) — 태그 제거 후 best-effort(self_model 대비 줄구조 약함).
+    caption_issues = check_captions(strip_html(all_content))
+    metrics["caption_issues"] = caption_issues
+    for cap in caption_issues["duplicate"]:
+        issues.append(QualityIssueSchema(
+            metric="caption_duplicate", severity="WARNING",
+            expected="유일", actual=cap, action="중복 캡션 번호 정리",
+        ))
+    for cap in caption_issues["dangling_ref"]:
+        issues.append(QualityIssueSchema(
+            metric="caption_dangling_ref", severity="WARNING",
+            expected="정의 존재", actual=cap, action="참조 대상 캡션 정의 또는 참조 수정",
+        ))
+
     # 종합
     total_fail = sum(1 for i in issues if i.severity == "FAIL")
     total_warning = sum(1 for i in issues if i.severity == "WARNING")
@@ -515,6 +569,8 @@ def _check_self_model_card(card_path: Path, baseline_path=None, strict=False, to
         "chars": chars,
         "issues": issues,
         "format": fmt["metrics"],
+        # 문서 단위 캡션 집계용(F42) — measure_self_model이 pop 후 join, 리포트엔 미포함.
+        "_body_text": "\n".join(sec_text.values()),
     }
 
 
@@ -528,8 +584,17 @@ def measure_self_model(output_dir: Path, baseline_dir=None, strict=False, tolera
         bpath = (Path(baseline_dir) / p.name) if baseline_dir else None
         results.append(_check_self_model_card(p, bpath, strict, tolerance))
 
+    # 문서 단위 캡션 정합(F42) — 전 카드 본문 집계. _body_text는 리포트에서 제거.
+    all_body = "\n".join(c.pop("_body_text", "") for c in results)
+    caption_issues = check_captions(all_body)
+    caption_count = (
+        len(caption_issues["duplicate"])
+        + len(caption_issues["gap"])
+        + len(caption_issues["dangling_ref"])
+    )
+
     total_fail = sum(1 for c in results if c["status"] == "FAIL")
-    total_warning = sum(1 for c in results if c["status"] == "WARNING")
+    total_warning = sum(1 for c in results if c["status"] == "WARNING") + caption_count
 
     def _has_format_issue(card, sev):
         return any(i.get("metric") and i["severity"] == sev for i in card.get("issues", []))
@@ -547,6 +612,7 @@ def measure_self_model(output_dir: Path, baseline_dir=None, strict=False, tolera
             "FAIL": total_fail,
             "format_warn_cards": format_warn_cards,
             "format_fail_cards": format_fail_cards,
+            "caption_issues": caption_issues,
         },
         "cards": results,
         "total_fail": total_fail,

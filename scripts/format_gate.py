@@ -18,12 +18,20 @@ LIST_LINE = re.compile(r"^( *)([-*]|\d+\.)\s")
 NONBULLET_INDENT = re.compile(r"^ {2,3}(?![-*] |\d+\. )\S", re.M)
 REDUNDANT_SUMMARY = re.compile(r"종합하면|정리하면|종합적으로")
 
+# F40 — 본문에 저장되면 안 되는 제어문자 (BEL·BS·VT·FF·CR). 탭(9)·개행(10)은 정상이라 제외.
+CONTROL_CHARS = frozenset({7, 8, 11, 12, 13})
+
+# F39 린트 — mermaid 블록 + 라벨 미인용 특수문자
+MERMAID_BLOCK = re.compile(r"```mermaid\s*\n(.*?)```", re.S)
+_MERMAID_SPECIAL = ("·", "(", ")")
+
 # --strict 에서 FAIL로 승격되는 "렌더가 깨지는 구조 결함 + REF 회귀"
 STRICT_FAIL_METRICS = {
     "inline_hierarchy",
     "top_plain_label",
     "nonbullet_indent",
     "flatten_risk_indent",
+    "control_chars",
     "ref_loss",
 }
 
@@ -65,6 +73,50 @@ def count_redundant_summary(text: str) -> int:
     return len(REDUNDANT_SUMMARY.findall(text))
 
 
+def count_control_chars(text: str) -> int:
+    """본문 내 제어문자(BEL·BS·VT·FF·CR) 수 (F40 — 수식/렌더 파손 신호). 탭·개행 제외."""
+    return sum(1 for c in text if ord(c) in CONTROL_CHARS)
+
+
+def count_mermaid_label_risk(text: str) -> int:
+    """mermaid 라벨 미인용 특수문자·리터럴 ``\\n`` 위험 수 (F39 린트).
+
+    subgraph 제목·엣지 라벨 ``|…|``·xychart 축 라벨에 인용(``"…"``) 없이 공백·``·``·괄호가
+    들어가면 parse 실패 위험. 리터럴 ``\\n``(mermaid 미해석)도 계수.
+    """
+    risk = 0
+    for block in MERMAID_BLOCK.findall(text):
+        risk += block.count("\\n")  # 리터럴 백슬래시+n (줄바꿈은 <br/> 이어야)
+        for line in block.split("\n"):
+            s = line.strip()
+            m = re.match(r"subgraph\s+(.+)$", s)
+            if m:
+                title = m.group(1)
+                if '"' not in title and (
+                    " " in title or any(ch in title for ch in _MERMAID_SPECIAL)
+                ):
+                    risk += 1
+            for lbl in re.findall(r"\|([^|]*)\|", s):
+                if '"' not in lbl and any(ch in lbl for ch in _MERMAID_SPECIAL):
+                    risk += 1
+            xm = re.search(r"x-axis\s*\[([^\]]*)\]", s)
+            if xm:
+                for tok in xm.group(1).split(","):
+                    t = tok.strip()
+                    if t and t[0].isdigit() and '"' not in t:
+                        risk += 1
+    return risk
+
+
+def count_inline_enumeration(text: str) -> int:
+    """인라인 병렬 열거 문단 수 (F41 — 첫째·둘째를 한 문단에 산문으로 나열, 불릿 아님)."""
+    n = 0
+    for para in text.split("\n\n"):
+        if "첫째" in para and "둘째" in para and not para.lstrip().startswith("- "):
+            n += 1
+    return n
+
+
 def list_ratio_by_section(sections: dict[str, str]) -> dict[str, int]:
     """섹션별 불릿 줄 비율이 50% 초과인 섹션만 {키: 퍼센트(정수)}."""
     out: dict[str, int] = {}
@@ -94,7 +146,8 @@ def render_nesting(sections: dict[str, str]) -> dict[str, int] | None:
         return None
     out: dict[str, int] = {}
     for k, v in sections.items():
-        html = markdown.markdown(v, extensions=["sane_lists", "tables"])
+        # F37 — fenced_code 없으면 ``` 코드블록이 리터럴 <p> 로 파싱돼 중첩 계수를 오염시킨다.
+        html = markdown.markdown(v, extensions=["sane_lists", "tables", "fenced_code"])
         out[k] = len(re.findall(r"<li>(?:(?!</li>).)*?<ul>", html, re.S))
     return out
 
@@ -152,6 +205,25 @@ def measure_format(
             "redundant_summary",
             f"중복 요약 단락(종합하면/정리하면) {redundant}건 — 위 설명 반복이면 삭제",
         )
+
+    cc = count_control_chars(alltext)
+    metrics["control_chars"] = cc
+    if cc:
+        emit("control_chars", f"본문 제어문자(BEL·BS·VT·FF·CR) {cc}건 — 수식/렌더 파손, 정규화 필요")
+
+    mermaid_risk = count_mermaid_label_risk(alltext)
+    metrics["mermaid_label_risk"] = mermaid_risk
+    if mermaid_risk:
+        emit(
+            "mermaid_label_risk",
+            f"mermaid 라벨 미인용 특수문자/리터럴 \\n {mermaid_risk}건 — "
+            'subgraph id["…"]·-->|"…"|·<br/>',
+        )
+
+    enum = count_inline_enumeration(alltext)
+    metrics["inline_enumeration"] = enum
+    if enum:
+        emit("inline_enumeration", f"인라인 병렬 열거(첫째/둘째) {enum}문단 — 불릿 리스트로")
 
     metrics["render_nesting"] = render_nesting(sections)
 

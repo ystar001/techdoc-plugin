@@ -37,6 +37,51 @@ def test_count_redundant_summary():
     assert format_gate.count_redundant_summary("종합하면 X. 정리하면 Y. 종합적으로 Z.") == 3
 
 
+def test_count_control_chars_flags_bel_bs_vt_ff_cr_only():
+    text = "정상\t탭\n개행 \x0c FF \x07 BEL \x08 BS \x0b VT \x0d CR"
+    assert format_gate.count_control_chars(text) == 5  # 탭·개행 제외
+
+
+def test_count_control_chars_clean_zero():
+    assert format_gate.count_control_chars("깨끗한 본문\t표\n다음 줄") == 0
+
+
+def test_count_mermaid_label_risk_detects_unquoted_special():
+    block = (
+        "```mermaid\nflowchart TD\n"
+        "subgraph 사과·감귤\n"
+        "A -->|TAW=1000(θFC-θWP)Zr| B\n"
+        "```"
+    )
+    # subgraph 특수문자 미인용 1 + 엣지 라벨 괄호 미인용 1
+    assert format_gate.count_mermaid_label_risk(block) == 2
+
+
+def test_count_mermaid_label_risk_quoted_and_xychart_and_literal_nl():
+    safe = (
+        '```mermaid\nflowchart TD\nsubgraph id["사과·감귤"]\n'
+        'A -->|"라벨(설명)"| B\n```'
+    )
+    assert format_gate.count_mermaid_label_risk(safe) == 0
+    risky = '```mermaid\nxychart-beta\nx-axis [기초선, 2026목표]\ntitle line\\n다음\n```'
+    # 숫자머리 토큰 2026목표 1 + 리터럴 \n 1
+    assert format_gate.count_mermaid_label_risk(risky) == 2
+
+
+def test_count_mermaid_label_risk_ignores_non_mermaid_text():
+    assert format_gate.count_mermaid_label_risk("본문에 subgraph 사과·감귤 언급") == 0
+
+
+def test_count_inline_enumeration_flags_prose_not_bullets():
+    text = "핵심은 세 가지다. 첫째, A이다. 둘째, B이다. 셋째, C이다."
+    assert format_gate.count_inline_enumeration(text) == 1
+
+
+def test_count_inline_enumeration_ignores_bullet_list():
+    text = "- 첫째, A\n- 둘째, B"
+    assert format_gate.count_inline_enumeration(text) == 0
+
+
 def test_list_ratio_by_section_over_half_only():
     sections = {
         "sec1": "- a\n- b\n- c\n서술 한 줄",          # 3/4 = 75%
@@ -115,3 +160,36 @@ def test_measure_format_baseline_none_keeps_regression_null():
     assert r["metrics"]["ref_loss"] is None
     assert r["metrics"]["num_token_loss"] is None
     assert r["metrics"]["length_delta"] is None
+
+
+def test_measure_format_new_metrics_present_and_warn():
+    sections = {
+        "sec1": "본문 \x0c 제어문자.\n\n핵심은 셋이다. 첫째, A. 둘째, B. 셋째, C.",
+        "sec2": "```mermaid\nflowchart TD\nsubgraph 사과·감귤\nend\n```",
+    }
+    r = format_gate.measure_format(sections)
+    m = r["metrics"]
+    assert m["control_chars"] == 1
+    assert m["inline_enumeration"] == 1
+    assert m["mermaid_label_risk"] == 1
+    sev = {i["metric"]: i["severity"] for i in r["issues"]}
+    assert sev["control_chars"] == "WARNING"
+    assert sev["inline_enumeration"] == "WARNING"
+    assert sev["mermaid_label_risk"] == "WARNING"
+
+
+def test_measure_format_strict_promotes_control_chars():
+    r = format_gate.measure_format({"sec1": "본문 \x07 신호"}, strict=True)
+    sev = {i["metric"]: i["severity"] for i in r["issues"]}
+    assert sev["control_chars"] == "FAIL"
+
+
+def test_render_nesting_fenced_code_not_counted_as_nesting():
+    # 코드블록 안 들여쓴 리스트 유사 텍스트가 중첩으로 오계수되지 않아야 함(F37).
+    import importlib.util
+
+    if importlib.util.find_spec("markdown") is None:
+        return
+    sections = {"sec1": "- top\n\n```text\n    - looks like nested\n```"}
+    out = format_gate.render_nesting(sections)
+    assert out == {"sec1": 0}

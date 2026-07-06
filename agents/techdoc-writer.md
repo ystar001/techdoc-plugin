@@ -22,6 +22,7 @@ model: inherit
 - `prompts/abbreviation_rules.md` — 약어 풀이 정책 (첫 등장 풀이·정착 약어 50선·standard_form)
 - `prompts/reference_format.md` — 참고문헌 APA 7th 양식
 - `prompts/_shared/style_narrative.md` 또는 `style_bullet.md` (style에 따라)
+- `prompts/_shared/card_layout_conventions.md` — 카드 스키마 + 서식·mermaid 저작 규칙 (F39·F41)
 - `prompts/_shared/analysis_tags.md` — 7종 분석 태그
 
 별첨 모드 추가:

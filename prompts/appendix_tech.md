@@ -72,7 +72,7 @@
 
 ## 시각화 필수
 - **MathJax 수식**: 블록 ②③⑤
-- **Mermaid 다이어그램**: 블록 ③④ (시퀀스·상태·컴포넌트)
+- **Mermaid 다이어그램**: 블록 ③④ (시퀀스·상태·컴포넌트). 특수문자 라벨은 따옴표 인용·줄바꿈 `<br/>` — `_shared/card_layout_conventions.md` "mermaid 라벨 인용 (F39)"
 - **matplotlib 차트**: 블록 ⑤⑦ (벤치마크·타임라인)
 
 ## 자체 검증

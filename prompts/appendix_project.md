@@ -86,7 +86,7 @@
 - 각 REF 3~5줄 주석
 
 ## 시각화 필수
-- **조직도** (Mermaid flowchart 또는 이미지)
+- **조직도** (Mermaid flowchart 또는 이미지). 특수문자 라벨은 따옴표 인용·줄바꿈 `<br/>` — `_shared/card_layout_conventions.md` "mermaid 라벨 인용 (F39)"
 - **프로젝트 타임라인 차트** (matplotlib)
 - **경쟁 매트릭스** (comparison-matrix 컴포넌트)
 - **결과 비교 차트** (bar/radar)

@@ -57,3 +57,5 @@
 JSON with keys: `id`, `name`, `name_en`, `importance`, `overview`, `principle`, `components`, `performance`, `pros_cons`, `differentiation`, `references`, `ref_ids`.
 
 각 블록은 HTML fragment (h4·p·ul·table 사용 가능).
+
+구조 데이터(매핑·비교·규약·계층)는 표/리스트로, 코드블록은 진짜 의사코드·함수·JSON에만, 병렬 열거는 불릿 리스트로 작성한다 — `_shared/card_layout_conventions.md` "구조 데이터 표현 (F41)".

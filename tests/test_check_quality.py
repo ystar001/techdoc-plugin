@@ -9,8 +9,6 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-import pytest
-
 
 def _write_self_model_card(cards_dir: Path, card_id: str, body_text: str) -> None:
     cards_dir.mkdir(parents=True, exist_ok=True)
@@ -99,8 +97,9 @@ def test_run_quality_check_self_model_detects_variant_body_keys(tmp_path):
 
 def test_check_quality_cli_dir_mode_writes_report(tmp_path):
     """CLI: -i <directory> → self_model 자동 판별 + quality_report.json 저장."""
-    from scripts.check_quality import main as cq_main
     import sys as _sys
+
+    from scripts.check_quality import main as cq_main
 
     _write_self_model_card(tmp_path / "cards", "2.1", "충분한 본문 " * 5000)
 
@@ -230,6 +229,48 @@ def test_measure_self_model_strict_counts_fail(tmp_path):
     r = measure_self_model(out, strict=True)
     assert r["phase_a"]["format_fail_cards"] == 1
     assert r["total_fail"] >= 1
+
+
+# ── 캡션 정합 게이트 (F42) ──────────────────────────────────────────────────
+
+
+def test_check_captions_distinguishes_def_and_ref():
+    from scripts.check_quality import check_captions
+
+    text = "표 10-1. 관수 파라미터\n본문에서 표 10-1 참조.\n표 10-2. 토양 수분"
+    r = check_captions(text)
+    assert r["duplicate"] == []       # 표 10-1은 정의 1회·참조 1회 → 중복 아님
+    assert r["gap"] == []
+    assert r["dangling_ref"] == []
+
+
+def test_check_captions_flags_duplicate_gap_dangling():
+    from scripts.check_quality import check_captions
+
+    text = (
+        "표 10-1. 첫 표\n"
+        "표 10-1. 중복 정의\n"      # duplicate
+        "표 10-4. 결번 뒤 표\n"      # gap: 10-2, 10-3 누락
+        "본문은 표 10-9 참조.\n"     # dangling: 정의 없음
+    )
+    r = check_captions(text)
+    assert r["duplicate"] == ["표 10-1"]
+    assert r["gap"] == ["표 10-2", "표 10-3"]
+    assert r["dangling_ref"] == ["표 10-9"]
+
+
+def test_measure_self_model_reports_caption_issues(tmp_path):
+    from scripts.check_quality import measure_self_model
+
+    _write_self_model_card(tmp_path / "cards", "1.1",
+                           "표 10-1. 첫 표\n표 10-1. 중복\n표 10-4. 결번 뒤")
+    r = measure_self_model(tmp_path)
+    cap = r["phase_a"]["caption_issues"]
+    assert "표 10-1" in cap["duplicate"]
+    assert {"표 10-2", "표 10-3"} <= set(cap["gap"])
+    # 캡션 이슈가 warning 총계에 반영되고 _body_text는 리포트에서 제거됨
+    assert r["total_warning"] >= 3
+    assert all("_body_text" not in c for c in r["cards"])
 
 
 def test_run_quality_check_threads_args(tmp_path):

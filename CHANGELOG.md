@@ -4,15 +4,28 @@ All notable changes to TechDoc Plugin.
 
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [Unreleased]
+## [1.8.0] — 2026-07-06
 
 ### Added (서식 게이트 — check_quality format_gate)
 
-- **F27** 신규 `scripts/format_gate.py` + `check_quality` self_model 경로 통합 — 자식 `verify_rewrite.py` 게이트 이식. 리스트 비율·인라인 계층번호 `(i)(ii)/(a-1)`·상위 평문 라벨 `(a)(b)(c)`·비-불릿 들여쓰기·평탄화 위험(4배수 아닌 들여쓰기)·중복 요약(종합하면/정리하면)·REF/수치/분량 회귀 측정. 전부 WARNING 기본·`--strict`로 구조 결함 FAIL 승격·optional `--baseline` 회귀 검사·self_model 전용·`markdown` optional(미설치 시 render_nesting만 생략). `check_quality`에 `_collect_body_text`(F1 변형 robust 본문 추출) 추가. `agents/techdoc-reviewer.md`에 형식 정량화는 check_quality 소관 명문화. 신규 테스트 28건(`test_format_gate.py` 16 + `test_check_quality.py` +12). (findings F27, F28, F30)
+- **F27** 신규 `scripts/format_gate.py` + `check_quality` self_model 경로 통합 — 자식 `verify_rewrite.py` 게이트 이식. 리스트 비율·인라인 계층번호 `(i)(ii)/(a-1)`·상위 평문 라벨 `(a)(b)(c)`·비-불릿 들여쓰기·평탄화 위험(4배수 아닌 들여쓰기)·중복 요약(종합하면/정리하면)·REF/수치/분량 회귀 측정. 전부 WARNING 기본·`--strict`로 구조 결함 FAIL 승격·optional `--baseline` 회귀 검사·self_model 전용·`markdown` optional(미설치 시 render_nesting만 생략). `check_quality`에 `_collect_body_text`(F1 변형 robust 본문 추출) 추가. `agents/techdoc-reviewer.md`에 형식 정량화는 check_quality 소관 명문화. (findings F27, F28, F30)
+
+### Added (서식 게이트 확장 + 저작 규칙 — F37·F39·F40·F41·F42)
+
+- **F37** `format_gate.render_nesting`에 `fenced_code` 확장 추가 — ```` ``` ```` 코드블록이 python-markdown에서 리터럴 `<p>`로 파싱돼 중첩 리스트(`<li><ul>`) 계수를 오염시키던 문제 제거(F27·F28 측정 정확도). plugin HTML renderer는 카드 본문을 raw 삽입하므로 self-model 로컬 `md2html.py`의 코드블록 버그는 없음 — 본 수정은 측정 게이트 정확도용. (findings F37)
+- **F40** `format_gate.count_control_chars` — 본문 제어문자(BEL·BS·VT·FF·CR, `ord ∈ {7,8,11,12,13}`) 스캔. 탭·개행 제외. metric `control_chars`, `STRICT_FAIL_METRICS` 편입(`--strict` 시 FAIL — 수식/렌더 실제 파손). (findings F40)
+- **F39** (린트) `format_gate.count_mermaid_label_risk` — ```` ```mermaid ```` 블록의 subgraph 제목·엣지 라벨 `|…|`·xychart 축에 인용 없는 특수문자(공백·`·`·괄호)·리터럴 `\n` 감지. metric `mermaid_label_risk`(WARNING). (프롬프트) `_shared/card_layout_conventions.md` "mermaid 라벨 인용" 규칙 — `subgraph id["…"]`·`-->|"…"|`·`x-axis ["2026목표",…]`·`<br/>`. `appendix_tech.md`·`appendix_project.md` 다이어그램부 포인터. (findings F39)
+- **F41** (린트) `format_gate.count_inline_enumeration` — 첫째·둘째를 한 문단에 산문으로 나열(불릿 아님)한 문단 수. metric `inline_enumeration`(WARNING). (프롬프트) `card_layout_conventions.md` "구조 데이터 표현" 규칙 — 구조=표/리스트·코드블록=진짜 의사코드/함수/JSON만·병렬 열거=불릿. `tech_card.md` 포인터. writer agent 참조 목록에 `card_layout_conventions.md` 추가. (findings F41)
+- **F42** `check_quality.check_captions` — 장 단위 캡션(`표·그림·식 N-M`)의 유일성·순번 결번·본문 참조 정합 점검. 정의(줄머리/볼드)와 참조 휴리스틱 구분. self_model은 전 카드 본문 집계(`phase_a.caption_issues`, warning 총계 반영), standard는 best-effort. (findings F42)
+- 신규 테스트 30건(`test_format_gate.py` +control_chars·mermaid·enumeration·fenced_code, `test_check_quality.py` +caption 게이트).
+
+### Note
+
+- **F38**(수식 `$$…$$` 보호)·**F43**(variant 렌더 + 버전/판본 배지)는 plugin renderer가 self-model→HTML을 흡수(F15 확장)해야 의미가 있어 **open 유지** — 별도 세션. plugin HTML renderer는 python-markdown 미사용·클라이언트 MathJax라 F38 버그가 현재 없음.
 
 ### Compatibility
 
-- non-breaking. optional 인자(`--baseline`·`--strict`·`--tolerance`) 기본값으로 기존 호출 100% 호환. standard 모드 무변경. SCHEMA_VERSION 0.2.0 유지. 신규 의존성 0개.
+- non-breaking. optional 인자(`--baseline`·`--strict`·`--tolerance`) 기본값으로 기존 호출 100% 호환. standard 모드 무변경. 신규 metric은 기존 리포트에 키 추가만. SCHEMA_VERSION 0.2.0 유지. 신규 의존성 0개.
 
 ## [1.7.0] — 2026-06-04
 
