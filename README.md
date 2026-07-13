@@ -3,7 +3,7 @@
 > **AI 기술보고서 자동 생성 Claude Code 플러그인** — v1.3.0 (2026-05-13)
 > 레퍼런스 100% 기반 · 카드 중첩식 섹션 · 별첨 논문 수준 심층분석 · LLM Wiki 통합 · Claude Code 네이티브
 
-[![Version](https://img.shields.io/badge/version-1.9.0-green)]()
+[![Version](https://img.shields.io/badge/version-1.9.1-green)]()
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue)]()
 [![License](https://img.shields.io/badge/license-MIT-green)]()
 [![Plugin](https://img.shields.io/badge/claude--code-plugin-purple)]()
@@ -1074,6 +1074,7 @@ unzip techdoc-plugin-v1.1.0-wrapped.zip -d ~/.claude/plugins/
 
 | 버전 | 주요 변경 | 파일 수 | 코드 |
 |---|---|---|---|
+| **v1.9.1** (2026-07-13) | 웹북 폴리시: 판본(`--variant general`, formal_section 제외)+버전·판본 배지(F43·F36), **md 왕복 편집**(`--webbook --from-md`, `--tree` md 편집→웹북 재렌더, F51) (findings F43·F36·F51). SCHEMA 유지. | (변동 없음) | 약 22.6k줄 |
 | **v1.9.0** (2026-07-13) | **웹북 렌더러 plugin 승격(키스톤)**: 자식 `build_webbook.py`를 `techdoc_core/renderers/webbook.py`(`WebbookExporter`)+`webbook_md2html.py`로 승격. `/techdoc-render --webbook`로 카드→file:// 다중 페이지 HTML 웹북(index+Part 페이지+assets). 수식 `$…$` 보호(F38)·fenced mermaid `<br/>` 보존(F48)·2단 중첩 리스트(F26) (findings F52·F38·F48·F26). SCHEMA 유지. | (변동 없음) | 약 22.5k줄 |
 | **v1.8.2** (2026-07-13) | 품질 게이트·서식(v1.9.0 워크스트림 D·E 선출시): format_gate 시각화 밀도 지표(F50)·인라인 열거 strict FAIL 승격(F49), style '혼합형' 혼용(F24), update_plugin UTF-8 가드(F53). SCHEMA 유지. | (변동 없음) | 약 22k줄 |
 | **v1.8.1** (2026-07-13) | 조사·검증 견고성 patch(v1.9.0 워크스트림 G 선출시): KeyRef 4자리 REF(F35)·1990 이전 연도(F33)·category 기타(F46) 완화, merge_research str refs 크래시 방어(F34·F44), check_quality front-matter P0 임계·별첨 letter 인식(F45·F47), parse_toc 태그 폴백 편향 제거(F31). SCHEMA 유지. | (변동 없음) | 약 22k줄 |

@@ -26,10 +26,15 @@ argument-hint: "--input FILE [--refs FILE] [--type DESIGN] [--formats html,pdf,d
 ### 웹북 출력 (--webbook, F52)
 - `--webbook` — 카드 디렉토리를 file:// 정적 **다중 페이지 HTML 웹북**으로 출력 (`--input` 대신 `--cards-dir` 사용)
 - `--cards-dir DIR` — 입력 카드 JSON 디렉토리 (`*_card.json`)
+- `--from-md DIR` — 입력을 편집된 md 디렉토리로 (**md 왕복 편집**, F51 — `--tree` 산출물을 편집 후 재렌더)
 - `--routing-config FILE` — Part 라우팅 config (트리와 동일)
 - `--title TEXT` — 표지 제목 (기본 "기술보고서")
+- `--variant full|general` — 판본 (general은 `formal_section` 카드 제외, F36·F43)
+- `--doc-version TEXT` · `--edition TEXT` — 표지 버전·판본 배지 (F43)
 
-출력: `index.html`(표지+전체 목차) + `Part-*/<card_id>.html`(Part별 카드/병합 페이지) + `assets/webbook.css`. 수식 `$$…$$`·`$…$` 보호 후 MathJax 렌더(F38), fenced ```mermaid → `<pre class="mermaid">` `<br/>` 보존(F48), 2단 중첩 리스트(F26). 단일파일 render와 독립(opt-in).
+출력: `index.html`(표지+전체 목차+버전/판본 배지) + `Part-*/<card_id>.html`(Part별 카드/병합 페이지) + `assets/webbook.css`. 수식 `$$…$$`·`$…$` 보호 후 MathJax 렌더(F38), fenced ```mermaid → `<pre class="mermaid">` `<br/>` 보존(F48), 2단 중첩 리스트(F26). 단일파일 render와 독립(opt-in).
+
+**md 왕복 편집(F51)**: `render --tree`로 편집 가능한 md 트리를 산출 → 사용자가 md 편집 → `render --webbook --from-md <md트리>`로 최종 웹북 재렌더. md는 중간 편집물, 웹북은 최종 산출물.
 
 ## 실행
 

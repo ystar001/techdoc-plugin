@@ -4,6 +4,14 @@ All notable changes to TechDoc Plugin.
 
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.9.1] — 2026-07-13
+
+### Added (웹북 폴리시 — 판본·md 왕복)
+
+- **F43·F36** `WebbookExporter`에 `variant`('full'|'general')·`version`·`edition` — `variant='general'`은 `formal_section=true` 카드를 자동 제외(F36 메타 필터), 표지에 버전·판본 배지(F43). `render --webbook --variant --doc-version --edition`. (findings F43, F36)
+- **F51** `WebbookExporter.export_md_dir` + `render --webbook --from-md <md_dir>` — **md 왕복 편집**: `--tree` 산출 md를 편집 중간물로 삼아 최종 웹북을 재렌더. md=중간 편집물, 웹북=최종. 실측 검증(tree→md 편집→from-md 재렌더 반영). (findings F51)
+- 신규 테스트 4건.
+
 ## [1.9.0] — 2026-07-13
 
 ### Added (웹북 렌더러 plugin 승격 — 워크스트림 A 키스톤)
