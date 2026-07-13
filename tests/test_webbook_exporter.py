@@ -65,6 +65,26 @@ def test_export_writes_css_asset(tmp_path):
     assert (out / "assets" / "webbook.css").exists()
 
 
+def test_webbook_renders_formal_blocks(tmp_path):
+    """F32 — formal_blocks(파라미터 표준표 등)가 웹북 페이지에 정형 박스로 렌더."""
+    cards = tmp_path / "cards"
+    cards.mkdir()
+    card = {
+        "card_id": "5.1", "title": "방법론",
+        "sections": {"s1": {"body": "본문 설명."}},
+        "formal_blocks": {"param_table": {"columns": ["param", "value"], "rows": [["Kc", "1.15"]]}},
+    }
+    (cards / "5.1_card.json").write_text(json.dumps(card, ensure_ascii=False), encoding="utf-8")
+    out = tmp_path / "wb"
+
+    WebbookExporter().export(cards, out)
+
+    page = next(
+        p for p in out.rglob("*.html") if p.name != "index.html"
+    ).read_text(encoding="utf-8")
+    assert "파라미터 표준표" in page and "Kc" in page
+
+
 def test_variant_general_excludes_formal_cards(tmp_path):
     """F36·F43 — variant='general'은 formal_section 카드를 제외, 'full'은 전부 포함."""
     cards = tmp_path / "cards"

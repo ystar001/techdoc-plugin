@@ -17,6 +17,7 @@ from __future__ import annotations
 import html as _html
 from pathlib import Path
 
+from techdoc_core.formal_blocks import render_formal_blocks
 from techdoc_core.renderers.markdown_tree import (
     MarkdownTreeExporter,
     _card_title,
@@ -149,6 +150,10 @@ class WebbookExporter:
                     md = render_merged_md(parent_id, cards, heading_level=1)
                 else:
                     md = render_card_md(cards[0], heading_level=1, card_id=parent_id)
+                # F32: 정형 사양 블록(함수 명세·상태벡터·파라미터표)을 본문 뒤에 정형 박스로.
+                formal = render_formal_blocks(cards[0])
+                if formal:
+                    md = md.rstrip() + "\n\n" + formal + "\n"
                 body_html, _toc = md_to_html(md, refs_href="")
                 title_txt = _card_title(cards[0], parent_id)
                 page_label = f"{parent_id} {title_txt}".strip()

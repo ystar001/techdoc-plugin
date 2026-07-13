@@ -96,6 +96,21 @@ mermaid parse가 실패해 그림이 통째로 안 나온다.
 - 카드의 `figures`(`{path, caption}`)·`diagrams`(`{mermaid, caption}`) 필드를 적극 채운다.
 - `check_quality` format_gate의 `visual_density`가 밀도 부족을 WARNING으로 표시한다.
 
+### 정형 사양 블록 (F32 — 방법론·표준 카드)
+
+SW 정형화 대상(함수·상태벡터·파라미터)을 담는 방법론·표준 카드는 산문 대신 **구조화 `formal_blocks`**를 채운다. render가 본문 정형 박스로 출력하고 CSV/JSON Schema로 추출한다.
+
+```json
+"formal_blocks": {
+  "function_spec": [{"name": "...", "signature": "f(x) -> R", "io": "...", "unit": "...", "range": "...", "default": "...", "source": "§..."}],
+  "param_table": {"columns": ["param", "value", "unit", "source"], "rows": [["Kc", "1.15", "-", "REF-0012"]]},
+  "state_vector_schema": { "type": "object", "properties": { "...": {"type": "number"} } }
+}
+```
+
+- 함수 시그니처·파라미터 값·출처(`[REF-xxx]`)는 본문 근거와 일치시킨다.
+- 이 카드는 `formal_section: true`로 표시하면 `--variant general`(일반용)에서 자동 제외된다(F36).
+
 ## 어느 모드를 사용해야 하나
 
 - plugin의 `/techdoc` 통합 파이프라인을 사용하는 경우 → Standard 모드 (자동).
