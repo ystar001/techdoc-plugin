@@ -445,14 +445,23 @@ def measure_document(
 BODY_KEYS = {"body", "narrative", "content", "text", "summary"}
 
 # 사이즈별 본문 글자 임계 (verify_cards.py에서 흡수)
-SIZE_THRESHOLDS = {"S": 14000, "L1": 7000, "L2": 10000, "L3": 5000, "?": 8000}
+# P0 = front-matter(발간사·목적범위·구조·용어·일러두기): 설계상 간결 → 하향 임계 (F45)
+SIZE_THRESHOLDS = {"S": 14000, "L1": 7000, "L2": 10000, "L3": 5000, "P0": 5000, "?": 8000}
 
-CALL_ID_PAT = re.compile(r"^(\d+\.\d+)(?:\.(L\d|XL\d|S))?$")
+# 별첨 letter 접두(A-J…) 허용 — I·J 등 후행 접두 명시 인식 (F47)
+CALL_ID_PAT = re.compile(r"^(?:[A-Z]-)?(\d+\.\d+)(?:\.(L\d|XL\d|S))?$")
+FRONTMATTER_PAT = re.compile(r"^0\.\d+")
 
 
 def _parse_call_id(stem: str) -> str:
-    """파일명에서 사이즈 grade 추출 (예: '1.1' → S, '1.1.L2' → L2)."""
+    """파일명에서 사이즈 grade 추출.
+
+    예: '1.1' → S, '1.1.L2' → L2, '0.1' → P0(front-matter, F45),
+        'A-14.1' → S(별첨), 'I-1.1' → S, 'A-14.1.L2' → L2 (F47).
+    """
     s = stem.replace("_card", "")
+    if FRONTMATTER_PAT.match(s):
+        return "P0"
     m = CALL_ID_PAT.match(s)
     if not m or m.group(2) is None:
         return "S"
