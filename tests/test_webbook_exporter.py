@@ -92,6 +92,41 @@ def test_cover_shows_version_and_edition_badge(tmp_path):
     assert "v3.0" in index and "전문가판" in index
 
 
+def test_export_md_dir_round_trip(tmp_path):
+    """F51 — 편집된 md 디렉토리(--tree 중간물)에서 웹북 재렌더."""
+    md_dir = tmp_path / "md"
+    (md_dir / "Part-본문").mkdir(parents=True)
+    (md_dir / "Part-본문" / "1.1.md").write_text(
+        "# 1.1 편집한 제목\n\n사용자가 편집한 본문 [REF-0001].\n\n- 첫째 항목\n- 둘째 항목",
+        encoding="utf-8",
+    )
+    out = tmp_path / "wb"
+
+    stats = WebbookExporter().export_md_dir(md_dir, out, title="편집본")
+
+    assert (out / "index.html").exists()
+    assert (out / "Part-본문" / "1.1.html").exists()
+    page = (out / "Part-본문" / "1.1.html").read_text(encoding="utf-8")
+    assert "사용자가 편집한 본문" in page and "<li>첫째 항목</li>" in page
+    assert stats["pages"] == 1
+
+
+def test_render_cli_webbook_from_md(tmp_path, monkeypatch):
+    """F51 — `render --webbook --from-md <md_dir>`."""
+    from scripts.render import main
+
+    md_dir = tmp_path / "md"
+    (md_dir / "Part-A").mkdir(parents=True)
+    (md_dir / "Part-A" / "2.1.md").write_text("# 2.1 제목\n\n본문.", encoding="utf-8")
+    out = tmp_path / "wb"
+    monkeypatch.setattr(
+        sys, "argv",
+        ["render", "--webbook", "--from-md", str(md_dir), "-o", str(out)],
+    )
+    assert main() == 0
+    assert (out / "index.html").exists()
+
+
 def test_render_cli_webbook(tmp_path, monkeypatch):
     """A3 — `render --webbook --cards-dir …`가 웹북을 생성."""
     from scripts.render import main

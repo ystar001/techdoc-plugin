@@ -178,6 +178,8 @@ def main() -> int:
     ap.add_argument("--webbook", action="store_true",
                     help="카드 디렉토리를 file:// 다중 페이지 HTML 웹북으로 출력 (F52)")
     ap.add_argument("--title", default="기술보고서", help="--webbook 표지 제목")
+    ap.add_argument("--from-md", dest="from_md",
+                    help="--webbook 입력을 편집된 md 디렉토리로 (md 왕복 편집, F51)")
     ap.add_argument("--variant", choices=["full", "general"], default="full",
                     help="--webbook 판본: full(전체) | general(formal_section 제외) (F36·F43)")
     ap.add_argument("--doc-version", default="", help="--webbook 표지 버전 배지 (F43)")
@@ -186,18 +188,26 @@ def main() -> int:
 
     # ── 웹북 모드: 단일파일 render 경로와 독립 (non-breaking) ──
     if args.webbook:
-        if not args.cards_dir:
-            ap.error("--webbook 사용 시 --cards-dir 필수")
+        if not args.cards_dir and not args.from_md:
+            ap.error("--webbook 사용 시 --cards-dir 또는 --from-md 필수")
         from techdoc_core.renderers.webbook import WebbookExporter
         from techdoc_core.routing_config import DEFAULT_ROUTING, load_routing_config
         routing = load_routing_config(args.routing_config) if args.routing_config else DEFAULT_ROUTING
         out_dir = Path(args.output)
-        stats = WebbookExporter(routing).export(
-            args.cards_dir, out_dir, title=args.title, variant=args.variant,
-            version=args.doc_version, edition=args.edition,
-        )
-        print(f"OK: {out_dir / 'index.html'} ({stats['pages']} 페이지, {stats['parts']} Part, "
-              f"{args.variant}판)")
+        exporter = WebbookExporter(routing)
+        if args.from_md:
+            stats = exporter.export_md_dir(
+                args.from_md, out_dir, title=args.title,
+                version=args.doc_version, edition=args.edition,
+            )
+            src = "md"
+        else:
+            stats = exporter.export(
+                args.cards_dir, out_dir, title=args.title, variant=args.variant,
+                version=args.doc_version, edition=args.edition,
+            )
+            src = f"{args.variant}판"
+        print(f"OK: {out_dir / 'index.html'} ({stats['pages']} 페이지, {stats['parts']} Part, {src})")
         return 0
 
     # ── 트리 모드: 단일파일 render 경로와 독립 (non-breaking) ──

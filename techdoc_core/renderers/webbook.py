@@ -102,6 +102,15 @@ def _index_shell(doc_title: str, index_entries: list, css_href: str,
     )
 
 
+def _first_heading(md: str) -> str:
+    """md 첫 `# ` 헤딩 텍스트 (페이지 제목용). 없으면 빈 문자열."""
+    for line in md.splitlines():
+        s = line.strip()
+        if s.startswith("# "):
+            return s[2:].strip()
+    return ""
+
+
 class WebbookExporter:
     """카드 JSON 디렉토리 → Part 트리 HTML 웹북. routing_config로 도메인 명칭 분리."""
 
@@ -152,6 +161,47 @@ class WebbookExporter:
                 page_count += 1
             index_entries.append((self._tree._part_label(part_key), pages))
 
+        (output_dir / "index.html").write_text(
+            _index_shell(title, index_entries, "assets/webbook.css",
+                         version=version, edition=edition), encoding="utf-8"
+        )
+        return {"parts": len(index_entries), "pages": page_count}
+
+    def export_md_dir(self, md_dir: Path | str, output_dir: Path | str,
+                      title: str = "기술보고서", version: str = "", edition: str = "") -> dict:
+        """편집된 md 디렉토리(--tree 중간물) → 웹북 재렌더 (md 왕복 편집, F51).
+
+        md_dir 하위 `*.md`(INDEX.md 제외)를 트리 구조 그대로 병렬 `.html` 페이지로 변환.
+        사용자가 md를 편집한 뒤 최종(웹북)을 재생성하는 경로.
+        """
+        md_dir = Path(md_dir)
+        output_dir = Path(output_dir)
+        (output_dir / "assets").mkdir(parents=True, exist_ok=True)
+        (output_dir / "assets" / "webbook.css").write_text(_CSS, encoding="utf-8")
+
+        parts: dict[str, list] = {}
+        page_count = 0
+        for md_file in sorted(md_dir.rglob("*.md")):
+            if md_file.name == "INDEX.md":
+                continue
+            rel = md_file.relative_to(md_dir)
+            depth = len(rel.parts) - 1
+            css_href = ("../" * depth) + "assets/webbook.css"
+            home_href = ("../" * depth) + "index.html"
+            content = md_file.read_text(encoding="utf-8")
+            body_html, _toc = md_to_html(content, refs_href="")
+            page_title = _first_heading(content) or rel.stem
+            out_rel = rel.with_suffix(".html")
+            dest = output_dir / out_rel
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            dest.write_text(
+                _page_shell(page_title, body_html, css_href, home_href), encoding="utf-8"
+            )
+            part_name = rel.parts[0] if len(rel.parts) > 1 else "본문"
+            parts.setdefault(part_name, []).append((out_rel.as_posix(), page_title))
+            page_count += 1
+
+        index_entries = list(parts.items())
         (output_dir / "index.html").write_text(
             _index_shell(title, index_entries, "assets/webbook.css",
                          version=version, edition=edition), encoding="utf-8"
