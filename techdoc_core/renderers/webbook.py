@@ -18,6 +18,7 @@ import html as _html
 from pathlib import Path
 
 from techdoc_core.formal_blocks import render_formal_blocks
+from techdoc_core.localize import localize_terms
 from techdoc_core.renderers.markdown_tree import (
     MarkdownTreeExporter,
     _card_title,
@@ -121,7 +122,7 @@ class WebbookExporter:
 
     def export(self, cards_dir: Path | str, output_dir: Path | str,
                title: str = "기술보고서", variant: str = "full",
-               version: str = "", edition: str = "") -> dict:
+               version: str = "", edition: str = "", term_map: dict | None = None) -> dict:
         """cards_dir의 `*_card.json` → output_dir 웹북. 통계 dict 반환.
 
         variant: "full"(전체) | "general"(일반용 — formal_section 카드 제외, F36·F43).
@@ -154,8 +155,12 @@ class WebbookExporter:
                 formal = render_formal_blocks(cards[0])
                 if formal:
                     md = md.rstrip() + "\n\n" + formal + "\n"
+                if term_map:  # F29: 영문 용어 한글화
+                    md = localize_terms(md, term_map)
                 body_html, _toc = md_to_html(md, refs_href="")
                 title_txt = _card_title(cards[0], parent_id)
+                if term_map:
+                    title_txt = localize_terms(title_txt, term_map)
                 page_label = f"{parent_id} {title_txt}".strip()
                 page_name = safe_dirname(parent_id) + ".html"
                 (output_dir / part_dir_name / page_name).write_text(
@@ -173,7 +178,8 @@ class WebbookExporter:
         return {"parts": len(index_entries), "pages": page_count}
 
     def export_md_dir(self, md_dir: Path | str, output_dir: Path | str,
-                      title: str = "기술보고서", version: str = "", edition: str = "") -> dict:
+                      title: str = "기술보고서", version: str = "", edition: str = "",
+                      term_map: dict | None = None) -> dict:
         """편집된 md 디렉토리(--tree 중간물) → 웹북 재렌더 (md 왕복 편집, F51).
 
         md_dir 하위 `*.md`(INDEX.md 제외)를 트리 구조 그대로 병렬 `.html` 페이지로 변환.
@@ -194,6 +200,8 @@ class WebbookExporter:
             css_href = ("../" * depth) + "assets/webbook.css"
             home_href = ("../" * depth) + "index.html"
             content = md_file.read_text(encoding="utf-8")
+            if term_map:  # F29
+                content = localize_terms(content, term_map)
             body_html, _toc = md_to_html(content, refs_href="")
             page_title = _first_heading(content) or rel.stem
             out_rel = rel.with_suffix(".html")

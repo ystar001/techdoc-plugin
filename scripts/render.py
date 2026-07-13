@@ -184,6 +184,7 @@ def main() -> int:
                     help="--webbook 판본: full(전체) | general(formal_section 제외) (F36·F43)")
     ap.add_argument("--doc-version", default="", help="--webbook 표지 버전 배지 (F43)")
     ap.add_argument("--edition", default="", help="--webbook 표지 판본 배지 (F43)")
+    ap.add_argument("--term-map", dest="term_map", help="--webbook 용어 한글화 토큰맵 JSON (F29)")
     args = ap.parse_args()
 
     # ── 웹북 모드: 단일파일 render 경로와 독립 (non-breaking) ──
@@ -195,16 +196,20 @@ def main() -> int:
         routing = load_routing_config(args.routing_config) if args.routing_config else DEFAULT_ROUTING
         out_dir = Path(args.output)
         exporter = WebbookExporter(routing)
+        term_map = None
+        if args.term_map:
+            import json as _json
+            term_map = _json.loads(Path(args.term_map).read_text(encoding="utf-8"))
         if args.from_md:
             stats = exporter.export_md_dir(
                 args.from_md, out_dir, title=args.title,
-                version=args.doc_version, edition=args.edition,
+                version=args.doc_version, edition=args.edition, term_map=term_map,
             )
             src = "md"
         else:
             stats = exporter.export(
                 args.cards_dir, out_dir, title=args.title, variant=args.variant,
-                version=args.doc_version, edition=args.edition,
+                version=args.doc_version, edition=args.edition, term_map=term_map,
             )
             src = f"{args.variant}판"
         print(f"OK: {out_dir / 'index.html'} ({stats['pages']} 페이지, {stats['parts']} Part, {src})")

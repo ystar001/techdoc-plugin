@@ -65,6 +65,22 @@ def test_export_writes_css_asset(tmp_path):
     assert (out / "assets" / "webbook.css").exists()
 
 
+def test_webbook_localizes_terms(tmp_path):
+    """F29 — term_map으로 영문 용어를 한글화하여 렌더."""
+    cards = tmp_path / "cards"
+    cards.mkdir()
+    _write_card(cards, "1.1", "State Vector 개요", "The State Vector holds GDD daily.")
+    out = tmp_path / "wb"
+
+    WebbookExporter().export(cards, out, term_map={"State Vector": "상태벡터", "GDD": "생육도일"})
+
+    page = next(
+        p for p in out.rglob("*.html") if p.name != "index.html"
+    ).read_text(encoding="utf-8")
+    assert "상태벡터" in page and "생육도일" in page
+    assert "State Vector" not in page
+
+
 def test_webbook_renders_formal_blocks(tmp_path):
     """F32 — formal_blocks(파라미터 표준표 등)가 웹북 페이지에 정형 박스로 렌더."""
     cards = tmp_path / "cards"
