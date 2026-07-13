@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import io
 import json
 import re
 import shutil
@@ -22,6 +23,20 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import httpx
+
+
+def _ensure_utf8_stdout() -> None:
+    """stdout/stderr을 UTF-8로 재바인딩 (F53).
+
+    이 모듈은 한글·em-dash를 다수 print하나, cp949 등 비-UTF-8 콘솔에서는
+    UnicodeEncodeError로 업데이트 중 크래시한다. 다른 스크립트(build_webbook 등)와
+    동일하게 진입부에서 UTF-8로 재바인딩해 방어한다.
+    """
+    for name in ("stdout", "stderr"):
+        stream = getattr(sys, name, None)
+        enc = getattr(stream, "encoding", None)
+        if enc and enc.lower() != "utf-8" and hasattr(stream, "buffer"):
+            setattr(sys, name, io.TextIOWrapper(stream.buffer, encoding="utf-8", errors="replace"))
 
 
 class PluginError(Exception):
@@ -175,13 +190,15 @@ def download_zip(
     dest = dest_dir / filename
 
     try:
-        with httpx.Client(transport=transport, timeout=120.0, follow_redirects=True) as client:
-            with client.stream("GET", url) as resp:
-                if resp.status_code != 200:
-                    raise PluginError(f"zip 다운로드 실패 status={resp.status_code}")
-                with open(dest, "wb") as f:
-                    for chunk in resp.iter_bytes(chunk_size=64 * 1024):
-                        f.write(chunk)
+        with (
+            httpx.Client(transport=transport, timeout=120.0, follow_redirects=True) as client,
+            client.stream("GET", url) as resp,
+        ):
+            if resp.status_code != 200:
+                raise PluginError(f"zip 다운로드 실패 status={resp.status_code}")
+            with open(dest, "wb") as f:
+                for chunk in resp.iter_bytes(chunk_size=64 * 1024):
+                    f.write(chunk)
     except httpx.HTTPError as e:
         raise PluginError(f"zip 다운로드 네트워크 오류: {e}") from e
 
@@ -322,6 +339,7 @@ def main(argv: list[str] | None = None, plugin_root: Path | None = None) -> int:
     parser.add_argument("--check", action="store_true", help="체크만, 적용 안 함")
     parser.add_argument("--force", action="store_true", help="동일 버전이어도 강제 재설치")
     args = parser.parse_args(argv)
+    _ensure_utf8_stdout()
 
     root = plugin_root or PLUGIN_ROOT_DEFAULT
 
