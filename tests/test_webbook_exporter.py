@@ -3,6 +3,7 @@
 카드 JSON 디렉토리 → file:// 정적 다중 페이지 HTML 웹북 (index + Part 페이지 + assets).
 """
 import json
+import sys
 
 from techdoc_core.renderers.webbook import WebbookExporter
 
@@ -65,3 +66,19 @@ def test_export_writes_css_asset(tmp_path):
     WebbookExporter().export(cards, out)
 
     assert (out / "assets" / "webbook.css").exists()
+
+
+def test_render_cli_webbook(tmp_path, monkeypatch):
+    """A3 — `render --webbook --cards-dir …`가 웹북을 생성."""
+    from scripts.render import main
+
+    cards = tmp_path / "cards"
+    cards.mkdir()
+    _write_card(cards, "1.1", "제목", "본문 내용.")
+    out = tmp_path / "wb"
+    monkeypatch.setattr(
+        sys, "argv",
+        ["render", "--webbook", "--cards-dir", str(cards), "-o", str(out)],
+    )
+    assert main() == 0
+    assert (out / "index.html").exists()

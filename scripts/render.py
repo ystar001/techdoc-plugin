@@ -174,7 +174,23 @@ def main() -> int:
     ap.add_argument("--routing-config", help="--tree part 라우팅 config JSON (F21)")
     ap.add_argument("--with-series-index", action="store_true",
                     help="단일 카드 시리즈를 제외한 시리즈 폴더에 INDEX 생성 (F17)")
+    # ── F52: config 기반 웹북(다중 페이지 HTML) 출력 (opt-in) ──
+    ap.add_argument("--webbook", action="store_true",
+                    help="카드 디렉토리를 file:// 다중 페이지 HTML 웹북으로 출력 (F52)")
+    ap.add_argument("--title", default="기술보고서", help="--webbook 표지 제목")
     args = ap.parse_args()
+
+    # ── 웹북 모드: 단일파일 render 경로와 독립 (non-breaking) ──
+    if args.webbook:
+        if not args.cards_dir:
+            ap.error("--webbook 사용 시 --cards-dir 필수")
+        from techdoc_core.renderers.webbook import WebbookExporter
+        from techdoc_core.routing_config import DEFAULT_ROUTING, load_routing_config
+        routing = load_routing_config(args.routing_config) if args.routing_config else DEFAULT_ROUTING
+        out_dir = Path(args.output)
+        stats = WebbookExporter(routing).export(args.cards_dir, out_dir, title=args.title)
+        print(f"OK: {out_dir / 'index.html'} ({stats['pages']} 페이지, {stats['parts']} Part)")
+        return 0
 
     # ── 트리 모드: 단일파일 render 경로와 독립 (non-breaking) ──
     if args.tree:
