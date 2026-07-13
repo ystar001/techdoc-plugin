@@ -40,10 +40,26 @@ def dedupe_refs(all_refs: list[dict]) -> tuple[list[dict], int]:
         (deduplicated_refs, removed_count)
     """
     seen_urls: set[str] = set()
+    seen_ids: set[str] = set()
     kept: list[dict] = []
     removed = 0
 
-    for ref in all_refs:
+    for raw in all_refs:
+        # researcher round refs_found는 스키마상 list[str](REF id)이나 dict 변형도 방어.
+        if isinstance(raw, str):
+            ref: dict = {"id": raw}
+        elif isinstance(raw, dict):
+            ref = raw
+        else:
+            removed += 1
+            continue
+
+        # REF id 기준 중복 제거 (str 계약의 1차 dedup 키)
+        ref_id = (ref.get("id") or "").strip()
+        if ref_id and ref_id in seen_ids:
+            removed += 1
+            continue
+
         url_key = url_canonical(ref.get("url", ""))
         if url_key and url_key in seen_urls:
             removed += 1
@@ -65,6 +81,8 @@ def dedupe_refs(all_refs: list[dict]) -> tuple[list[dict], int]:
 
         if url_key:
             seen_urls.add(url_key)
+        if ref_id:
+            seen_ids.add(ref_id)
         kept.append(ref)
 
     return kept, removed
