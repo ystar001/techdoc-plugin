@@ -4,6 +4,19 @@ All notable changes to TechDoc Plugin.
 
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.8.1] — 2026-07-13
+
+### Fixed (조사·검증 파이프라인 견고성 — v1.9.0 워크스트림 G 선출시)
+
+- **F35** `KeyRefSchema.id` 패턴 `^REF-\d{3}$` → `^REF-\d{3,}$` — 4자리 REF(REF-1000+) 수용, 별첨 reference 누락 해소. (findings F35)
+- **F33** `KeyRefSchema.year` 하한 `ge=1990` → `ge=1000` — 농학·표준 도메인 현역 고전 문헌 수용. (findings F33)
+- **F46** `KeyRefSchema.category` enum에 '기타' 추가 — researcher 자연 산출값이 `build_reflist`에서 조용히 skip되던 문제 해소. (findings F46)
+- **F34·F44** `merge_research.dedupe_refs`가 `refs_found`의 str 원소(스키마상 `list[str]`)에서 `AttributeError` 크래시하던 것 방어 + REF id 기준 dedup. dict(url) 기존 경로 회귀 없음. (findings F34, F44)
+- **F45** `check_quality._parse_call_id` front-matter(`0.x`) → P0 하향 임계(5000, floor 2500) — 간결한 발간사·목적범위 카드의 위양성 FAIL 제거. (findings F45)
+- **F47** `check_quality` `CALL_ID_PAT`에 별첨 letter 접두(`[A-Z]-`) 허용 — I·J 등 후행 별첨 접두 명시 인식. (findings F47)
+- **F31** `parse_toc.assign_analysis_tag` 미매칭 폴백이 전 섹션을 동일 기본 태그로 강제하던 편향 제거(빈 리스트). (findings F31)
+- 신규 테스트 15건. `SCHEMA_VERSION` 유지(제약 완화만 — 하위호환).
+
 ## [1.8.0] — 2026-07-06
 
 ### Added (서식 게이트 — check_quality format_gate)
