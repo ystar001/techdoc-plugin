@@ -17,7 +17,7 @@ from techdoc_core.constants import SCHEMA_VERSION, SECTION_KEY_RE
 
 Importance = Literal["high", "medium", "low"]
 Reliability = Literal["확인됨", "단일출처", "미확인", "AI지식"]
-Category = Literal["정부공공", "국제기구", "학술", "기업R&D", "전문연구기관", "산업시장", "뉴스"]
+Category = Literal["정부공공", "국제기구", "학술", "기업R&D", "전문연구기관", "산업시장", "뉴스", "기타"]
 CardType = Literal["tech", "project", "product"]
 AppendixType = Literal["tech", "project"]
 CardStatus = Literal["pending", "writing", "completed", "failed"]
@@ -61,12 +61,12 @@ class KeyRefSchema(BaseModel):
     잘못된 필드명·타입은 researcher에게 재생성 요청 (최대 2회).
     """
     schema_version: str = SCHEMA_VERSION
-    id: str = Field(..., pattern=r"^REF-\d{3}$")
+    id: str = Field(..., pattern=r"^REF-\d{3,}$")
     category: Category
     source: str  # 기관·출판사·사이트
     institution: str = ""  # 연구 소속
     authors: list[str] = Field(default_factory=list)
-    year: int = Field(..., ge=1990, le=2100)
+    year: int = Field(..., ge=1000, le=2100)
     venue: str = ""  # 학회·저널·기업명
     title: str = Field(..., max_length=300)
     url: str = ""
