@@ -20,7 +20,7 @@ import re
 import sys
 from pathlib import Path
 
-from techdoc_core.constants import ANALYSIS_TAGS, DEFAULT_ANALYSIS_TAG
+from techdoc_core.constants import ANALYSIS_TAGS
 from techdoc_core.models import Outline, Section
 from techdoc_core.schemas import format_error
 
@@ -184,7 +184,9 @@ def assign_analysis_tag(title: str, subtopics: list[str]) -> list[str]:
         for kw in tag_def["keywords"]:
             if kw in haystack:
                 return [tag_def["tag"]]
-    return [DEFAULT_ANALYSIS_TAG]
+    # F31 — 미매칭 섹션에 동일 기본 태그를 강제하면 코퍼스가 한 분석 렌즈로 과편향된다.
+    # 무편향을 위해 빈 리스트로 둔다(Section.analysis_tags 기본값과 동일, downstream 허용).
+    return []
 
 
 def estimate_length(subtopic_count: int) -> str:
