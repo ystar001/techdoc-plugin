@@ -1,7 +1,7 @@
 ---
 description: Step 12 - document_final.json → HTML + PDF + DOCX + MD 렌더링 (카드·별첨 포함)
 allowed-tools: Bash, Read
-argument-hint: "--input FILE [--refs FILE] [--type DESIGN] [--formats html,pdf,docx,md] [-o OUTPUT] | --tree --cards-dir DIR [--routing-config FILE] [--with-series-index]"
+argument-hint: "--input FILE [--refs FILE] [--type DESIGN] [--formats html,pdf,docx,md] [-o OUTPUT] | --tree --cards-dir DIR [--routing-config FILE] [--with-series-index] | --webbook --cards-dir DIR [--routing-config FILE] [--title TEXT]"
 ---
 
 # /techdoc-render — 4종 출력 생성
@@ -22,6 +22,14 @@ argument-hint: "--input FILE [--refs FILE] [--type DESIGN] [--formats html,pdf,d
 - `--with-series-index` — 시리즈 폴더 INDEX 강제 (기본: F17 — 단일 카드 시리즈는 INDEX 생략)
 
 출력: `Part-*/` 디렉토리 + (2+ 카드) 시리즈 하위폴더 + 부분별 INDEX + 최상위 표지·TOC INDEX. split 카드(L1/L2/L3)는 부모당 1파일 병합.
+
+### 웹북 출력 (--webbook, F52)
+- `--webbook` — 카드 디렉토리를 file:// 정적 **다중 페이지 HTML 웹북**으로 출력 (`--input` 대신 `--cards-dir` 사용)
+- `--cards-dir DIR` — 입력 카드 JSON 디렉토리 (`*_card.json`)
+- `--routing-config FILE` — Part 라우팅 config (트리와 동일)
+- `--title TEXT` — 표지 제목 (기본 "기술보고서")
+
+출력: `index.html`(표지+전체 목차) + `Part-*/<card_id>.html`(Part별 카드/병합 페이지) + `assets/webbook.css`. 수식 `$$…$$`·`$…$` 보호 후 MathJax 렌더(F38), fenced ```mermaid → `<pre class="mermaid">` `<br/>` 보존(F48), 2단 중첩 리스트(F26). 단일파일 render와 독립(opt-in).
 
 ## 실행
 

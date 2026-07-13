@@ -4,6 +4,16 @@ All notable changes to TechDoc Plugin.
 
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.9.0] — 2026-07-13
+
+### Added (웹북 렌더러 plugin 승격 — 워크스트림 A 키스톤)
+
+- **F52** 신규 `techdoc_core/renderers/webbook.py`(`WebbookExporter`) + `webbook_md2html.py` — 자식마다 복붙되던 `build_webbook.py`를 plugin으로 승격. 카드 JSON 디렉토리 → file:// 정적 다중 페이지 HTML 웹북(index 표지+목차 + Part별 카드/병합 페이지 + `assets/webbook.css`). routing_config(F21)로 Part 버킷팅, split 카드 parent 병합(F13), 기존 렌더러 재사용(`markdown_tree` 그룹핑). `/techdoc-render --webbook --cards-dir <dir> [--routing-config --title]` (단일파일 render 무변경 opt-in). MathJax·mermaid 로더 포함. (findings F52)
+- **F38** `webbook_md2html`이 `$$…$$`·`$…$` 수식을 markdown 변환 전 placeholder로 보호 후 복원 — 아래첨자 `_`가 emphasis로 잠식되던 문제 해소, MathJax 렌더. (findings F38)
+- **F48** fenced ```mermaid → `<pre class="mermaid">`로 변환하며 내용 HTML 이스케이프 — `<br/>` 라벨 줄바꿈 보존. (findings F48)
+- **F26** webbook_md2html의 `sane_lists`로 4칸 들여쓰기 2단 중첩 리스트를 중첩 `<ul>`로 렌더. (findings F26)
+- 신규 테스트 16건(webbook_md2html 7·webbook_exporter 4·기타). 신규 의존성 없음(MathJax·mermaid는 CDN 로더).
+
 ## [1.8.2] — 2026-07-13
 
 ### Added (품질 게이트·서식 — v1.9.0 워크스트림 D·E 선출시)

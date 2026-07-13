@@ -3,7 +3,7 @@
 > **AI 기술보고서 자동 생성 Claude Code 플러그인** — v1.3.0 (2026-05-13)
 > 레퍼런스 100% 기반 · 카드 중첩식 섹션 · 별첨 논문 수준 심층분석 · LLM Wiki 통합 · Claude Code 네이티브
 
-[![Version](https://img.shields.io/badge/version-1.8.2-green)]()
+[![Version](https://img.shields.io/badge/version-1.9.0-green)]()
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue)]()
 [![License](https://img.shields.io/badge/license-MIT-green)]()
 [![Plugin](https://img.shields.io/badge/claude--code-plugin-purple)]()
@@ -387,7 +387,7 @@ tech · market · policy · **consistency**(표기 일관성 — 약어·기관�
 
 ### 📑 기능 7 — 4종 문서 동시 생성 (`/techdoc-render`)
 
-HTML (마스터) + PDF + DOCX + MD. 카드·별첨·MathJax 수식·Mermaid 다이어그램·matplotlib 차트 자동 포함. MD 출력은 단락 break(`renderers/paragraph`, 키워드+800자 ceiling, F10)·섹션 키 한글 헤딩(`renderers/section_heading`, F12) 적용. Part 라우팅은 `routing_config`로 외부화(F21, 프로젝트별 config 교체). `--tree`로 config 기반 트리 디렉토리 출력(`renderers/markdown_tree`, F15) — Part/시리즈 + 계층 INDEX, split 카드 병합, 단일 시리즈 INDEX 생략(F17).
+HTML (마스터) + PDF + DOCX + MD. 카드·별첨·MathJax 수식·Mermaid 다이어그램·matplotlib 차트 자동 포함. MD 출력은 단락 break(`renderers/paragraph`, 키워드+800자 ceiling, F10)·섹션 키 한글 헤딩(`renderers/section_heading`, F12) 적용. Part 라우팅은 `routing_config`로 외부화(F21, 프로젝트별 config 교체). `--tree`로 config 기반 트리 디렉토리 출력(`renderers/markdown_tree`, F15) — Part/시리즈 + 계층 INDEX, split 카드 병합, 단일 시리즈 INDEX 생략(F17). `--webbook`으로 file:// 다중 페이지 HTML 웹북 출력(`renderers/webbook`+`webbook_md2html`, F52) — index 표지+목차 + Part별 페이지 + assets, 수식 `$…$` 보호(F38)·fenced mermaid `<br/>` 보존(F48).
 
 ### 🌐 기능 8 — LLM Wiki 누적 (`/techdoc-export-wiki`) ⭐ v1.1.0
 
@@ -1074,6 +1074,7 @@ unzip techdoc-plugin-v1.1.0-wrapped.zip -d ~/.claude/plugins/
 
 | 버전 | 주요 변경 | 파일 수 | 코드 |
 |---|---|---|---|
+| **v1.9.0** (2026-07-13) | **웹북 렌더러 plugin 승격(키스톤)**: 자식 `build_webbook.py`를 `techdoc_core/renderers/webbook.py`(`WebbookExporter`)+`webbook_md2html.py`로 승격. `/techdoc-render --webbook`로 카드→file:// 다중 페이지 HTML 웹북(index+Part 페이지+assets). 수식 `$…$` 보호(F38)·fenced mermaid `<br/>` 보존(F48)·2단 중첩 리스트(F26) (findings F52·F38·F48·F26). SCHEMA 유지. | (변동 없음) | 약 22.5k줄 |
 | **v1.8.2** (2026-07-13) | 품질 게이트·서식(v1.9.0 워크스트림 D·E 선출시): format_gate 시각화 밀도 지표(F50)·인라인 열거 strict FAIL 승격(F49), style '혼합형' 혼용(F24), update_plugin UTF-8 가드(F53). SCHEMA 유지. | (변동 없음) | 약 22k줄 |
 | **v1.8.1** (2026-07-13) | 조사·검증 견고성 patch(v1.9.0 워크스트림 G 선출시): KeyRef 4자리 REF(F35)·1990 이전 연도(F33)·category 기타(F46) 완화, merge_research str refs 크래시 방어(F34·F44), check_quality front-matter P0 임계·별첨 letter 인식(F45·F47), parse_toc 태그 폴백 편향 제거(F31). SCHEMA 유지. | (변동 없음) | 약 22k줄 |
 | **v1.8.0** (2026-07-06) | 서식 게이트 확장: `format_gate`에 제어문자(F40)·mermaid 라벨 sanity(F39)·인라인 열거(F41) 지표 + `render_nesting` fenced_code(F37), `check_quality`에 캡션 정합 게이트(F42). writer 프롬프트 서식·mermaid 저작 규칙(`card_layout_conventions.md`). F38·F43은 F15 렌더러 흡수 종속으로 유보. SCHEMA 유지. | (변동 없음) | 약 22k줄 |
