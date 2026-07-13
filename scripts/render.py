@@ -178,6 +178,10 @@ def main() -> int:
     ap.add_argument("--webbook", action="store_true",
                     help="카드 디렉토리를 file:// 다중 페이지 HTML 웹북으로 출력 (F52)")
     ap.add_argument("--title", default="기술보고서", help="--webbook 표지 제목")
+    ap.add_argument("--variant", choices=["full", "general"], default="full",
+                    help="--webbook 판본: full(전체) | general(formal_section 제외) (F36·F43)")
+    ap.add_argument("--doc-version", default="", help="--webbook 표지 버전 배지 (F43)")
+    ap.add_argument("--edition", default="", help="--webbook 표지 판본 배지 (F43)")
     args = ap.parse_args()
 
     # ── 웹북 모드: 단일파일 render 경로와 독립 (non-breaking) ──
@@ -188,8 +192,12 @@ def main() -> int:
         from techdoc_core.routing_config import DEFAULT_ROUTING, load_routing_config
         routing = load_routing_config(args.routing_config) if args.routing_config else DEFAULT_ROUTING
         out_dir = Path(args.output)
-        stats = WebbookExporter(routing).export(args.cards_dir, out_dir, title=args.title)
-        print(f"OK: {out_dir / 'index.html'} ({stats['pages']} 페이지, {stats['parts']} Part)")
+        stats = WebbookExporter(routing).export(
+            args.cards_dir, out_dir, title=args.title, variant=args.variant,
+            version=args.doc_version, edition=args.edition,
+        )
+        print(f"OK: {out_dir / 'index.html'} ({stats['pages']} 페이지, {stats['parts']} Part, "
+              f"{args.variant}판)")
         return 0
 
     # ── 트리 모드: 단일파일 render 경로와 독립 (non-breaking) ──

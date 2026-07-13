@@ -8,14 +8,11 @@ import sys
 from techdoc_core.renderers.webbook import WebbookExporter
 
 
-def _write_card(d, cid, title, body):
-    (d / f"{cid}_card.json").write_text(
-        json.dumps(
-            {"card_id": cid, "title": title, "sections": {"s1": {"body": body}}},
-            ensure_ascii=False,
-        ),
-        encoding="utf-8",
-    )
+def _write_card(d, cid, title, body, formal_section=False):
+    card = {"card_id": cid, "title": title, "sections": {"s1": {"body": body}}}
+    if formal_section:
+        card["formal_section"] = True
+    (d / f"{cid}_card.json").write_text(json.dumps(card, ensure_ascii=False), encoding="utf-8")
 
 
 def test_export_produces_index_and_pages(tmp_path):
@@ -66,6 +63,33 @@ def test_export_writes_css_asset(tmp_path):
     WebbookExporter().export(cards, out)
 
     assert (out / "assets" / "webbook.css").exists()
+
+
+def test_variant_general_excludes_formal_cards(tmp_path):
+    """F36·F43 — variant='general'은 formal_section 카드를 제외, 'full'은 전부 포함."""
+    cards = tmp_path / "cards"
+    cards.mkdir()
+    _write_card(cards, "1.1", "일반 개요", "일반 본문.")
+    _write_card(cards, "1.2", "SW 정형 사양", "정형 본문.", formal_section=True)
+
+    full = WebbookExporter().export(cards, tmp_path / "full", variant="full")
+    general = WebbookExporter().export(cards, tmp_path / "general", variant="general")
+
+    assert full["pages"] == 2
+    assert general["pages"] == 1  # formal 카드 제외
+
+
+def test_cover_shows_version_and_edition_badge(tmp_path):
+    """F43 — 표지에 문서 버전·판본 배지 표시."""
+    cards = tmp_path / "cards"
+    cards.mkdir()
+    _write_card(cards, "1.1", "제목", "본문.")
+    out = tmp_path / "wb"
+
+    WebbookExporter().export(cards, out, version="v3.0", edition="전문가판")
+
+    index = (out / "index.html").read_text(encoding="utf-8")
+    assert "v3.0" in index and "전문가판" in index
 
 
 def test_render_cli_webbook(tmp_path, monkeypatch):

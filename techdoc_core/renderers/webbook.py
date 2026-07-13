@@ -75,8 +75,15 @@ def _page_shell(title: str, body_html: str, css_href: str, home_href: str) -> st
     )
 
 
-def _index_shell(doc_title: str, index_entries: list, css_href: str) -> str:
+def _index_shell(doc_title: str, index_entries: list, css_href: str,
+                 version: str = "", edition: str = "") -> str:
     head = _HEAD.format(css_href=css_href)
+    badges = []
+    if edition:
+        badges.append(f'<span class="badge edition">{_html.escape(edition)}</span>')
+    if version:
+        badges.append(f'<span class="badge version">{_html.escape(version)}</span>')
+    badge_html = f'<p class="badges">{" ".join(badges)}</p>' if badges else ""
     sections = []
     for part_label, pages in index_entries:
         items = "\n".join(
@@ -90,7 +97,7 @@ def _index_shell(doc_title: str, index_entries: list, css_href: str) -> str:
     return (
         f"<!doctype html>\n<html lang=\"ko\">\n<head>\n{head}\n"
         f"<title>{_html.escape(doc_title)}</title>\n</head>\n<body>\n"
-        f"<header><h1>{_html.escape(doc_title)}</h1></header>\n"
+        f"<header><h1>{_html.escape(doc_title)}</h1>\n{badge_html}</header>\n"
         f"<main>\n{body}\n</main>\n</body>\n</html>\n"
     )
 
@@ -103,14 +110,22 @@ class WebbookExporter:
         self._tree = MarkdownTreeExporter(routing_config)  # config 접근자·part 순서 재사용
 
     def export(self, cards_dir: Path | str, output_dir: Path | str,
-               title: str = "기술보고서") -> dict:
-        """cards_dir의 `*_card.json` → output_dir 웹북. 통계 dict 반환."""
+               title: str = "기술보고서", variant: str = "full",
+               version: str = "", edition: str = "") -> dict:
+        """cards_dir의 `*_card.json` → output_dir 웹북. 통계 dict 반환.
+
+        variant: "full"(전체) | "general"(일반용 — formal_section 카드 제외, F36·F43).
+        version·edition: 표지 버전·판본 배지 (F43).
+        """
         cards_dir = Path(cards_dir)
         output_dir = Path(output_dir)
         (output_dir / "assets").mkdir(parents=True, exist_ok=True)
         (output_dir / "assets" / "webbook.css").write_text(_CSS, encoding="utf-8")
 
+        # F36·F43: variant='general'은 formal_section(정형 사양) 카드를 제외.
         files = sorted(cards_dir.glob("*_card.json"))
+        if variant == "general":
+            files = [f for f in files if not load_card(f).get("formal_section")]
         buckets = bucket_cards(files, self.config)
 
         index_entries: list = []
@@ -138,6 +153,7 @@ class WebbookExporter:
             index_entries.append((self._tree._part_label(part_key), pages))
 
         (output_dir / "index.html").write_text(
-            _index_shell(title, index_entries, "assets/webbook.css"), encoding="utf-8"
+            _index_shell(title, index_entries, "assets/webbook.css",
+                         version=version, edition=edition), encoding="utf-8"
         )
         return {"parts": len(index_entries), "pages": page_count}
