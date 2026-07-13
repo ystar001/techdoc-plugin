@@ -33,6 +33,13 @@ def test_fenced_mermaid_to_pre_escaped():
     assert "&lt;br/&gt;" in html  # textContent용 이스케이프
 
 
+def test_nested_list_two_levels():
+    """F26 — 4칸 들여쓰기 2단 중첩 리스트가 중첩 <ul>로 렌더."""
+    html, _ = md_to_html("- 상위 A\n    - 하위 A1\n    - 하위 A2\n- 상위 B")
+    assert html.count("<ul>") >= 2
+    assert "하위 A1" in html
+
+
 def test_refs_linkified():
     """REF 토큰이 참고문헌 앵커로 링크화."""
     html, _ = md_to_html("근거가 있다 [REF-0004].", refs_href="../참고문헌/index.html")
