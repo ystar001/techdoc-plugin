@@ -3,7 +3,7 @@
 > **AI 기술보고서 자동 생성 Claude Code 플러그인** — v1.3.0 (2026-05-13)
 > 레퍼런스 100% 기반 · 카드 중첩식 섹션 · 별첨 논문 수준 심층분석 · LLM Wiki 통합 · Claude Code 네이티브
 
-[![Version](https://img.shields.io/badge/version-1.9.1-green)]()
+[![Version](https://img.shields.io/badge/version-1.10.0-green)]()
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue)]()
 [![License](https://img.shields.io/badge/license-MIT-green)]()
 [![Plugin](https://img.shields.io/badge/claude--code-plugin-purple)]()
@@ -216,10 +216,12 @@ techdoc-plugin/                                  # 플러그인 루트 (v1.1.0)
 │
 ├── techdoc_core/                                # 데이터 모델·렌더러
 │   ├── __init__.py  constants.py  models.py  schemas.py
-│   ├── renderers/                               # 4종 출력
+│   ├── routing_config.py  formal_blocks.py  localize.py   # F21·F32·F29
+│   ├── renderers/                               # 출력 렌더러
 │   │   ├── html_renderer.py  card_renderer.py
-│   │   ├── pdf_export.py     docx_export.py
-│   │   └── md_export.py
+│   │   ├── pdf_export.py     docx_export.py     md_export.py
+│   │   ├── paragraph.py      section_heading.py  markdown_tree.py
+│   │   └── webbook.py        webbook_md2html.py           # 웹북 (F52·F38·F48)
 │   └── design_templates/                        # 5종 디자인
 │       ├── _shared/                             # 공통 CSS (cards·appendix)
 │       ├── tech_report/      business_plan/
@@ -1076,6 +1078,7 @@ unzip techdoc-plugin-v1.1.0-wrapped.zip -d ~/.claude/plugins/
 
 | 버전 | 주요 변경 | 파일 수 | 코드 |
 |---|---|---|---|
+| **v1.10.0** (2026-07-13) | 정형 카드·한글화·소급 서식: `/techdoc-enrich`(서식 소급 개선, 내용 보존, F25), `formal_blocks`(함수명세·상태벡터·파라미터표 구조화+CSV/JSON 추출, F32), `localize`(용어 한글화 토큰맵 `--term-map`, F29). 명령 19종·프롬프트 26종 (findings F25·F32·F29). SCHEMA 유지. | (변동 없음) | 약 23k줄 |
 | **v1.9.1** (2026-07-13) | 웹북 폴리시: 판본(`--variant general`, formal_section 제외)+버전·판본 배지(F43·F36), **md 왕복 편집**(`--webbook --from-md`, `--tree` md 편집→웹북 재렌더, F51) (findings F43·F36·F51). SCHEMA 유지. | (변동 없음) | 약 22.6k줄 |
 | **v1.9.0** (2026-07-13) | **웹북 렌더러 plugin 승격(키스톤)**: 자식 `build_webbook.py`를 `techdoc_core/renderers/webbook.py`(`WebbookExporter`)+`webbook_md2html.py`로 승격. `/techdoc-render --webbook`로 카드→file:// 다중 페이지 HTML 웹북(index+Part 페이지+assets). 수식 `$…$` 보호(F38)·fenced mermaid `<br/>` 보존(F48)·2단 중첩 리스트(F26) (findings F52·F38·F48·F26). SCHEMA 유지. | (변동 없음) | 약 22.5k줄 |
 | **v1.8.2** (2026-07-13) | 품질 게이트·서식(v1.9.0 워크스트림 D·E 선출시): format_gate 시각화 밀도 지표(F50)·인라인 열거 strict FAIL 승격(F49), style '혼합형' 혼용(F24), update_plugin UTF-8 가드(F53). SCHEMA 유지. | (변동 없음) | 약 22k줄 |

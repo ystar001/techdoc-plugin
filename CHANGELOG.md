@@ -4,6 +4,15 @@ All notable changes to TechDoc Plugin.
 
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.10.0] — 2026-07-13
+
+### Added (정형 카드·한글화·소급 서식 — v1.9.0 잔여 findings 완료)
+
+- **F25** 신규 `/techdoc-enrich <card-id>` 명령 + `prompts/enrich_card.md` — 기존 카드의 내용(사실·수치·`[REF-xxx]`)을 보존하고 서식만 소급 개선(병렬 열거→리스트 F49·서술+개조 혼용 F24·데이터→표/mermaid F50). `/techdoc-rewrite`의 서식 전용 특수형, 무손실 철칙. (findings F25)
+- **F32** 신규 `techdoc_core/formal_blocks.py` — 방법론·표준 카드의 `formal_blocks`(함수 명세·상태벡터 스키마·파라미터 표준표)를 구조화 JSON으로 담아 markdown 정형 박스 렌더 + CSV/JSON Schema 추출. `WebbookExporter`가 본문 뒤 정형 박스로 렌더. additive optional(하위호환). (findings F32)
+- **F29** 신규 `techdoc_core/localize.py` — render 시 영문 sec제목·jargon을 프로젝트 토큰맵으로 한글화(긴 용어 우선·ascii 단어경계). `render --webbook --term-map <json>`. F12·F16 연장. (findings F29)
+- 명령 19종·프롬프트 26종. 신규 테스트 15건.
+
 ## [1.9.1] — 2026-07-13
 
 ### Added (웹북 폴리시 — 판본·md 왕복)
