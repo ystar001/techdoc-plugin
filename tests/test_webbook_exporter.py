@@ -53,6 +53,41 @@ def test_export_merges_split_cards(tmp_path):
     assert "상 파트 본문" in merged and "하 파트 본문" in merged
 
 
+def test_theme_selection_changes_palette(tmp_path):
+    """디자인 테마 선택 — premium·light가 서로 다른 CSS 팔레트."""
+    cards = tmp_path / "cards"
+    cards.mkdir()
+    _write_card(cards, "1.1", "제목", "본문.")
+    sp = WebbookExporter().export(cards, tmp_path / "p", theme="premium")
+    sl = WebbookExporter().export(cards, tmp_path / "l", theme="light")
+    assert sp["theme"] == "premium" and sl["theme"] == "light"
+    css_p = (tmp_path / "p" / "assets" / "webbook.css").read_text(encoding="utf-8")
+    css_l = (tmp_path / "l" / "assets" / "webbook.css").read_text(encoding="utf-8")
+    assert css_p != css_l
+    assert "#0e9384" in css_p  # premium 티일
+    assert "#2f5fe0" in css_l  # light 네이비
+
+
+def test_theme_default_is_classic(tmp_path):
+    """기본 테마 = classic(의성 그린 리포트)."""
+    cards = tmp_path / "cards"
+    cards.mkdir()
+    _write_card(cards, "1.1", "제목", "본문.")
+    stats = WebbookExporter().export(cards, tmp_path / "d")
+    assert stats["theme"] == "classic"
+    css = (tmp_path / "d" / "assets" / "webbook.css").read_text(encoding="utf-8")
+    assert "#147646" in css and "#009e4d" in css  # 그린
+
+
+def test_theme_invalid_falls_back_to_default(tmp_path):
+    cards = tmp_path / "cards"
+    cards.mkdir()
+    _write_card(cards, "1.1", "제목", "본문.")
+    WebbookExporter().export(cards, tmp_path / "o", theme="없는테마")
+    css = (tmp_path / "o" / "assets" / "webbook.css").read_text(encoding="utf-8")
+    assert "#147646" in css  # classic 폴백
+
+
 def test_export_writes_css_asset(tmp_path):
     """A2 — assets/webbook.css 생성."""
     cards = tmp_path / "cards"

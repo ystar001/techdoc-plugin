@@ -185,6 +185,8 @@ def main() -> int:
     ap.add_argument("--doc-version", default="", help="--webbook 표지 버전 배지 (F43)")
     ap.add_argument("--edition", default="", help="--webbook 표지 판본 배지 (F43)")
     ap.add_argument("--term-map", dest="term_map", help="--webbook 용어 한글화 토큰맵 JSON (F29)")
+    ap.add_argument("--theme", choices=["classic", "premium", "light", "slate"], default="classic",
+                    help="--webbook 디자인 테마 (classic 기본=그린 리포트·premium·light·slate)")
     args = ap.parse_args()
 
     # ── 웹북 모드: 단일파일 render 경로와 독립 (non-breaking) ──
@@ -204,15 +206,18 @@ def main() -> int:
             stats = exporter.export_md_dir(
                 args.from_md, out_dir, title=args.title,
                 version=args.doc_version, edition=args.edition, term_map=term_map,
+                theme=args.theme,
             )
             src = "md"
         else:
             stats = exporter.export(
                 args.cards_dir, out_dir, title=args.title, variant=args.variant,
                 version=args.doc_version, edition=args.edition, term_map=term_map,
+                theme=args.theme,
             )
             src = f"{args.variant}판"
-        print(f"OK: {out_dir / 'index.html'} ({stats['pages']} 페이지, {stats['parts']} Part, {src})")
+        print(f"OK: {out_dir / 'index.html'} ({stats['pages']} 페이지, {stats['parts']} Part, "
+              f"{src}, {args.theme} 테마)")
         return 0
 
     # ── 트리 모드: 단일파일 render 경로와 독립 (non-breaking) ──
