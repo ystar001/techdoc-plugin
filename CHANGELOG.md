@@ -4,6 +4,12 @@ All notable changes to TechDoc Plugin.
 
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.10.1] — 2026-07-13
+
+### Changed (웹북 디자인 대개편 — 모던 테크)
+
+- **F52** `WebbookExporter` 프레젠테이션 레이어를 MVP 최소 CSS(24줄)에서 풀 디자인으로 재작성(export 로직 무변경). 좌측 트리 사이드바 네비(Part 접기·현재 강조·모바일 토글), 정식 표지(그래디언트 타이틀·eyebrow·버전/판본 배지·Part 카드 그리드), **전문 검색**(`assets/search-index.js`+`webbook.js`), 이전/다음 pager, 상단 sticky 바, 모던 테크 팔레트(다크 기본+라이트)·타이포 스케일·정갈한 표/코드/mermaid. 두 export(카드·md왕복) 공통 `_write_book` 통합. 신규 자산 `webbook.js`·`search-index.js`. 실측 스크린샷 검증.
+
 ## [1.10.0] — 2026-07-13
 
 ### Added (정형 카드·한글화·소급 서식 — v1.9.0 잔여 findings 완료)
