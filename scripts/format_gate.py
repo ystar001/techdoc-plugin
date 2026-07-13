@@ -33,6 +33,7 @@ STRICT_FAIL_METRICS = {
     "flatten_risk_indent",
     "control_chars",
     "ref_loss",
+    "inline_enumeration",
 }
 
 
@@ -115,6 +116,17 @@ def count_inline_enumeration(text: str) -> int:
         if "첫째" in para and "둘째" in para and not para.lstrip().startswith("- "):
             n += 1
     return n
+
+
+def count_visual_elements(text: str) -> int:
+    """본문의 시각 요소 수 = markdown 표 + mermaid 다이어그램 + 이미지 (F50).
+
+    웹북/render가 md에서 렌더하는 것과 동일 기준으로 본문 텍스트에서 계수한다.
+    """
+    tables = len(re.findall(r"(?m)^\s*\|.+\|\s*$\n\s*\|[\s:|-]+\|\s*$", text))
+    mermaid = len(re.findall(r"```mermaid", text))
+    images = len(re.findall(r"!\[[^\]]*\]\([^)]+\)", text))
+    return tables + mermaid + images
 
 
 def list_ratio_by_section(sections: dict[str, str]) -> dict[str, int]:
@@ -224,6 +236,16 @@ def measure_format(
     metrics["inline_enumeration"] = enum
     if enum:
         emit("inline_enumeration", f"인라인 병렬 열거(첫째/둘째) {enum}문단 — 불릿 리스트로")
+
+    # 시각화 밀도 (F50) — 긴 본문에 표·그림·mermaid가 희소하면 WARNING (4000자당 1개 권장)
+    visuals = count_visual_elements(alltext)
+    metrics["visual_density"] = visuals
+    if len(alltext) >= 3000 and visuals * 4000 < len(alltext):
+        emit(
+            "visual_density",
+            f"본문 {len(alltext)}자에 시각 요소(표·그림·mermaid) {visuals}건 — "
+            "밀도 부족(4000자당 1개 권장), 가독성 위해 표·그림·차트 추가",
+        )
 
     metrics["render_nesting"] = render_nesting(sections)
 
