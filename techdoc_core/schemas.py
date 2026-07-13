@@ -176,7 +176,7 @@ class DocumentMetaSchema(BaseModel):
     title: str
     document_type: str = "기술보고서"
     domain: str = ""
-    style: Literal["서술형", "개조식"] = "서술형"
+    style: Literal["서술형", "개조식", "혼합형"] = "서술형"  # 혼합형: 서술+개조 혼용 (F24)
     date: str = ""  # "2026년 04월"
     total_sections: int = 0
     total_cards: int = 0

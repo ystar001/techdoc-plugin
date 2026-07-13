@@ -40,3 +40,19 @@ def test_keyref_accepts_category_etc():
     """F46 — category enum에 '기타' 추가."""
     ref = KeyRefSchema(**_base_ref(category="기타"))
     assert ref.category == "기타"
+
+
+def test_document_style_accepts_mixed():
+    """F24 — style에 '혼합형'(서술+개조 혼용) 허용."""
+    from techdoc_core.schemas import DocumentMetaSchema
+
+    meta = DocumentMetaSchema(title="t", style="혼합형")
+    assert meta.style == "혼합형"
+
+
+def test_document_style_existing_values_unchanged():
+    """회귀 — 기존 서술형·개조식 유지."""
+    from techdoc_core.schemas import DocumentMetaSchema
+
+    assert DocumentMetaSchema(title="t", style="서술형").style == "서술형"
+    assert DocumentMetaSchema(title="t", style="개조식").style == "개조식"
