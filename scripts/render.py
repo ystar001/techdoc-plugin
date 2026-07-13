@@ -187,6 +187,10 @@ def main() -> int:
     ap.add_argument("--term-map", dest="term_map", help="--webbook 용어 한글화 토큰맵 JSON (F29)")
     ap.add_argument("--theme", choices=["classic", "premium", "light", "slate"], default="classic",
                     help="--webbook 디자인 테마 (classic 기본=그린 리포트·premium·light·slate)")
+    ap.add_argument("--logo", default="", help="--webbook 표지 로고 이미지 경로 (전 테마 공통)")
+    ap.add_argument("--subtitle", default="", help="--webbook 표지 영문 부제")
+    ap.add_argument("--institutions", default="",
+                    help="--webbook 표지 기관 배지 (콤마 구분, 예: 의성군,의성농업기술센터)")
     args = ap.parse_args()
 
     # ── 웹북 모드: 단일파일 render 경로와 독립 (non-breaking) ──
@@ -202,18 +206,19 @@ def main() -> int:
         if args.term_map:
             import json as _json
             term_map = _json.loads(Path(args.term_map).read_text(encoding="utf-8"))
+        institutions = [s.strip() for s in args.institutions.split(",") if s.strip()]
+        brand = dict(theme=args.theme, logo=args.logo, subtitle=args.subtitle,
+                     institutions=institutions)
         if args.from_md:
             stats = exporter.export_md_dir(
                 args.from_md, out_dir, title=args.title,
-                version=args.doc_version, edition=args.edition, term_map=term_map,
-                theme=args.theme,
+                version=args.doc_version, edition=args.edition, term_map=term_map, **brand,
             )
             src = "md"
         else:
             stats = exporter.export(
                 args.cards_dir, out_dir, title=args.title, variant=args.variant,
-                version=args.doc_version, edition=args.edition, term_map=term_map,
-                theme=args.theme,
+                version=args.doc_version, edition=args.edition, term_map=term_map, **brand,
             )
             src = f"{args.variant}판"
         print(f"OK: {out_dir / 'index.html'} ({stats['pages']} 페이지, {stats['parts']} Part, "

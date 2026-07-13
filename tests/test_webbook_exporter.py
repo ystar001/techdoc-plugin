@@ -88,6 +88,32 @@ def test_theme_invalid_falls_back_to_default(tmp_path):
     assert "#147646" in css  # classic 폴백
 
 
+def test_cover_branding_institutions_subtitle(tmp_path):
+    """표지 브랜딩 — 기관 배지·영문 부제가 표지에 렌더(전 테마 공통)."""
+    cards = tmp_path / "cards"
+    cards.mkdir()
+    _write_card(cards, "1.1", "제목", "본문.")
+    out = tmp_path / "wb"
+    WebbookExporter().export(cards, out, subtitle="How to Monitor Crop Growth",
+                             institutions=["의성군", "의성농업기술센터", "의성스마트농업사업단"])
+    idx = (out / "index.html").read_text(encoding="utf-8")
+    assert "How to Monitor Crop Growth" in idx
+    assert "의성군" in idx and "의성농업기술센터" in idx and "의성스마트농업사업단" in idx
+
+
+def test_cover_logo_copied_and_referenced(tmp_path):
+    """표지 로고 — 이미지가 assets로 복사되고 표지에서 참조."""
+    logo = tmp_path / "brand.png"
+    logo.write_bytes(b"\x89PNG\r\n\x1a\n")
+    cards = tmp_path / "cards"
+    cards.mkdir()
+    _write_card(cards, "1.1", "제목", "본문.")
+    out = tmp_path / "wb"
+    WebbookExporter().export(cards, out, logo=str(logo))
+    assert (out / "assets" / "logo.png").exists()
+    assert 'class="cover-logo"' in (out / "index.html").read_text(encoding="utf-8")
+
+
 def test_export_writes_css_asset(tmp_path):
     """A2 — assets/webbook.css 생성."""
     cards = tmp_path / "cards"

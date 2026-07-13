@@ -20,6 +20,7 @@ from __future__ import annotations
 import html as _html
 import json
 import re
+import shutil
 from pathlib import Path
 
 from techdoc_core.formal_blocks import render_formal_blocks
@@ -189,6 +190,13 @@ pre.mermaid{background:var(--soft);color:inherit;text-align:center;padding:1.6re
   letter-spacing:-.02em;margin:1rem 0 .2rem;font-weight:850;color:var(--hero-fg);max-width:16ch}
 .hero .rule{width:120px;height:3px;margin:1.6rem 0 1.3rem;
   background:linear-gradient(90deg,var(--gold),transparent)}
+.cover-logo{height:56px;width:auto;margin-bottom:1.8rem;display:block}
+.hero .subtitle{font-size:1.15rem;color:var(--ink-fg);opacity:.86;font-weight:500;
+  margin:.1rem 0 0;max-width:42ch;line-height:1.4}
+.insts{display:flex;gap:.6rem;flex-wrap:wrap;margin-top:1.3rem}
+.inst{display:inline-flex;align-items:center;padding:.34rem .95rem;border-radius:999px;
+  font-size:.8rem;font-weight:600;color:var(--ink-fg);
+  border:1px solid color-mix(in srgb,var(--ink-fg) 34%,transparent)}
 .badges{display:flex;gap:.6rem;flex-wrap:wrap;margin-top:.4rem}
 .badge{display:inline-flex;align-items:center;padding:.36rem .95rem;border-radius:999px;font-size:.78rem;
   font-weight:650;border:1px solid var(--ink-line);color:var(--ink-fg)}
@@ -333,13 +341,21 @@ def _page_html(doc_title: str, rec: dict, nav: list, prev: dict | None, nxt: dic
     )
 
 
-def _cover_html(doc_title: str, nav: list, version: str, edition: str) -> str:
+def _cover_html(doc_title: str, nav: list, version: str, edition: str,
+                logo_src: str = "", subtitle: str = "", institutions: list | None = None) -> str:
     badges = []
     if edition:
         badges.append(f'<span class="badge edition">{_esc(edition)}</span>')
     if version:
         badges.append(f'<span class="badge version">{_esc(version)}</span>')
     badge_html = f'<div class="badges">{"".join(badges)}</div>' if badges else ""
+    logo_html = f'<img class="cover-logo" src="{_esc(logo_src)}" alt="logo">' if logo_src else ""
+    subtitle_html = f'<p class="subtitle">{_esc(subtitle)}</p>' if subtitle else ""
+    insts = institutions or []
+    inst_html = (
+        '<div class="insts">' + "".join(f'<span class="inst">{_esc(x)}</span>' for x in insts) + "</div>"
+        if insts else ""
+    )
     total_pages = sum(len(pages) for _label, pages in nav)
     first_url = nav[0][1][0][0] if nav and nav[0][1] else "index.html"
     stat_html = (
@@ -361,9 +377,9 @@ def _cover_html(doc_title: str, nav: list, version: str, edition: str) -> str:
     return (
         f'<!doctype html>\n<html lang="ko">\n<head>\n{_HEAD.format(p="")}\n'
         f"<title>{_esc(doc_title)}</title>\n</head>\n<body>\n"
-        f'<div class="cover"><header class="hero">'
+        f'<div class="cover"><header class="hero">{logo_html}'
         f'<div class="eyebrow">Technical Analysis Report</div>'
-        f"<h1>{_esc(doc_title)}</h1><div class=\"rule\"></div>{badge_html}"
+        f"<h1>{_esc(doc_title)}</h1><div class=\"rule\"></div>{subtitle_html}{badge_html}{inst_html}"
         f'<div class="meta">레퍼런스 기반 · 카드 중첩식 구조 · 별첨 논문 수준 심층분석</div>'
         f"{stat_html}{cta}"
         f'</header><section class="toc"><div class="toc-h">Contents · 목차</div>'
@@ -388,7 +404,8 @@ class WebbookExporter:
         self._tree = MarkdownTreeExporter(routing_config)  # config 접근자·part 순서 재사용
 
     def _write_book(self, output_dir: Path, title: str, nav: list, records: list,
-                    version: str, edition: str, theme: str) -> dict:
+                    version: str, edition: str, theme: str,
+                    logo: str = "", subtitle: str = "", institutions: list | None = None) -> dict:
         """nav(사이드바) + records(페이지) → 자산·페이지·표지 기록."""
         (output_dir / "assets").mkdir(parents=True, exist_ok=True)
         (output_dir / "assets" / "webbook.css").write_text(_css(theme), encoding="utf-8")
@@ -398,6 +415,12 @@ class WebbookExporter:
             "window.SEARCH_INDEX=" + json.dumps(search, ensure_ascii=False) + ";",
             encoding="utf-8",
         )
+        # 로고 이미지 복사 (모든 테마 표지 공통)
+        logo_src = ""
+        if logo and Path(logo).exists():
+            dest_name = "logo" + Path(logo).suffix
+            shutil.copy(Path(logo), output_dir / "assets" / dest_name)
+            logo_src = f"assets/{dest_name}"
         for i, rec in enumerate(records):
             prev = records[i - 1] if i > 0 else None
             nxt = records[i + 1] if i < len(records) - 1 else None
@@ -405,19 +428,22 @@ class WebbookExporter:
             dest.parent.mkdir(parents=True, exist_ok=True)
             dest.write_text(_page_html(title, rec, nav, prev, nxt), encoding="utf-8")
         (output_dir / "index.html").write_text(
-            _cover_html(title, nav, version, edition), encoding="utf-8"
+            _cover_html(title, nav, version, edition, logo_src, subtitle, institutions),
+            encoding="utf-8",
         )
         return {"parts": len(nav), "pages": len(records), "theme": theme}
 
     def export(self, cards_dir: Path | str, output_dir: Path | str,
                title: str = "기술보고서", variant: str = "full",
                version: str = "", edition: str = "", term_map: dict | None = None,
-               theme: str = _DEFAULT_THEME) -> dict:
+               theme: str = _DEFAULT_THEME, logo: str = "", subtitle: str = "",
+               institutions: list | None = None) -> dict:
         """cards_dir의 `*_card.json` → output_dir 웹북. 통계 dict 반환.
 
         variant: "full"(전체) | "general"(일반용 — formal_section 카드 제외, F36·F43).
         version·edition: 표지 버전·판본 배지 (F43).
-        theme: premium(기본)·light·slate.
+        theme: classic(기본)·premium·light·slate.
+        logo·subtitle·institutions: 표지 브랜딩(로고 이미지·영문 부제·기관 배지) — 전 테마 공통.
         """
         cards_dir = Path(cards_dir)
         output_dir = Path(output_dir)
@@ -455,11 +481,13 @@ class WebbookExporter:
                 pages_meta.append((url, page_label))
             nav.append((part_label, pages_meta))
 
-        return self._write_book(output_dir, title, nav, records, version, edition, theme)
+        return self._write_book(output_dir, title, nav, records, version, edition, theme,
+                                logo=logo, subtitle=subtitle, institutions=institutions)
 
     def export_md_dir(self, md_dir: Path | str, output_dir: Path | str,
                       title: str = "기술보고서", version: str = "", edition: str = "",
-                      term_map: dict | None = None, theme: str = _DEFAULT_THEME) -> dict:
+                      term_map: dict | None = None, theme: str = _DEFAULT_THEME,
+                      logo: str = "", subtitle: str = "", institutions: list | None = None) -> dict:
         """편집된 md 디렉토리(--tree 중간물) → 웹북 재렌더 (md 왕복 편집, F51).
 
         md_dir 하위 `*.md`(INDEX.md 제외)를 트리 구조 그대로 병렬 `.html` 페이지로 변환.
@@ -484,4 +512,5 @@ class WebbookExporter:
             parts.setdefault(part_name, []).append((url, page_title))
 
         nav = list(parts.items())
-        return self._write_book(output_dir, title, nav, records, version, edition, theme)
+        return self._write_book(output_dir, title, nav, records, version, edition, theme,
+                                logo=logo, subtitle=subtitle, institutions=institutions)
