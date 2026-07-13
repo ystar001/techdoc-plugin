@@ -1,6 +1,6 @@
 {
   "name": "techdoc-plugin",
-  "version": "1.8.1",
+  "version": "1.8.2",
   "description": "TechDoc — AI 기술보고서 생성 Cowork Plugin. 대학·기업·연구기관 레퍼런스 기반 논문 수준 기술보고서, 카드 중첩식 섹션 + 별첨 심층분석 (기술 15k~40k자 / 프로젝트 20k~50k자).",
   "author": {
     "name": "Klaus",

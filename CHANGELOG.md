@@ -4,6 +4,21 @@ All notable changes to TechDoc Plugin.
 
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.8.2] — 2026-07-13
+
+### Added (품질 게이트·서식 — v1.9.0 워크스트림 D·E 선출시)
+
+- **F50** `format_gate.count_visual_elements` + `visual_density` 지표 — 본문의 표·mermaid·이미지 계수, 본문 ≥3000자에 4000자당 1개 미만이면 WARNING. writer `card_layout_conventions.md`에 시각화 밀도 규칙(섹션당 최소 1개 시각 요소·`figures`/`diagrams` 활용). (findings F50)
+- **F24** `DocumentMetaSchema.style`에 `혼합형`(서술+개조 혼용) 추가 — 서술형/개조식 상호배제 해제. writer에 서식 혼용 규칙. (findings F24)
+
+### Changed
+
+- **F49** `format_gate`의 `inline_enumeration`을 `STRICT_FAIL_METRICS`에 편입 — `--strict`에서 산문 병렬 열거(첫째/둘째)를 FAIL로 승격(리스트 강제). (findings F49)
+
+### Fixed
+
+- **F53** `update_plugin.py` stdout/stderr UTF-8 가드(`_ensure_utf8_stdout`) — 한글·em-dash print가 cp949 등 비-UTF-8 콘솔에서 `UnicodeEncodeError`로 업데이트 중 크래시하던 것 방어. (findings F53)
+
 ## [1.8.1] — 2026-07-13
 
 ### Fixed (조사·검증 파이프라인 견고성 — v1.9.0 워크스트림 G 선출시)

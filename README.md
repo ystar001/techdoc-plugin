@@ -3,7 +3,7 @@
 > **AI 기술보고서 자동 생성 Claude Code 플러그인** — v1.3.0 (2026-05-13)
 > 레퍼런스 100% 기반 · 카드 중첩식 섹션 · 별첨 논문 수준 심층분석 · LLM Wiki 통합 · Claude Code 네이티브
 
-[![Version](https://img.shields.io/badge/version-1.8.1-green)]()
+[![Version](https://img.shields.io/badge/version-1.8.2-green)]()
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue)]()
 [![License](https://img.shields.io/badge/license-MIT-green)]()
 [![Plugin](https://img.shields.io/badge/claude--code-plugin-purple)]()
@@ -1074,6 +1074,7 @@ unzip techdoc-plugin-v1.1.0-wrapped.zip -d ~/.claude/plugins/
 
 | 버전 | 주요 변경 | 파일 수 | 코드 |
 |---|---|---|---|
+| **v1.8.2** (2026-07-13) | 품질 게이트·서식(v1.9.0 워크스트림 D·E 선출시): format_gate 시각화 밀도 지표(F50)·인라인 열거 strict FAIL 승격(F49), style '혼합형' 혼용(F24), update_plugin UTF-8 가드(F53). SCHEMA 유지. | (변동 없음) | 약 22k줄 |
 | **v1.8.1** (2026-07-13) | 조사·검증 견고성 patch(v1.9.0 워크스트림 G 선출시): KeyRef 4자리 REF(F35)·1990 이전 연도(F33)·category 기타(F46) 완화, merge_research str refs 크래시 방어(F34·F44), check_quality front-matter P0 임계·별첨 letter 인식(F45·F47), parse_toc 태그 폴백 편향 제거(F31). SCHEMA 유지. | (변동 없음) | 약 22k줄 |
 | **v1.8.0** (2026-07-06) | 서식 게이트 확장: `format_gate`에 제어문자(F40)·mermaid 라벨 sanity(F39)·인라인 열거(F41) 지표 + `render_nesting` fenced_code(F37), `check_quality`에 캡션 정합 게이트(F42). writer 프롬프트 서식·mermaid 저작 규칙(`card_layout_conventions.md`). F38·F43은 F15 렌더러 흡수 종속으로 유보. SCHEMA 유지. | (변동 없음) | 약 22k줄 |
 | **v1.3.0**–**v1.7.0** | 상세 이력은 `CHANGELOG.md` 참조 (Notion·Autopilot·self-model 표준화·render 일반화/트리·서식 게이트 도입 F27·F28·F30). | (변동 없음) | — |
