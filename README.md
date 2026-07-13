@@ -1078,7 +1078,7 @@ unzip techdoc-plugin-v1.1.0-wrapped.zip -d ~/.claude/plugins/
 
 | 버전 | 주요 변경 | 파일 수 | 코드 |
 |---|---|---|---|
-| **v1.10.1** (2026-07-13) | 웹북 디자인 대개편(모던 테크): 좌측 트리 사이드바·정식 표지·전문 검색·이전/다음 pager·정갈한 표/코드/mermaid. `webbook.js`·`search-index.js` 자산 추가. export 로직 무변경 (F52). SCHEMA 유지. | (변동 없음) | 약 23.3k줄 |
+| **v1.10.1** (2026-07-13) | 웹북 디자인 대개편: **테마 4종**(`--theme` classic 기본=의성 CI 그린 리포트·premium·light·slate) + 좌측 트리 사이드바·정식 표지(로고·통계 타일·CTA)·전문 검색·pager + **표지 브랜딩**(`--logo`·`--subtitle`·`--institutions` 전 테마 공통). export 로직 무변경 (F52). SCHEMA 유지. | (변동 없음) | 약 23.5k줄 |
 | **v1.10.0** (2026-07-13) | 정형 카드·한글화·소급 서식: `/techdoc-enrich`(서식 소급 개선, 내용 보존, F25), `formal_blocks`(함수명세·상태벡터·파라미터표 구조화+CSV/JSON 추출, F32), `localize`(용어 한글화 토큰맵 `--term-map`, F29). 명령 19종·프롬프트 26종 (findings F25·F32·F29). SCHEMA 유지. | (변동 없음) | 약 23k줄 |
 | **v1.9.1** (2026-07-13) | 웹북 폴리시: 판본(`--variant general`, formal_section 제외)+버전·판본 배지(F43·F36), **md 왕복 편집**(`--webbook --from-md`, `--tree` md 편집→웹북 재렌더, F51) (findings F43·F36·F51). SCHEMA 유지. | (변동 없음) | 약 22.6k줄 |
 | **v1.9.0** (2026-07-13) | **웹북 렌더러 plugin 승격(키스톤)**: 자식 `build_webbook.py`를 `techdoc_core/renderers/webbook.py`(`WebbookExporter`)+`webbook_md2html.py`로 승격. `/techdoc-render --webbook`로 카드→file:// 다중 페이지 HTML 웹북(index+Part 페이지+assets). 수식 `$…$` 보호(F38)·fenced mermaid `<br/>` 보존(F48)·2단 중첩 리스트(F26) (findings F52·F38·F48·F26). SCHEMA 유지. | (변동 없음) | 약 22.5k줄 |

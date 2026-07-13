@@ -32,6 +32,8 @@ argument-hint: "--input FILE [--refs FILE] [--type DESIGN] [--formats html,pdf,d
 - `--variant full|general` — 판본 (general은 `formal_section` 카드 제외, F36·F43)
 - `--doc-version TEXT` · `--edition TEXT` — 표지 버전·판본 배지 (F43)
 - `--term-map FILE` — 용어 한글화 토큰맵 JSON (영문 sec제목·jargon → 한글, F29)
+- `--theme classic|premium|light|slate` — 디자인 테마 (기본 classic=의성 CI 그린 리포트). 색 팔레트만 교체, 구조 공유
+- `--logo FILE` · `--subtitle TEXT` · `--institutions "a,b,c"` — 표지 브랜딩(로고 이미지·영문 부제·기관 배지), 전 테마 공통
 
 출력: `index.html`(표지+전체 목차+버전/판본 배지) + `Part-*/<card_id>.html`(Part별 카드/병합 페이지) + `assets/webbook.css`. 수식 `$$…$$`·`$…$` 보호 후 MathJax 렌더(F38), fenced ```mermaid → `<pre class="mermaid">` `<br/>` 보존(F48), 2단 중첩 리스트(F26). 단일파일 render와 독립(opt-in).
 
