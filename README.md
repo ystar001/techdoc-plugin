@@ -39,7 +39,7 @@
   - [21. 자주 하는 작업 패턴 6종](#21-자주-하는-작업-패턴-6종)
   - [22. 핵심 파일 예시](#22-핵심-파일-예시)
 - [PART Ⅴ. 명령·옵션 레퍼런스](#part-ⅴ-명령옵션-레퍼런스)
-  - [23. 슬래시 명령 전체 (18종)](#23-슬래시-명령-전체-18종)
+  - [23. 슬래시 명령 전체 (19종)](#23-슬래시-명령-전체-19종)
   - [24. 주요 옵션 상세](#24-주요-옵션-상세)
 - [PART Ⅵ. 운영·배포](#part-ⅵ-운영배포)
   - [25. 설치 경로 4종](#25-설치-경로-4종)
@@ -67,7 +67,7 @@ TechDoc은 **AI 기술보고서 자동 생성 + LLM Wiki 누적을 지원하는 
 - ⭐ **LLM Wiki 누적** (D 하이브리드: 옵시디언·MkDocs·표준 마크다운 호환)
 - ⭐ **자체 업데이트** (`/techdoc-update`로 새 버전 자동 갱신)
 
-하도록 설계된 **18종 슬래시 명령 + 3종 Subagent + 25종 프롬프트(+공통 6종) + 14+ Python 모듈**의 종합 도구입니다.
+하도록 설계된 **19종 슬래시 명령 + 3종 Subagent + 26종 프롬프트(+공통 6종) + 14+ Python 모듈**의 종합 도구입니다.
 
 ## 2. 대상 사용자
 
@@ -167,12 +167,13 @@ techdoc-plugin/                                  # 플러그인 루트 (v1.1.0)
 │   ├── plugin.json                              # 이름·버전·설명
 │   └── marketplace.json                         # 자체 마켓플레이스
 │
-├── commands/                                    # 18종 슬래시 명령
+├── commands/                                    # 19종 슬래시 명령
 │   ├── techdoc.md            techdoc-outline.md
 │   ├── techdoc-research.md   techdoc-write.md
 │   ├── techdoc-review.md     techdoc-render.md
 │   ├── techdoc-resume.md     techdoc-rewrite.md
 │   ├── techdoc-deepdive.md   techdoc-doctor.md
+│   ├── techdoc-enrich.md                                 # ⭐ v1.9.x (서식 소급 개선, F25)
 │   ├── techdoc-demo.md       techdoc-update.md          # ⭐ v1.1.0
 │   ├── techdoc-export-wiki.md                           # ⭐ v1.1.0
 │   ├── techdoc-export-notion.md                         # ⭐ v1.2.0
@@ -186,7 +187,7 @@ techdoc-plugin/                                  # 플러그인 루트 (v1.1.0)
 │   ├── techdoc-writer.md                        # 카드·별첨 작성
 │   └── techdoc-reviewer.md                      # 도메인 검토
 │
-├── prompts/                                     # 25종 프롬프트(+공통 6종)
+├── prompts/                                     # 26종 프롬프트(+공통 6종)
 │   ├── _shared/                                 # 공통 (5종)
 │   ├── tech_card.md  project_card.md  product_card.md
 │   ├── appendix_tech.md  appendix_project.md
@@ -895,7 +896,7 @@ techdoc_auto: true
 
 # PART Ⅴ. 명령·옵션 레퍼런스
 
-## 23. 슬래시 명령 전체 (18종)
+## 23. 슬래시 명령 전체 (19종)
 
 | 그룹 | 명령 | 핵심 역할 | 소요 |
 |---|---|---|---|
@@ -909,6 +910,7 @@ techdoc_auto: true
 | | `/techdoc-render` | Step 12 4종 출력 | 2~3분 |
 | **재실행** | `/techdoc-resume` | 단계 단위 | 가변 |
 | | `/techdoc-rewrite` | **카드 단위** ⭐ | 2~3분 |
+| | `/techdoc-enrich` | **서식 소급 개선** (내용 보존, F25) ⭐ | 1~2분 |
 | | `/techdoc-deepdive` | **별첨 개별** ⭐ | 10~15분 |
 | **Wiki** ⭐ | `/techdoc-export-wiki` | LLM Wiki 변환·누적 | 1~2분 |
 | **Notion** ⭐ | `/techdoc-export-notion` (v1.2.0) | TechDoc 보고서 → Notion publish (페이지 계층 + KeyRef DB) | 30초~3분 |
