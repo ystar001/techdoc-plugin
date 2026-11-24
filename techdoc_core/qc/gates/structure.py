@@ -24,9 +24,12 @@ from techdoc_core.qc.card_text import card_texts, sections_of
 from techdoc_core.qc.dicts import load_dict
 from techdoc_core.qc.model import DocModel
 from techdoc_core.qc.numbering import (
+    CAPTION_KINDS,
+    CAPTION_TOKEN,
     appendix_letters,
     head_num,
     lead_num,
+    normalize_captions,
     section_file_re,
     section_num,
     section_ref_re,
@@ -107,7 +110,7 @@ REF_CH_LIST = re.compile(r"章\s*\d{1,2}((?:\s*[·,]\s*\d{1,2})+)")
 REF_ITEM = re.compile(r"「([^」]{2,60})」\s*항(?!목)")
 _ITEM_QUAL_ARABIC = r"\d+\.[A-Z]\.\d+|\b[A-Z]\d+|\d+\.\d+\s*절?"
 # 캡션 정의줄 — 굵은 옛 꼴과 굵게 없는 정본 꼴(줄 첫머리 + 번호 + 마침표 + 빈칸)
-CAP_PLAIN_AHEAD = r"(?=(?:그림|표|차트|사진|다이어그램)\s[\dA-Za-z][0-9A-Za-z.\-]*\.\s)"
+CAP_PLAIN_AHEAD = r"(?=" + CAPTION_KINDS + r"\s" + CAPTION_TOKEN + r"\.\s)"  # 번호 조각은 numbering(F82)
 CAP_OPEN = r"(?:\*\*|(?<![^\n])" + CAP_PLAIN_AHEAD + ")"
 CAP_DEF = re.compile(CAP_OPEN + r"(그림|표|차트|사진|다이어그램)\s*([\dA-Za-z][\w.\-]*?)\.(?:\*\*|\s)")
 CAP_DEF_LINE = re.compile(
@@ -196,7 +199,9 @@ def v2_cross_refs(model: DocModel) -> GateOutput:
     out: list[Finding] = []
     for cid, card in cards.items():
         item_titles = {f for _k, t, _b in sections_of(card) if t for f in _title_forms(t)}
-        for key, title, body in card_texts(card):
+        # roman이면 번호 뒤 마침표 없는 캡션도 정의로(F82) — arabic은 그대로
+        texts = [(k, t, normalize_captions(b, style)) for k, t, b in card_texts(card)]
+        for key, title, body in texts:
             blob = f"{title}\n{body}"
             loc = f"{cid}|{key}"
             # 항 참조 — 카드 코드가 앞에 붙은 것은 문서 전체 항 제목에서 찾는다
@@ -226,8 +231,8 @@ def v2_cross_refs(model: DocModel) -> GateOutput:
                     out.append(Finding(f"{loc}: 별첨", f"{cid}·{key} → 별첨 {m.group(1)} 없음"))
 
         # 표·그림 번호 — 정의 없이 쓰인 자기 카드 도표, 같은 번호가 두 도표에 (원본: 면제 없음)
-        whole = "\n".join(b for _, _, b in card_texts(card))
-        defined = {f"{k}{n.rstrip('.')}" for k, n in CAP_DEF.findall(whole) + CAP_DEF_CHART.findall(whole)}
+        whole = "\n".join(b for _, _, b in texts)
+        defined ={f"{k}{n.rstrip('.')}" for k, n in CAP_DEF.findall(whole) + CAP_DEF_CHART.findall(whole)}
         mine = cid + "-"
         for kind, num0 in CAP_USE.findall(whole):
             num = num0.rstrip(".")

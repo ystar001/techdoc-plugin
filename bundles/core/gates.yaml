@@ -246,3 +246,92 @@
   core: [쉬운 말, 일관성, 품질]
   level: 시범
   inputs: [tree]
+# ── v1.11-b Task 4: 캡션·도표 12종 (시리즈 check_v2·prose_gates 이식, F82 로마 숫자 캡션) ──
+# 막음은 독자가 보는 결함(캡션 결손·부르지 않는 도표 V6, 번호 역전·결번 V12, 표가 문단을 삼킴 V15,
+# mermaid 지움줄 오류 V73, 축 이름 없는 그래프 V75)만. 캡션 문체·설명 가독성·열 이름·자리 호출·근거 열은
+# 경고(E18 11번), 그림 안 글 길이는 시범. 시리즈 설정이 원본 막음으로 되돌린다.
+- id: V6
+  title: 캡션·본문 연계
+  rules: [Q7-006, Q7-039, W-091]
+  layer: 문서종류
+  core: [일관성, 품질]
+  level: 막음
+  inputs: [cards]
+  exemptable: false   # 원본은 면제를 적용하지 않음(fail에 바로 더함)
+- id: V12
+  title: 도표 번호 정합
+  rules: [Q3-067, Q6-037, Q7-009, W-028]
+  layer: 문서종류
+  core: [일관성, 품질]
+  level: 막음
+  inputs: [cards]
+- id: V15
+  title: 표 뒤 빈 줄
+  rules: [Q8-002]
+  layer: 문서종류
+  core: [품질]
+  level: 막음
+  inputs: [cards]
+- id: V17
+  title: 캡션 규약 일관성
+  rules: [Q7-001, Q7-010]
+  layer: 문서종류
+  core: [일관성, 품질]
+  level: 경고
+  inputs: [cards]
+- id: V18
+  title: 도표 아래 설명 문단의 가독성
+  rules: [Q3-010, Q5-004]
+  layer: 문서종류
+  core: [쉬운 말, 일관성]
+  level: 경고
+  inputs: [cards]
+- id: V40
+  title: 근거 등급 열
+  rules: [Q1-015, Q2-005]
+  layer: 문서종류
+  core: [일관성, 품질]
+  level: 경고
+  inputs: [tree]
+- id: V62
+  title: 표의 참조 열
+  rules: [Q7-020]
+  layer: 문서종류
+  core: [품질]
+  level: 경고
+  inputs: [tree]
+- id: V63
+  title: 표 열 이름 정규화
+  rules: [Q5-019b, Q7-022]
+  layer: 문서종류
+  core: [쉬운 말, 일관성]
+  level: 경고
+  inputs: [tree]
+- id: V66
+  title: 그림·표 자리 호출
+  rules: [Q7-024, Q7-025]
+  layer: 본체
+  core: [일관성, 품질]
+  level: 경고
+  inputs: [tree]
+- id: V73
+  title: mermaid 홑 물결표
+  rules: [Q8-018]
+  layer: 본체
+  core: [품질]
+  level: 막음
+  inputs: [tree]
+- id: V75
+  title: 그래프 축 이름
+  rules: [Q7-031]
+  layer: 본체
+  core: [품질]
+  level: 막음
+  inputs: [tree]
+- id: V80
+  title: 그림 안 글 길이
+  rules: [Q5-028, Q5-079b, Q7-032]
+  layer: 본체
+  core: [쉬운 말, 품질]
+  level: 시범
+  inputs: [tree]

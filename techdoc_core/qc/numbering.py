@@ -51,6 +51,30 @@ def caption_num_re(style: str | None) -> re.Pattern:
     return re.compile(_CAPTION_NUM[_style(style)])
 
 
+# 캡션 정의줄의 도표 종류와 번호 조각 — 카드 게이트(check_v2 CAP_PLAIN_AHEAD)와 산문 게이트(prose_gates
+# CAP_PLAIN)가 같은 문자열을 따로 적던 것을 한 곳에(F82). 번호는 ASCII만 받는다(한글을 먹지 않게)
+CAPTION_KINDS = r"(?:그림|표|차트|사진|다이어그램)"
+CAPTION_TOKEN = r"[\dA-Za-z][0-9A-Za-z.\-]*"
+_ROMAN_CAP_LINE = re.compile(
+    rf"(?m)^((?:\*\*)?{CAPTION_KINDS}\s*)({_CAPTION_NUM['roman']})(?=[ \t])")
+_ROMAN_CAP_CHART = re.compile(
+    rf'("caption"\s*:\s*"{CAPTION_KINDS}\s*)({_CAPTION_NUM["roman"]})(?=\s)')
+
+
+def normalize_captions(text: str, style: str | None) -> str:
+    """번호 뒤 마침표 없는 캡션을 원본 캡션 꼴로 (F82) — arabic·letter_middle은 그대로 돌려준다.
+
+    로마 숫자 문서는 캡션을 「**표 I.1-1 제목**」·「그림 IV.19-1 제목」처럼 번호 뒤 마침표 없이 적는다.
+    원본 캡션 정규식은 번호 뒤 마침표를 요구하므로, roman이면 줄 첫머리(또는 차트 caption)의 캡션 번호
+    (`caption_num_re`) 뒤에 마침표를 넣어 원본 정규식이 그대로 알아보게 한다. 줄 수는 바뀌지 않는다.
+    본문 호출 「표 IV.18-8은」은 번호 뒤가 빈칸이 아니라 건드리지 않는다.
+    """
+    if _style(style) != "roman":
+        return text
+    text = _ROMAN_CAP_LINE.sub(r"\1\2.", text)
+    return _ROMAN_CAP_CHART.sub(r"\1\2.", text)
+
+
 _LEAD = {"arabic": r"[0-9]+", "roman": r"[IVX]+", "letter_middle": r"[0-9]+"}
 _SECTION_FILE = {
     "arabic": r"^(\d+)\.(\d+)([^.\s]*)\.\s",  # 원본 prose_gates._SEC_FILE

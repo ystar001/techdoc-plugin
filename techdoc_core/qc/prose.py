@@ -9,14 +9,14 @@ from __future__ import annotations
 import re
 from collections.abc import Iterator
 
-from techdoc_core.qc.numbering import head_re
+from techdoc_core.qc.numbering import CAPTION_KINDS, CAPTION_TOKEN, head_re
 
 FENCE = re.compile(r"^\s*```")
 SKIP_LINE = re.compile(r"^\s*(?:\||#{1,6}\s|>|!!!|\$\$|[-*+]\s*\||<div\b)")
 CAP_DEF = re.compile(
     r"^\s*(?:\*\*(?:그림|표|차트|사진|다이어그램)\s|(?:그림|표|차트|사진|다이어그램)\s"
     r"[\dA-Za-z][0-9A-Za-z.\-]*\.(?:\s|$))")
-CAP_PLAIN = r"(?:그림|표|차트|사진|다이어그램)\s[\dA-Za-z][0-9A-Za-z.\-]*\.(?=\s|$)"
+CAP_PLAIN = CAPTION_KINDS + r"\s" + CAPTION_TOKEN + r"\.(?=\s|$)"  # 번호 조각은 numbering(F82)
 CAP_LINE_ANY = re.compile(
     r"^\s*(?:\*\*(?:그림|표|차트|사진|다이어그램)\s*[\dA-Za-z][\w.\-]*\.?\*\*|" + CAP_PLAIN + ")")
 SENT = re.compile(r"(?<=[가-힣\)\]」』\*%\d℃`])\.[」』\)\*”`]*\s+")
