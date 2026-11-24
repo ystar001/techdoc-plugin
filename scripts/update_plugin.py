@@ -2,10 +2,18 @@
 
 GitHub Releases (ystar001/techdoc-plugin)에서 최신 zip을 받아 plugin 디렉토리를 갱신.
 
+갱신 대상은 Claude Code가 실제로 읽는 폴더 — `~/.claude/plugins/installed_plugins.json`의
+techdoc 항목 `installPath`다(findings F108). 캐시의 다른 판 폴더에서 실행해도 installPath
+폴더를 갱신하고, json 항목의 version·lastUpdated를 고친다(고치기 전 json 백업
+`installed_plugins.json.bak-<시각>`). installPath는 바꾸지 않는다 — 새 폴더를 만들고 가리키게
+하는 것보다 기존 폴더를 백업·적용·롤백하는 쪽이 실패 시 되돌리기 쉽다.
+
 사용법:
     python -m scripts.update_plugin            # 적용 (사용자 [y/N] 확인 후)
     python -m scripts.update_plugin --check    # 체크만
     python -m scripts.update_plugin --force    # 동일 버전이어도 강제 재설치
+    python -m scripts.update_plugin --yes      # 확인 없이 적용 (비대화식)
+    python -m scripts.update_plugin --installed-json <path>   # json 위치 지정
 """
 
 from __future__ import annotations
@@ -14,6 +22,7 @@ import argparse
 import hashlib
 import io
 import json
+import os
 import re
 import shutil
 import sys
@@ -318,6 +327,99 @@ def print_reload_hint() -> None:
     print("완료. /reload-plugins 실행을 권장합니다.")
 
 
+# ── 설치 경로 (installed_plugins.json, F108) ─────────────────────────────────
+
+INSTALLED_JSON_ENV = "TECHDOC_INSTALLED_PLUGINS"
+PLUGIN_NAME = "techdoc-plugin"
+
+
+def installed_plugins_path() -> Path:
+    """Claude Code 설치 목록 json 경로 — 환경 변수 > 홈 아래 기본값(호출 시점에 계산)."""
+    env = os.environ.get(INSTALLED_JSON_ENV, "").strip()
+    if env:
+        return Path(env)
+    return Path.home() / ".claude" / "plugins" / "installed_plugins.json"
+
+
+@dataclass
+class InstallEntry:
+    json_path: Path
+    key: str
+    index: int
+    install_path: Path
+
+
+def find_install_entry(json_path: Path) -> InstallEntry | None:
+    """json에서 techdoc 항목(키 `techdoc-plugin@…`)의 installPath를 찾는다. 없으면 None."""
+    try:
+        data = json.loads(json_path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    plugins = data.get("plugins", {}) if isinstance(data, dict) else {}
+    if not isinstance(plugins, dict):
+        return None
+    for key, entries in plugins.items():
+        if str(key).split("@", 1)[0] != PLUGIN_NAME:
+            continue
+        for i, ent in enumerate(entries if isinstance(entries, list) else [entries]):
+            if isinstance(ent, dict) and ent.get("installPath"):
+                return InstallEntry(json_path, key, i, Path(ent["installPath"]))
+    return None
+
+
+def record_install(entry: InstallEntry, version: str) -> Path:
+    """json을 백업한 뒤 그 항목의 version·lastUpdated를 갱신. 백업 경로 반환.
+
+    installPath·다른 플러그인 항목은 건드리지 않는다. 임시 파일에 쓴 뒤 교체(반쯤 쓴 json 방지).
+    """
+    from datetime import datetime, timezone
+
+    now = datetime.now(timezone.utc)
+    backup = entry.json_path.with_name(
+        f"{entry.json_path.name}.bak-{now.strftime('%Y%m%d-%H%M%S')}")
+    shutil.copy2(entry.json_path, backup)
+    data = json.loads(entry.json_path.read_text(encoding="utf-8"))
+    entries = data["plugins"][entry.key]
+    ent = entries[entry.index] if isinstance(entries, list) else entries
+    ent["version"] = version
+    ent["lastUpdated"] = now.strftime("%Y-%m-%dT%H:%M:%S.") + f"{now.microsecond // 1000:03d}Z"
+    tmp = entry.json_path.with_name(entry.json_path.name + ".tmp")
+    tmp.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    os.replace(tmp, entry.json_path)
+    return backup
+
+
+def resolve_target(
+    plugin_root: Path | None, installed_json: Path | None
+) -> tuple[Path, InstallEntry | None, str | None]:
+    """갱신할 폴더 → (폴더, 설치 항목, 오류). installPath가 있으면 그 폴더가 대상.
+
+    plugin_root만 주입되고 json이 없으면(기존 테스트) 실제 홈을 읽지 않고 그 폴더만 쓴다.
+    """
+    run_dir = plugin_root or PLUGIN_ROOT_DEFAULT
+    if plugin_root is not None and installed_json is None:
+        return run_dir, None, None
+    json_path = installed_json or installed_plugins_path()
+    entry = find_install_entry(json_path)
+    if entry is None:
+        print(
+            f"경고: installed_plugins.json에서 techdoc 설치를 찾지 못함({json_path}) "
+            f"— 실행 폴더를 갱신한다: {run_dir}",
+            file=sys.stderr,
+        )
+        return run_dir, None, None
+    target = entry.install_path
+    if not (target / ".claude-plugin" / "plugin.json").is_file():
+        return run_dir, entry, (
+            f"installPath 폴더에 플러그인이 없습니다: {target} "
+            "— /plugin으로 다시 설치하거나 installed_plugins.json을 확인하세요"
+        )
+    with_note = run_dir.resolve() != target.resolve()
+    if with_note:
+        print(f"안내: 실행 폴더({run_dir}) 대신 Claude Code가 읽는 installPath를 갱신한다: {target}")
+    return target, entry, None
+
+
 # ── 진입점 ────────────────────────────────────────────────────────────────────
 
 
@@ -329,19 +431,32 @@ def _http_transport() -> httpx.BaseTransport | None:
 PLUGIN_ROOT_DEFAULT = Path(__file__).resolve().parent.parent
 
 
-def main(argv: list[str] | None = None, plugin_root: Path | None = None) -> int:
+def main(
+    argv: list[str] | None = None,
+    plugin_root: Path | None = None,
+    installed_json: Path | None = None,
+) -> int:
     """진입점.
 
     argv: 인자 리스트 (None이면 sys.argv[1:])
     plugin_root: 테스트에서 가짜 plugin 디렉토리 주입 (None이면 자동 탐지)
+    installed_json: 테스트에서 installed_plugins.json 경로 주입 (F108)
     """
     parser = argparse.ArgumentParser(prog="update_plugin")
     parser.add_argument("--check", action="store_true", help="체크만, 적용 안 함")
     parser.add_argument("--force", action="store_true", help="동일 버전이어도 강제 재설치")
+    parser.add_argument("-y", "--yes", action="store_true", help="확인 없이 적용 (비대화식)")
+    parser.add_argument("--installed-json",
+                        help="installed_plugins.json 경로 (기본: ~/.claude/plugins/…)")
     args = parser.parse_args(argv)
     _ensure_utf8_stdout()
 
-    root = plugin_root or PLUGIN_ROOT_DEFAULT
+    if installed_json is None and args.installed_json:
+        installed_json = Path(args.installed_json)
+    root, entry, err = resolve_target(plugin_root, installed_json)
+    if err:
+        print(f"오류: {err}", file=sys.stderr)
+        return 1
 
     try:
         current = read_current_version(root)
@@ -371,7 +486,7 @@ def main(argv: list[str] | None = None, plugin_root: Path | None = None) -> int:
     if args.check:
         return 0
 
-    if not confirm_with_user():
+    if not args.yes and not confirm_with_user():
         print("취소되었습니다.")
         return 0
 
@@ -426,6 +541,22 @@ def main(argv: list[str] | None = None, plugin_root: Path | None = None) -> int:
                     file=sys.stderr,
                 )
             return 1
+
+    # F108: 갱신 뒤 판은 실제로 갱신한 폴더(installPath)에서 읽어 보고하고 json 항목을 맞춘다
+    try:
+        installed = read_current_version(root)
+    except PluginError as e:
+        print(f"오류 (적용 뒤 판 확인): {e}", file=sys.stderr)
+        return 1
+    if entry is not None:
+        try:
+            json_backup = record_install(entry, installed)
+            print(f"installed_plugins.json 갱신 (백업: {json_backup})")
+        except (OSError, ValueError, KeyError, IndexError) as e:
+            print(f"경고: installed_plugins.json 갱신 실패 — 폴더는 갱신됨: {e}", file=sys.stderr)
+        print(f"설치 판(installPath 기준): v{installed} — {root}")
+    else:
+        print(f"설치 판: v{installed} — {root}")
 
     print_reload_hint()
     print(f"이전 버전 백업 위치: {backup_dir} (필요 시 수동 롤백 가능)")
