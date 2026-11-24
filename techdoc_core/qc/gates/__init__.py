@@ -2,6 +2,7 @@
 from techdoc_core.qc.gates import (  # noqa: F401
     captions,
     citation,
+    leak,
     notation,
     sentences,
     structure,

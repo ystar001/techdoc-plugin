@@ -15,7 +15,8 @@ def test_core_gate_specs_load():
                           "V6", "V12", "V15", "V17", "V18", "V40", "V62", "V63",  # v1.11-b 캡션
                           "V66", "V73", "V75", "V80",
                           "V22", "V37", "V42", "V46", "V47", "V48", "V49", "V51",  # v1.11-b 표기
-                          "V64", "V7", "V14"}
+                          "V64", "V7", "V14",
+                          "V87"}  # v1.11-b 신규
     assert specs["V59"].exemptable is False and specs["V78"].level == "시범"
     assert specs["V57"].expects == {"methodology": ">=1"}
     assert specs["V8"].level == "막음"

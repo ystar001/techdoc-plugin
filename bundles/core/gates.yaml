@@ -414,3 +414,10 @@
   core: [품질]
   level: 막음
   inputs: [cards]
+- id: V87
+  title: 집필 흔적 — 호출 번호·작업 파일 이름·분할 안내·「이 카드」
+  rules: []   # 신규 게이트(F87) — 시리즈 규칙 대장에 대응 규칙이 아직 없음
+  layer: 본체
+  core: [품질]
+  level: 경고   # 범용 기본, 문서 종류·시리즈 설정이 막음으로 올림
+  inputs: [tree, cards]
