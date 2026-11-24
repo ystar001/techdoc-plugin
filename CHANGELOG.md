@@ -11,7 +11,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - 게이트 53종을 시리즈 게이트에서 이식: 구조·상호참조 12(V2·V21·V26·V30·V31·V34·V39·V44·V57·V59·V72·V78) · 문장 18(V23~V29·V35·V36·V41·V41W·V43·V50·V53·V54·V56·V69·V76·V81) · 캡션·도표 12(V6·V12·V15·V17·V18·V40·V62·V63·V66·V73·V75·V80) · 용어·표기·기타 11(V22·V37·V42·V46~V49·V51·V64·V7·V14). 판정 로직은 원본 그대로, 시리즈 고유 값(다른 문서 이름·분야 전문어·작성 관례 문구)은 플러그인 기본값이 아니라 설정(`extra.*`)으로. 시리즈 원본과 같은 입력에 나란히 돌려 게이트별 건수가 같음을 확인. 폐지 게이트 V16·V19는 옮기지 않음. (findings F85)
 - 신규 게이트 **V87 집필 흔적** — 카드 호출 번호·플러그인 작업 파일 이름·「다음 분할」·「이 카드」가 독자 글에 새는 것 (findings F87)
 - 신규 게이트 **V88 같은 틀 되풀이** — 한 장 안에서 같은 표제 머리가 3회를 넘으면 경고, 허용 목록 `extra.repeat.allow_heads` (findings F88)
-- 번호 꼴 모듈 — 절 참조·표제·캡션·별첨 번호를 `numbering.section`(arabic·roman·letter_middle)에 따라. 로마 숫자 부 문서의 캡션(`표 II.8-1`)·절 참조·카드 ID를 알아봄 (findings F82)
+- 번호 꼴 모듈 — 절 참조·표제·캡션·별첨 번호를 `numbering.section`(arabic·roman·letter_middle)에 따라. 로마 숫자 부 문서의 캡션(`표 II.8-1`)·절 참조·카드 ID를 알아봄. F82 부분 대응 — 로마 숫자 캡션·별첨 캡션·카드 도표 캡션 인식. `check_quality` 캡션 정규식 교체와 diagrams id만 있을 때 경고는 v1.11-c
 - 산문 공용 헬퍼·사전 묶음(`bundles/core/dicts/` 띄어쓰기 목록·한계값), 수식 안 한글 검사 모듈
 
 ### Changed (v1.11-b)
@@ -19,6 +19,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - 면제 설정을 `{"<카드>|<섹션>": {gates: [...], why: "사유"}}` 꼴로 — **사유 필수**, 면제로 뺀 건수는 결과 `exempted`에. 원래 면제가 적용되지 않던 게이트는 명세 `exemptable: false`.
 - 가독성·문체 게이트의 범용 기본 수준은 「경고」 — 처음 쓰는 문서가 수백 건 막음으로 멈추지 않게. 시리즈·문서 종류 설정(`gates.level`)이 막음으로 올린다.
 - 카드 말미 인용 목록 문구는 내장 규칙이 아니라 설정(`extra.citation.card_ref_list_pattern`).
+- 게이트 명세에 적용 문서 종류 `kinds`(비면 전부) — V21 핵심요약·V57 절 끝 결론은 `methodology`에만, 다른 종류는 skip(「문서 종류 밖」). V24·V31·V39·V44(메타 서술·표제 문체) 기본 수준을 경고로.
+- 게이트 사전(`dicts/`)이 층(문서 종류·분야·시리즈·프로젝트)을 실제로 따름 — 모델이 층 목록을 들고 게이트가 그 순서로 읽는다(층마다 캐시).
+- V88은 tech_report에서 플러그인 렌더러의 카드 블록 표제(`DEFAULT_SECTION_TITLES`)를 기본 허용. V2는 카드 `diagrams[].caption`·`figures[].caption`도 도표 정의로 본다. 섹션 본문·표제가 글이 아닌 카드 하나가 게이트를 문서 전체에서 끄지 않게 글로 바꿔 읽는다.
 
 
 ### Added (품질 게이트 엔진 — `/techdoc-qc`)

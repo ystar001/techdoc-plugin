@@ -21,7 +21,7 @@ from functools import lru_cache
 
 from techdoc_core.card_id import parse_card_id_parts
 from techdoc_core.qc.card_text import card_texts, sections_of
-from techdoc_core.qc.dicts import load_dict
+from techdoc_core.qc.dicts import layers_key, load_dict
 from techdoc_core.qc.model import DocModel
 from techdoc_core.qc.numbering import (
     CAPTION_KINDS,
@@ -125,6 +125,23 @@ CAP_USE = re.compile(
 def cap_defs(whole: str) -> list:
     """이 카드가 정의한 도표 — 마크다운 캡션 줄 + 차트 블록 caption."""
     return CAP_DEF_LINE.findall(whole) + CAP_DEF_CHART.findall(whole)
+
+
+_VISUAL_CAP = re.compile(
+    r"^\s*(?:\*\*)?(그림|표|차트|사진|다이어그램)\s*([\dA-Za-z](?:[\dA-Za-z.\-]*[\dA-Za-z])?)")
+
+
+def card_visual_captions(card: dict) -> set[str]:
+    """카드 시각 필드(F22 — `diagrams[].caption`·`figures[].caption`)가 정의한 도표 「그림II.8-1」."""
+    out: set[str] = set()
+    for field in ("diagrams", "figures"):
+        items = card.get(field)
+        for it in items if isinstance(items, list) else []:
+            cap = it.get("caption") if isinstance(it, dict) else None
+            m = _VISUAL_CAP.match(cap) if isinstance(cap, str) else None
+            if m:
+                out.add(f"{m.group(1)}{m.group(2)}")
+    return out
 
 
 def _title_forms(title: str):
@@ -233,6 +250,7 @@ def v2_cross_refs(model: DocModel) -> GateOutput:
         # 표·그림 번호 — 정의 없이 쓰인 자기 카드 도표, 같은 번호가 두 도표에 (원본: 면제 없음)
         whole = "\n".join(b for _, _, b in texts)
         defined ={f"{k}{n.rstrip('.')}" for k, n in CAP_DEF.findall(whole) + CAP_DEF_CHART.findall(whole)}
+        defined |= card_visual_captions(card)
         mine = cid + "-"
         for kind, num0 in CAP_USE.findall(whole):
             num = num0.rstrip(".")
@@ -736,9 +754,9 @@ _OL_LINE = re.compile(r"^\d+\.\s+\S")
 DEFAULT_FOLDER_NAMES = ("개요", "부록", "별첨")
 
 
-@lru_cache(maxsize=1)
-def _v78_limits() -> tuple[int, str]:
-    lim = (load_dict("gate_limits.json", []) or {}).get("V78") or {}
+@lru_cache(maxsize=16)
+def _v78_limits(layers: tuple = ()) -> tuple[int, str]:
+    lim = (load_dict("gate_limits.json", list(layers)) or {}).get("V78") or {}
     return (int(lim.get("max_subitems") or 7),
             lim.get("summary_names") or r"^(?:종합|정리|요약|소결)(?:\s|$)")
 
@@ -752,9 +770,10 @@ def _sub_kind(title: str):
 
 
 def subitem_issues(text: str, max_subitems: int | None = None,
-                   summary_name: re.Pattern | None = None) -> list[tuple[int, str]]:
+                   summary_name: re.Pattern | None = None,
+                   layers: tuple = ()) -> list[tuple[int, str]]:
     """(줄 번호, 메시지) — 한 항(`## n.`) 안의 소항(`###`)·목록 번호. 결론 항은 보지 않는다."""
-    lim_n, lim_rx = _v78_limits()
+    lim_n, lim_rx = _v78_limits(layers)
     max_subitems = lim_n if max_subitems is None else max_subitems
     summary_name = summary_name or re.compile(lim_rx)
     lines = text.split("\n")
@@ -817,6 +836,7 @@ def v78_subitem_levels(model: DocModel) -> GateOutput:
     file_re = section_file_re(style)
     folders = tuple(str(f) for f in (_cfg(model).get("folder_names") or DEFAULT_FOLDER_NAMES))
     files = ({tf.rel: tf.text for tf in model.tree} if model.tree else _texts(model))
+    layers = layers_key(model)
     out: list[Finding] = []
     targets = 0
     for key, text in files.items():
@@ -826,6 +846,6 @@ def v78_subitem_levels(model: DocModel) -> GateOutput:
         if not file_re.match(segs[-1]) or any(s.startswith(folders) for s in segs[:-1]):
             continue
         targets += 1
-        for ln, msg in subitem_issues(text):
+        for ln, msg in subitem_issues(text, layers=layers):
             out.append(Finding(f"{key}:{ln}", msg))
     return GateOutput(targets, out)

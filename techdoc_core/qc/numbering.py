@@ -22,7 +22,8 @@ _HEAD_NUM = {
 }
 _CAPTION_NUM = {
     "arabic": r"\d+(?:\.\d+)*-\d+",
-    "roman": r"(?:[IVX]+|\d+)(?:\.\d+)*-\d+",
+    # 별첨 캡션 「표 A.1-1」·「그림 B.2-3」 — 머리가 별첨 문자 한 자(F82)
+    "roman": r"(?:[IVX]+|\d+|[A-Z])(?:\.\d+)*-\d+",
     "letter_middle": r"\d+(?:\.[A-Z0-9]+)*-\d+",
 }
 

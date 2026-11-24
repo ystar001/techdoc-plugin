@@ -46,3 +46,5 @@ class GateSpec(BaseModel):
     override: bool = False
     # 원본이 hit()를 거치지 않아 면제가 먹지 않던 게이트(V6·V7·V8·V12 일부·V13·V59)는 false
     exemptable: bool = True
+    # 적용 문서 종류 — 비면 모든 종류. 밖의 종류면 엔진이 skip(「문서 종류 밖」)으로 둔다
+    kinds: list[str] = Field(default_factory=list)

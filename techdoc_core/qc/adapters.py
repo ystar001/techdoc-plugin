@@ -9,7 +9,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from techdoc_core.qc.config import ProjectConfig
+from techdoc_core.qc.config import ProjectConfig, layer_dirs
 from techdoc_core.qc.model import DocModel, TreeFile
 
 
@@ -128,4 +128,5 @@ def build_model(root: Path, cfg: ProjectConfig) -> DocModel:
         image_license=_load_license(cfg.paths.image_license, errors),
         extra=dict(cfg.extra),
         load_errors=errors,
+        layers=layer_dirs(cfg),
     )

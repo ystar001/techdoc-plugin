@@ -91,6 +91,8 @@ def run_qc(model: DocModel, specs: dict[str, GateSpec], funcs: dict[str, Callabl
         fn = funcs.get(gid)
         if gid in cfg.gates_off:
             row.update(verdict="skip", reason="설정으로 끔")
+        elif spec.kinds and model.kind not in spec.kinds:
+            row.update(verdict="skip", reason=f"문서 종류 밖({model.kind})")
         elif fn is None:
             row.update(verdict="skip", reason="구현 없음")
         else:

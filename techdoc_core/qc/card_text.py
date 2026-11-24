@@ -13,8 +13,15 @@ BLOCKS_META_KEYS = frozenset({
 })
 
 
+def _s(v) -> str:
+    """글이 아닌 값(숫자·None·목록)이 섞인 카드 하나가 게이트를 문서 전체에서 죽이지 않게 글로."""
+    if v is None:
+        return ""
+    return v if isinstance(v, str) else str(v)
+
+
 def sections_of(card: dict) -> list[tuple[str, str, str]]:
-    """(섹션 키, 표제, 본문) 목록."""
+    """(섹션 키, 표제, 본문) 목록 — 표제·본문은 늘 str(타입이 어긋난 값은 글로 바꾼다)."""
     out: list[tuple[str, str, str]] = []
     secs = card.get("sections")
     if not isinstance(secs, dict) and isinstance(card.get("blocks"), dict):
@@ -27,14 +34,14 @@ def sections_of(card: dict) -> list[tuple[str, str, str]]:
                 if not body:
                     body = "\n\n".join(x for kk, x in v.items()
                                        if kk not in ("title", "heading") and isinstance(x, str))
-                out.append((k, title, body))
+                out.append((_s(k), _s(title), _s(body)))
             else:
-                out.append((k, "", str(v)))
+                out.append((_s(k), "", str(v)))  # 원본 그대로(None → "None")
     elif isinstance(card.get("blocks"), list):
         for i, b in enumerate(card["blocks"], 1):
             if isinstance(b, dict):
-                out.append((b.get("block_id", f"blk{i}"), b.get("title", ""),
-                            b.get("body", "") or b.get("content", "") or b.get("text", "")))
+                out.append((_s(b.get("block_id", f"blk{i}")), _s(b.get("title", "")),
+                            _s(b.get("body", "") or b.get("content", "") or b.get("text", ""))))
     return out
 
 

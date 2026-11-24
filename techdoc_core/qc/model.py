@@ -26,6 +26,8 @@ class DocModel:
     image_license: str | None = None  # 이미지 라이선스 대장 글(V7) — 파일이 없으면 None
     extra: dict = field(default_factory=dict)
     load_errors: list[str] = field(default_factory=list)
+    # 묶음 층 [(층 이름, 디렉토리)] — 게이트 사전(`dicts/`)을 이 순서로 겹쳐 읽는다(config.layer_dirs)
+    layers: list[tuple[str, Path | None]] = field(default_factory=list)
 
     def is_empty(self) -> bool:
         return not self.cards and not self.tree and not self.draft

@@ -20,7 +20,7 @@ import re
 from functools import lru_cache
 
 from techdoc_core.qc.card_text import card_texts
-from techdoc_core.qc.dicts import load_dict
+from techdoc_core.qc.dicts import layers_key, load_dict
 from techdoc_core.qc.model import DocModel
 from techdoc_core.qc.prose import (
     BOLD,
@@ -649,10 +649,11 @@ _L_FINAL = "[" + "".join(chr(0xAC00 + i * 28 + 8) for i in range(19 * 21)) + "]"
 _QMASK = re.compile(r"`[^`\n]*`|\]\([^)]*\)|<[^>\n]*>|https?://\S+|\[(?:USER-)?REF-[^\]]*\]")
 
 
-@lru_cache(maxsize=1)
-def _spacing() -> tuple:
+@lru_cache(maxsize=16)
+def _spacing(layers: tuple = ()) -> tuple:
+    """띄어쓰기 목록 — 층 사전이 본체를 덮거나(`extend: true`면) 잇는다."""
     out = []
-    for it in (load_dict("spacing_list.json", []) or {}).get("items") or []:
+    for it in (load_dict("spacing_list.json", list(layers)) or {}).get("items") or []:
         try:
             rx = re.compile(it["re"].replace("{ㄹ받침}", _L_FINAL))
             ex = [re.compile(e.replace("{ㄹ받침}", _L_FINAL)) for e in it.get("except") or []]
@@ -662,11 +663,11 @@ def _spacing() -> tuple:
     return tuple(out)
 
 
-def spacing_hits(line: str) -> list:
+def spacing_hits(line: str, layers: tuple = ()) -> list:
     """(항목, 맞은 자리) — 제외 규칙은 맞은 자리 앞뒤 8자 안에서 본다."""
     s = _QMASK.sub(lambda m: " " * len(m.group(0)), line)
     hits = []
-    for it, rx, ex in _spacing():
+    for it, rx, ex in _spacing(layers):
         for m in rx.finditer(s):
             ctx = s[max(0, m.start() - 8):min(len(s), m.end() + 8)]
             if any(e.search(ctx) for e in ex):
@@ -682,6 +683,7 @@ def spacing_hits(line: str) -> list:
 def v76_spacing(model: DocModel) -> GateOutput:
     """국립국어원 기준으로 확실한 띄어쓰기 틀린 꼴(본체 사전 `dicts/spacing_list.json`)."""
     texts = _no_index(_texts(model))
+    layers = layers_key(model)
     out: list[Finding] = []
     for name, text in texts.items():
         fence = False
@@ -691,7 +693,7 @@ def v76_spacing(model: DocModel) -> GateOutput:
                 continue
             if fence or not ln.strip():
                 continue
-            for it, m in spacing_hits(ln):
+            for it, m in spacing_hits(ln, layers):
                 out.append(Finding(f"{name}:{i + 1}",
                                    f"띄어쓰기 {it['id']} 「{m.group(0).strip()}」→「{it['right']}」 — "
                                    f"{ln[max(0, m.start() - 10):m.end() + 6].strip()}"))
@@ -708,9 +710,10 @@ _NUM_ONLY = re.compile(r"^[\s\d.,%~∼\-–+×/()℃㎜]+$")  # noqa: RUF001
 DEFAULT_CITED_REFS = r"^\*\*인용 참고문헌"
 
 
-@lru_cache(maxsize=1)
-def _repeat_max() -> int:
-    return int(((load_dict("gate_limits.json", []) or {}).get("V81") or {}).get("repeat_max_chars") or 30)
+@lru_cache(maxsize=16)
+def _repeat_max(layers: tuple = ()) -> int:
+    lim = (load_dict("gate_limits.json", list(layers)) or {}).get("V81") or {}
+    return int(lim.get("repeat_max_chars") or 30)
 
 
 def _bkey(s: str) -> str:
@@ -721,7 +724,8 @@ def _cell_index(row: str, pos: int) -> int:
     return row[:pos].count("|") - 1
 
 
-def bold_issues(texts: dict[str, str], markers: dict | None = None) -> list[tuple[str, int, str]]:
+def bold_issues(texts: dict[str, str], markers: dict | None = None,
+                layers: tuple = ()) -> list[tuple[str, int, str]]:
     """(파일, 줄, 메시지) — ① 정의 자리 밖 반복 굵게 ③ 목록 머리말 일부만 굵게
     ④ 표제·캡션·표 칸·숫자만·목표 상자·결론 안 굵게.
 
@@ -734,7 +738,7 @@ def bold_issues(texts: dict[str, str], markers: dict | None = None) -> list[tupl
     conc_rx = re.compile(conc) if conc else None
     cited = markers.get("cited_refs", DEFAULT_CITED_REFS)
     cited_rx = re.compile(cited) if cited else None
-    repeat_max = _repeat_max()
+    repeat_max = _repeat_max(layers)
     out: list[tuple[str, int, str]] = []
     seen: dict[str, str] = {}
     for name, text in texts.items():
@@ -830,5 +834,5 @@ def v81_bold(model: DocModel) -> GateOutput:
     """굵은 글씨 — 정의 자리 밖 반복·목록 머리말 일부만·표제/캡션/표 칸/숫자만/목표 상자/결론 안."""
     texts = _no_index(_texts(model))
     markers = _prose_cfg(model).get("markers") or {}
-    out = [Finding(f"{n}:{ln}", msg) for n, ln, msg in bold_issues(texts, markers)]
+    out = [Finding(f"{n}:{ln}", msg) for n, ln, msg in bold_issues(texts, markers, layers_key(model))]
     return GateOutput(len(texts), out)

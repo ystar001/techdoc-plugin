@@ -17,6 +17,11 @@ def _read(path: Path) -> dict | list | None:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def layers_key(model) -> tuple:
+    """모델의 층 목록 → 캐시 키로 쓸 수 있는 튜플(게이트 사전 캐시는 층마다 따로)."""
+    return tuple((str(n), Path(d) if d is not None else None) for n, d in (model.layers or []))
+
+
 def load_dict(name: str, layers: list[tuple[str, Path | None]]) -> dict | list:
     """층 순서대로 `dicts/<name>`을 겹쳐 읽는다. 어디에도 없으면 빈 dict."""
     result: dict | list | None = _read(core_bundle_dir() / "dicts" / name)

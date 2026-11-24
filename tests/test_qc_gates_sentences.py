@@ -45,9 +45,8 @@ def test_zero_targets_when_no_input():
 def test_specs_levels_readability_warning():
     """E18 11번 — 가독성 게이트의 플러그인 기본은 경고, 결함 게이트만 막음, 시범 셋."""
     specs = load_gate_specs([("core", core_bundle_dir())])
-    assert {g: specs[g].level for g in ("V23", "V24", "V50")} == dict.fromkeys(
-        ("V23", "V24", "V50"), "막음")
-    for g in ("V25", "V27", "V28", "V29", "V35", "V36", "V41", "V43", "V53", "V54", "V56", "V69"):
+    assert {g: specs[g].level for g in ("V23", "V50")} == dict.fromkeys(("V23", "V50"), "막음")
+    for g in ("V24", "V25", "V27", "V28", "V29", "V35", "V36", "V41", "V43", "V53", "V54", "V56", "V69"):
         assert specs[g].level == "경고", g
     for g in ("V76", "V81", "V41W"):
         assert specs[g].level == "시범", g

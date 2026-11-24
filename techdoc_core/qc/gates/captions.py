@@ -24,7 +24,7 @@ from functools import lru_cache
 
 from techdoc_core.card_id import parse_card_id_parts
 from techdoc_core.qc.card_text import card_texts
-from techdoc_core.qc.dicts import load_dict
+from techdoc_core.qc.dicts import layers_key, load_dict
 from techdoc_core.qc.gates.structure import CAP_DEF_CHART, CAP_OPEN, base_id, cap_defs
 from techdoc_core.qc.model import DocModel
 from techdoc_core.qc.numbering import appendix_letters, normalize_captions
@@ -664,9 +664,10 @@ _MER_TAGS = re.compile(r"<[^>]+>|\*\*|&nbsp;|#quot;")
 _MER_ENT = re.compile(r"#\d+;|&#?\w+;")
 
 
-@lru_cache(maxsize=1)
-def _l80() -> dict:
-    return dict((load_dict("gate_limits.json", []) or {}).get("V80") or {})
+@lru_cache(maxsize=16)
+def _l80(layers: tuple = ()) -> dict:
+    """V80 한계값 — 층(문서 종류·분야·시리즈·프로젝트) 사전이 본체를 덮는다."""
+    return dict((load_dict("gate_limits.json", list(layers)) or {}).get("V80") or {})
 
 
 def text_width(s: str, ascii_weight: float | None = None) -> float:
@@ -675,19 +676,20 @@ def text_width(s: str, ascii_weight: float | None = None) -> float:
     return sum(w if ord(c) < 128 else 1.0 for c in s)
 
 
-def _seg_max(label: str) -> tuple[float, str]:
+def _seg_max(label: str, ascii_weight: float | None = None) -> tuple[float, str]:
     best = (0.0, "")
     for seg in _MER_BREAK.split(label):
         seg = _MER_ENT.sub("·", _MER_TAGS.sub("", seg)).strip()
-        w = text_width(seg)
+        w = text_width(seg, ascii_weight)
         if w > best[0]:
             best = (w, seg)
     return best
 
 
-def mermaid_text_issues(lines: list[str]) -> list[tuple[int, str]]:
-    """mermaid 원문 줄 목록 → (원문 안 줄 순번, 메시지)."""
-    lim = _l80()
+def mermaid_text_issues(lines: list[str], layers: tuple = ()) -> list[tuple[int, str]]:
+    """mermaid 원문 줄 목록 → (원문 안 줄 순번, 메시지). layers는 사전 층(`dicts.layers_key`)."""
+    lim = _l80(layers)
+    aw = float(lim.get("ascii_weight", 0.5))
     out = []
     lim_n = float(lim.get("node_chars", 24))
     lim_e = float(lim.get("edge_chars", 24))
@@ -699,30 +701,30 @@ def mermaid_text_issues(lines: list[str]) -> list[tuple[int, str]]:
             continue
         xm = re.match(r"^([xy])-axis\s+\"([^\"]*)\"\s*(\[.*\])?", s)
         if xm:
-            w, seg = _seg_max(xm.group(2))
+            w, seg = _seg_max(xm.group(2), aw)
             if w > lim_a:
                 out.append((j, f"축 이름 {w:g}자(> {lim_a:g}) — {seg[:30]}"))
             for c in _MER_QUOTED.findall(xm.group(3) or ""):
-                w, seg = _seg_max(c)
+                w, seg = _seg_max(c, aw)
                 if w > lim_c:
                     out.append((j, f"눈금 글 {w:g}자(> {lim_c:g}) — {seg[:30]}"))
             continue
         if _MER_SKIP.match(s) and not re.match(r"^\s*(?:pie|timeline)\b.*\"", s):
             continue
         for lab in _MER_EDGE.findall(s):
-            w, seg = _seg_max(lab)
+            w, seg = _seg_max(lab, aw)
             if w > lim_e:
                 out.append((j, f"연결선 글 {w:g}자(> {lim_e:g}) — {seg[:30]}"))
         rest = _MER_EDGE.sub(" ", s)
         labels = _MER_QUOTED.findall(rest) + _MER_BARE.findall(_MER_QUOTED.sub(" ", rest))
         for lab in labels:
-            w, seg = _seg_max(lab)
+            w, seg = _seg_max(lab, aw)
             if w > lim_n:
                 out.append((j, f"마디 글 {w:g}자(> {lim_n:g}) — {seg[:30]}"))
     return out
 
 
-def chart_text_issues(raw: str) -> list[str]:
+def chart_text_issues(raw: str, layers: tuple = ()) -> list[str]:
     """그래프 명세(JSON) → 메시지 목록. 축 이름(xlabel·ylabel)과 눈금 글(categories·x·axes·rows·cols)."""
     try:
         spec = json.loads(raw)
@@ -730,14 +732,15 @@ def chart_text_issues(raw: str) -> list[str]:
         return []
     if not isinstance(spec, dict):
         return []
-    lim = _l80()
+    lim = _l80(layers)
+    aw = float(lim.get("ascii_weight", 0.5))
     out = []
     lim_a = float(lim.get("axis_chars", 20))
     lim_c = float(lim.get("category_chars", 20))
     for k in ("xlabel", "ylabel"):
         v = spec.get(k)
         if isinstance(v, str):
-            w = text_width(v.strip())
+            w = text_width(v.strip(), aw)
             if w > lim_a:
                 out.append(f"축 이름 {k} {w:g}자(> {lim_a:g}) — {v[:30]}")
     for k in ("categories", "x", "axes", "rows", "cols", "labels"):
@@ -745,7 +748,7 @@ def chart_text_issues(raw: str) -> list[str]:
         if isinstance(v, list):
             for c in v:
                 if isinstance(c, str):
-                    w, seg = _seg_max(c)
+                    w, seg = _seg_max(c, aw)
                     if w > lim_c:
                         out.append(f"눈금 글 {k} {w:g}자(> {lim_c:g}) — {seg[:30]}")
     return out
@@ -764,6 +767,7 @@ def v80_figure_text_length(model: DocModel) -> GateOutput:
         files = {tf.rel: tf.text for tf in model.tree if tf.rel.rsplit("/", 1)[-1] != "INDEX.md"}
     else:
         files = _no_index(_texts(model))
+    layers = layers_key(model)
     out: list[Finding] = []
     blocks = 0
     for key, text in files.items():
@@ -778,10 +782,10 @@ def v80_figure_text_length(model: DocModel) -> GateOutput:
                 body = lines[i + 1:j]
                 blocks += 1
                 if s.startswith("```mermaid"):
-                    for jj, msg in mermaid_text_issues(body):
+                    for jj, msg in mermaid_text_issues(body, layers):
                         out.append(Finding(f"{key}:{i + 2 + jj}", msg))
                 else:
-                    for msg in chart_text_issues("\n".join(body)):
+                    for msg in chart_text_issues("\n".join(body), layers):
                         out.append(Finding(f"{key}:{i + 1}", msg))
                 i = j + 1
                 continue
