@@ -32,6 +32,7 @@ from techdoc_core.qc.legacy.doc_metrics import (
     measure_document,
     self_model_section_text,
     self_model_size_issues,
+    visual_caption_text,
 )
 from techdoc_core.qc.legacy.format_metrics import measure_format
 from techdoc_core.qc.model import DocModel
@@ -157,8 +158,11 @@ def _captions(model: DocModel) -> tuple[int, dict]:
     if res is not None:
         return _std_targets(model, "sections"), res["phase_a"]["caption_issues"]
     rows = _sm_rows(model)
+    # 카드 diagrams·figures 캡션은 정의(최종 리뷰 I4) — CLI와 같은 측정
     caps = _memo(model, "sm_caps",
-                 lambda: check_captions("\n".join(b for *_x, b in rows), _style(model)))
+                 lambda: check_captions("\n".join(b for *_x, b in rows), _style(model),
+                                        "\n".join(visual_caption_text(c)
+                                                  for c in _sm_cards(model).values())))
     return len(rows), caps
 
 

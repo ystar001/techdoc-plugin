@@ -32,7 +32,7 @@
   core: [품질]
   level: 경고  # E18 13 — 「… Team」 단체 지은이 오탐 소지, 막음은 시리즈·문서 종류 층이
   inputs: [reference_md, references]
-# ── v1.11-b Task 2: 구조·상호참조 12종 (시리즈 check_v2·prose_gates 이식) ──
+# ── v1.11-b Task 2: 구조·상호참조 12종 (이전 검사기에서 이식) ──
 - id: V2
   title: 끊어진 상호참조
   rules: [Q1-003, Q3-004, Q3-005, Q3-067, W-028]
@@ -125,7 +125,7 @@
   core: [쉬운 말, 일관성, 품질]
   level: 시범
   inputs: [tree]
-# ── v1.11-b Task 3: 문장(산문) 18종 (시리즈 check_v2·prose_gates 이식) ──
+# ── v1.11-b Task 3: 문장(산문) 18종 (이전 검사기에서 이식) ──
 # E18 11번 — 가독성·문체 게이트의 플러그인 기본 수준은 「경고」(처음 쓰는 문서가 수백 건 막음에 멈추지 않게).
 # 막음은 명백한 결함(붙은 문장 V23·집필 흔적 누수 V24·겹친 말 V50)만. 시리즈 설정이 원본 막음으로 되돌린다.
 - id: V23
@@ -255,7 +255,7 @@
   core: [쉬운 말, 일관성, 품질]
   level: 시범
   inputs: [tree]
-# ── v1.11-b Task 4: 캡션·도표 12종 (시리즈 check_v2·prose_gates 이식, F82 로마 숫자 캡션) ──
+# ── v1.11-b Task 4: 캡션·도표 12종 (이전 검사기에서 이식, F82 로마 숫자 캡션) ──
 # 막음은 독자가 보는 결함(캡션 결손·부르지 않는 도표 V6, 번호 역전·결번 V12, 표가 문단을 삼킴 V15,
 # mermaid 지움줄 오류 V73, 축 이름 없는 그래프 V75)만. 캡션 문체·설명 가독성·열 이름·자리 호출·근거 열은
 # 경고(E18 11번), 그림 안 글 길이는 시범. 시리즈 설정이 원본 막음으로 되돌린다.
@@ -491,13 +491,13 @@
   title: 학술 출처 비율 0.35 미만 (check_quality)
   layer: 본체
   core: [품질]
-  level: 막음
+  level: 경고   # 도구 FAIL — 출처 구성 목표는 문서 종류마다 다름(E17). kinds/tech_report가 막음으로
   inputs: [references]
 - id: PLG-CQ-rd_ratio
   title: 기업 R&D 출처 비율 0.24 미만 (check_quality)
   layer: 본체
   core: [품질]
-  level: 막음
+  level: 경고   # 도구 FAIL — 정책·사업 보고서는 정부·국제기구 출처가 중심(E17). kinds/tech_report가 막음으로
   inputs: [references]
 - id: PLG-CQ-tech_cards_per_section
   title: 섹션당 기술 카드 수 하한 미달 (check_quality)

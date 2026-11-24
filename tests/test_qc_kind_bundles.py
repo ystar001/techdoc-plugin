@@ -162,6 +162,31 @@ def test_unknown_kind_warns_once(tmp_path):
     assert len(cfg.warnings) == 1 and "모르는 문서 종류" in cfg.warnings[0]
 
 
+def _design_kinds() -> set[str]:
+    from techdoc_core.qc import config as qc_config
+    tdir = Path(qc_config.__file__).resolve().parents[1] / "design_templates"
+    return {p.name for p in tdir.iterdir() if p.is_dir() and not p.name.startswith("_")}
+
+
+@pytest.mark.parametrize("kind", ["business_plan", "research_report", "education_material",
+                                  "policy_report", "tech_report", "methodology"])
+def test_plugin_design_kinds_are_known(tmp_path, kind):
+    """최종 리뷰 — 플러그인 디자인 종류는 「모르는 문서 종류」가 아니다(묶음 없음 경고는 날 수 있음)."""
+    cfg = load_config(_write(tmp_path, f"kind: {kind}\n"))
+    assert not any("모르는 문서 종류" in w for w in cfg.warnings)
+
+
+def test_known_kinds_are_plugin_design_kinds_plus_methodology():
+    from techdoc_core.qc.config import KNOWN_KINDS
+    assert set(KNOWN_KINDS) == _design_kinds() | {"methodology"}
+
+
+def test_private_kind_dir_suppresses_unknown_kind_warning(tmp_path):
+    _private_kind(tmp_path)
+    cfg = load_config(_write(tmp_path, "kind: my_series_kind\nkind_dir: kinds/mine\n"))
+    assert not any("모르는 문서 종류" in w for w in cfg.warnings)
+
+
 @pytest.mark.parametrize("body, match", [
     ("schema: techdoc-kind/2\n", "schema"),
     ("schema: techdoc-kind/1\nlevels: {}\n", "모르는 키"),
@@ -329,3 +354,37 @@ def test_is_cap_line_roman():
     assert is_cap_line("그림 IV.19-1 배치", "roman")
     assert not is_cap_line("표 A.1-1 별첨 기준")
     assert is_cap_line("표 3-1. 기준")
+
+
+# ── 5. 출처 비율 게이트는 문서 종류 목표를 따른다 (최종 리뷰 I3, E17) ──
+
+def _policy_refs_project(root: Path, kind: str) -> Path:
+    """정부·국제기구 출처가 대부분인 standard 산출물 — 정책 보고서라면 정상인 출처 구성."""
+    out = root / "output"
+    out.mkdir(parents=True)
+    body = "<p>이 정책은 지원 대상을 넓힌다[REF-001]. 예산은 전년보다 12% 늘었다[REF-002].</p>"
+    doc = {"title": "합성 정책 보고서", "metadata": {"domain": "policy"},
+           "sections": [{"section_id": "1.1", "title": "제1절 정책 동향", "order": 1,
+                         "html_content": body}],
+           "tech_cards": [{"id": "1.1.1", "name": "정책 1", "importance": "high",
+                           "section_id": "1.1", "blocks": {"overview": body},
+                           "ref_ids": ["REF-001", "REF-002"]}],
+           "project_cards": [], "product_cards": []}
+    (out / "document_draft.json").write_text(json.dumps(doc, ensure_ascii=False), encoding="utf-8")
+    (out / "writer_state.json").write_text('{"section_states": {}}', encoding="utf-8")
+    reflist = {"total_refs": 10, "category_coverage": [
+        {"category": "정부공공", "count": 6}, {"category": "국제기구", "count": 3},
+        {"category": "학술", "count": 1}]}
+    (out / "reference_list.json").write_text(json.dumps(reflist, ensure_ascii=False),
+                                             encoding="utf-8")
+    return _write(root, f"kind: {kind}\n")
+
+
+@pytest.mark.parametrize("kind, level", [("policy_report", "경고"), ("tech_report", "막음")])
+def test_source_ratio_gates_follow_kind(tmp_path, kind, level):
+    cfg = load_config(_policy_refs_project(tmp_path, kind))
+    rep = run_qc(build_model(tmp_path, cfg), _specs(), dict(REGISTRY), cfg)
+    rows = {r["gate"]: r for r in rep["results"]}
+    for gid in ("PLG-CQ-academic_ratio", "PLG-CQ-rd_ratio"):
+        assert rows[gid]["verdict"] == "fail", gid
+        assert rows[gid]["level"] == level, gid

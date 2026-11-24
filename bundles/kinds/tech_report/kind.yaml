@@ -7,7 +7,8 @@ description: >-
   플러그인이 만드는 기술보고서 — 카드(기술 7·프로젝트 7·제품 6블록) + 별첨.
   분량은 하한만, 그것도 경고(qc 게이트 PLG-CQ-self_model_length·VC-C 수준이 경고).
 gates:
-  level: {}
+  # 출처 구성 목표(학술 35%·기업 R&D 24%)는 기술보고서의 것 — 본체는 경고, 여기서 막음으로 올린다.
+  level: {PLG-CQ-academic_ratio: 막음, PLG-CQ-rd_ratio: 막음}
   off: []
 extra:
   # 분량 하한(경고) — 플러그인 자체 카드 규칙 prompts/card_length_rules.md의 가장 낮은 하한

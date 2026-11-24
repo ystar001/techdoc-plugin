@@ -59,7 +59,8 @@ def test_unknown_gate_id_in_off_warns(tmp_path):
     (tmp_path / "techdoc.project.yaml").write_text(
         "gates: {off: [v8, V99, V8]}\n", encoding="utf-8")
     cfg = load_config(tmp_path)
-    validate_gate_ids(cfg, {"V8"})
+    # 기본 kind tech_report 묶음이 수준을 올리는 출처 비율 게이트는 아는 id
+    validate_gate_ids(cfg, {"V8", "PLG-CQ-academic_ratio", "PLG-CQ-rd_ratio"})
     assert cfg.warnings == ["모르는 게이트 id: v8", "모르는 게이트 id: V99"]
 
 

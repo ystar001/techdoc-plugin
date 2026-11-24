@@ -83,7 +83,7 @@ extra:
 **문서 종류 묶음과 겹침 규칙**(v1.11-c): 설정은 **본체 기본 → 문서 종류 묶음(`bundles/kinds/<kind>/kind.yaml`, 또는 `kind_dir`) → 이 파일** 순서로 겹친다. 뒤가 이긴다.
 - 표(dict) — `extra`·`gates.level`·`expects` — 는 키마다 재귀로 겹친다. 이 파일이 적은 키만 바뀐다.
 - 값·목록 — `gates.off`, `extra.*`의 목록 — 은 **통째로 교체**한다(이어 붙이지 않음). 예: 이 파일에 `gates.off`를 적으면 문서 종류 묶음의 `off`는 버려진다.
-- 문서 종류 묶음 꼴: `schema: techdoc-kind/1`, `gates: {level, off}`, `extra`, `expects`. 플러그인은 `tech_report`(분량 하한 800자 경고·V88 카드 블록 표제 `extra.repeat.block_heads`)와 `methodology`(분량 하한 경고)를 싣는다. 묶음이 없는 종류(`policy_report` 등)는 본체 기본으로 돌고 경고 한 줄을 남긴다.
+- 문서 종류 묶음 꼴: `schema: techdoc-kind/1`, `gates: {level, off}`, `extra`, `expects`. 플러그인은 `tech_report`(분량 하한 800자 경고·V88 카드 블록 표제 `extra.repeat.block_heads`·출처 비율 `PLG-CQ-academic_ratio`·`rd_ratio` 막음)와 `methodology`(분량 하한 경고)를 싣는다. 알려진 종류는 플러그인 디자인 종류(`tech_report`·`policy_report`·`business_plan`·`research_report`·`education_material`)와 `methodology`. 묶음이 없는 종류(`policy_report` 등)는 본체 기본으로 돌고 경고 한 줄을 남긴다(출처 비율은 본체에서 경고). 그 밖의 종류는 `kind_dir`로 비공개 묶음을 가리키면 모르는 종류로 보지 않는다.
 - 분량 하한은 경고뿐이다(E18). 시리즈 고유 분량(예: 절 1만 자대)은 시리즈 설정 `extra.check_quality.size_thresholds`·`extra.verify_cards.thresholds`에 둔다. 아무 층도 표를 싣지 않으면(묶음 없는 종류) qc는 범용 바닥 800자(카드 규칙의 가장 낮은 하한)로 본다 — 기존 CLI(`check_quality`·`verify_cards`)의 기본표는 그대로다.
 - 상한은 없다. 지시문의 상한은 안내값이고, 넘치면 별첨으로 옮긴다(내용 보존, 줄이거나 압축하지 않음).
 
@@ -219,8 +219,8 @@ V90(F75): 코드 토큰(기본 `[A-Z]{1,3}-?\d{1,3}`, `REF-…` 제외)이 **정
 | PLG-CQ-ai_estimate_ratio | AI 추정 표현 비율 초과 | 본체 | 막음 |
 | PLG-CQ-undefined_abbreviations | 풀이 없는 약어 3종 초과 | 본체 | 경고 |
 | PLG-CQ-terminology_inconsistencies | 외래어 비표준 표기 | 본체 | 경고 |
-| PLG-CQ-academic_ratio | 학술 출처 비율 0.35 미만 | 본체 | 막음 |
-| PLG-CQ-rd_ratio | 기업 R&D 출처 비율 0.24 미만 | 본체 | 막음 |
+| PLG-CQ-academic_ratio | 학술 출처 비율 0.35 미만 (`tech_report` 막음) | 본체 | 경고 |
+| PLG-CQ-rd_ratio | 기업 R&D 출처 비율 0.24 미만 (`tech_report` 막음) | 본체 | 경고 |
 | PLG-CQ-tech_cards_per_section | 섹션당 기술 카드 수 하한 미달 | 본체 | 경고 |
 | PLG-CQ-tech_card_block_fill | 기술 카드 7블록 충족률 0.85 미만 | 본체 | 막음 |
 | PLG-CQ-undersized_cards | 최소 길이 미달 기술 카드 | 본체 | 경고 |

@@ -17,7 +17,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - 캡션 번호 꼴(F82 나머지) — `check_quality` 캡션 점검이 `numbering.caption_num_re`로 로마 숫자·문자 가운데 번호를 읽고(아라비아는 원본과 같음, CLI는 프로젝트 설정의 `numbering.section`), **V89** 카드 `diagrams`·`figures`에 번호가 `id`에만 있고 캡션에 없으면 경고, 작성 지시문에 「번호는 caption 앞에」. (findings F82)
 - 신규 게이트 **V90 코드 네임스페이스** — 같은 코드 토큰(`extra.code_namespace.pattern`, 기본 `[A-Z]-?\d+` 꼴)을 서로 다른 절에서 다른 뜻으로 정의하면 경고(표 첫 칸 정의·줄머리 정의, `REF-`는 제외). (findings F75)
 - **문서 종류 묶음** `bundles/kinds/<kind>/kind.yaml` — 문서 종류가 `gates.level`·`gates.off`·`extra`·`expects` 기본값과 분량 프로필(하한은 경고)을 실어 나른다. 겹침은 본체 → 문서 종류 → 프로젝트(표는 재귀 병합, 값·목록은 교체). 첫 묶음 `tech_report`(카드 분량 하한 800자·V88 카드 블록 표제 허용 `extra.repeat.block_heads`)·`methodology`. 비공개 종류는 설정 `kind_dir`, 묶음이 없는 종류는 본체 기본 + 경고 한 줄.
-- **공개 본체 규칙 묶음** `bundles/core/rules.yaml`(302건) — 분야 낱말·시리즈·책·발표자료 관례는 아래 층으로 내리고, 「시리즈·편」이 주어일 뿐인 범용 규칙은 문서·프로젝트 문구로. `gates.yaml`의 `rules:`는 공개 본체 규칙만, 아래 층 규칙은 새 필드 `lower_rules`. 로더 `load_rule_specs`. `bundle_split`이 수치·관례가 든 본체 규칙을 보고하고 공개판 판정 매핑(`--public-map`·`--public-out`·`--core-gates`·`--fill-hashes`)을 적용한다.
+- **공개 본체 규칙 묶음** `bundles/core/rules.yaml`(298건) — 분야 낱말·시리즈·책·발표자료 관례는 아래 층으로 내리고, 「시리즈·편」이 주어일 뿐인 범용 규칙은 문서·프로젝트 문구로. `gates.yaml`의 `rules:`는 공개 본체 규칙만, 아래 층 규칙은 새 필드 `lower_rules`. 로더 `load_rule_specs`. `bundle_split`이 수치·관례가 든 본체 규칙을 보고하고 공개판 판정 매핑(`--public-map`·`--public-out`·`--core-gates`·`--fill-hashes`)을 적용한다.
 - **발행 앞단 점검** — `build_release`가 빌드 전에 판 번호 네 곳(`plugin.json`·`marketplace.json`·`__version__`·`pyproject.toml`)과 CHANGELOG 최신 판 일치, `[Unreleased]`가 비었는지, 발행 판 절의 마커 위생(닫힘과 부분 대응이 겹침·다른 판에서도 닫힘), 공개 경계 새 검출 0을 보고 실패하면 멈춘다. `--commit <판 커밋>`은 그 커밋의 git worktree에서 빌드하고 subtree split·Release `--target` 안내를 낸다. 비상용 `--skip-preflight`.
 - `update_plugin`이 `installed_plugins.json`의 `installPath` 폴더를 갱신하고 그 항목의 `version`·`lastUpdated`를 백업 뒤 고친다. 설치 판은 installPath 기준으로 보고. 비대화식 `--yes`, `--installed-json`. (findings F108)
 - 산문 게이트 낱말 층 사전 `dicts/qs_jargon.json`(V21 분야 전문어)·`dicts/meta_self_reference.json`(V24·V56 자칭 서술).
@@ -35,7 +35,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - KeyRef `title`·`excerpt` 검증 상한 제거 — 긴 발췌·제목이 든 KeyRef가 참고문헌에서 통째로 빠지던 것. 2,000자를 넘는 발췌는 본문으로 옮기라고 `[NORM]` 보고만 하고 자르지 않는다. F106 부분 대응 — 긴 발췌를 frontmatter에서 본문으로 자동 옮기는 일은 v1.12.
 - `/techdoc-enrich`가 `check_quality`를 위치 인자로 불러 실패하던 것 — `-i` 꼴로. (findings F107)
-- 실제 문서 측정에서 찾은 게이트 원리 결함(측정 문서 수치에는 맞추지 않음): V87은 독자 글(draft·렌더 트리)이 있으면 그것만 보고 카드 칸은 독자 글이 없을 때만 `extra.leak.card_fields`로 읽는다 (findings F109) · V68은 `authors`가 비어도 `extra.citation.group_author_fields`(기본 `institution`)를 단체 지은이로 인정 (findings F110) · V6·V14·V30·V68·V87이 지적마다 대상을 글에 담아 (위치, 글)이 고유하고, 엔진은 남은 중복을 `duplicates`·`[중복]` 줄로 따로 알림 (findings F111) · V57은 부모 없는 분할 카드를 부모 절로 묶어 마지막 분할에서 결론을 보고, 마지막 절 표제가 결론·종합·맺음·마무리로 시작하면 결론으로 봄 (findings F112) · V88은 서로 다른 머리 3개(`frame_heads`)가 같은 차례로 4개(`frame_chapters`) 이상 장에 나오는 틀을 잡음 (findings F113) · V2 부분표 (가)·(나)·(계속)은 한 표, V14 하이픈·밑줄로 끝나는 토큰 버림, V47 인라인 코드 안 `*` 무시 (findings F116). 넓힌 본체 기본은 시리즈 층 설정이 원본 판정으로 되돌려 시리즈 회귀 건수는 그대로다.
+- 실제 문서 측정에서 찾은 게이트 원리 결함(측정 문서 수치에는 맞추지 않음): V87은 독자 글(draft·렌더 트리)이 있으면 그것만 보고 카드 칸은 독자 글이 없을 때만 `extra.leak.card_fields`로 읽는다 (findings F109) · V68은 `authors`가 비어도 `extra.citation.group_author_fields`(기본 `institution`)를 단체 지은이로 인정 (findings F110) · V6·V14·V30·V68·V87이 지적마다 대상을 글에 담아 (위치, 글)이 고유하고, 엔진은 남은 중복을 `duplicates`·`[중복]` 줄로 따로 알림 (F111 부분 대응 — V6·V14·V30·V68·V87 고유 지적·엔진 [중복] 알림; 모든 게이트 고유 건수는 v1.12) · V57은 부모 없는 분할 카드를 부모 절로 묶어 마지막 분할에서 결론을 보고, 마지막 절 표제가 결론·종합·맺음·마무리로 시작하면 결론으로 봄 (findings F112) · V88은 서로 다른 머리 3개(`frame_heads`)가 같은 차례로 4개(`frame_chapters`) 이상 장에 나오는 틀을 잡음 (F113 부분 대응 — 장을 가로지르는 틀만; 장 안 틀 되풀이는 v1.12) · V2 부분표 (가)·(나)·(계속)은 한 표, V14 하이픈·밑줄로 끝나는 토큰 버림, V47 인라인 코드 안 `*` 무시 (findings F116). 넓힌 본체 기본은 시리즈 층 설정이 원본 판정으로 되돌려 시리즈 회귀 건수는 그대로다.
+- 최종 리뷰 반영 — 출처 비율 `PLG-CQ-academic_ratio`·`rd_ratio`는 본체 경고, `kinds/tech_report`에서만 막음(정책·사업 보고서는 정부·국제기구 출처가 중심) · `check_quality` 캡션 점검이 카드 `diagrams`·`figures` 캡션(번호 `id` 포함)을 정의로 봄(시각 필드가 없는 입력은 결과 그대로) · `update_plugin`이 손상 ZIP·`OSError` 등 어떤 예외에서도 롤백 · 알려진 문서 종류 = 플러그인 디자인 종류 5종 + `methodology`, `kind_dir`가 있으면 모르는 종류 경고 없음 · 공개 본체 규칙에서 문서 자체 제안 금지·제사·시리즈 인쇄 도구·옛 판 동결 4건을 아래 층으로(302 → 298건).
 - F114 부분 대응 — V24·V56 자칭 서술 낱말·자기 선언 꼴을 넓혔으나, 넓힌 본체 사전이 시리즈 15편에서 참 자칭 서술 36곳을 새로 잡아 「시리즈 0 유지」는 시리즈 층 설정으로만 지킨다. 「보인다」는 오탐이 커서 넣지 않았다.
 - F115 부분 대응 — V87에 계획 문서 인용(`extra.leak.plan_docs` — 「PRD §n」·「PRD REQ-n」·파일 이름)을 설정으로 더했으나 본체 기본 꼴에는 넣지 않았다(플러그인이 계획 문서를 만들지 않음).
 - F117 부분 대응 — V21 폐지 칸(`summary_retired_fields`)·요약 한계(`summary_limits`)를 설정으로 옮겨 작성기 칸과의 충돌은 풀었으나, 렌더되지 않는 칸을 막음 수준에서 빼는 일은 남았다.
@@ -75,7 +76,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - 게이트 하나가 실행 중 오류를 내면 그 게이트만 건너뛰고(종료 코드 3) 나머지는 끝까지 돈다. UTF-8이 아닌 md는 건너뛰고 보고한다.
 - 입력 범위: self-model 카드·렌더 트리·standard 모드 산출물(v1.11-c).
 - 폐지 게이트 V16·V19는 옮기지 않았다(원본에서 집계하지 않는 죽은 코드). 분야·시리즈 층 게이트는 본체 묶음 밖이다.
-- v1.11-c 회귀: 플러그인 테스트 953건, 시리즈 차분 회귀 46건(이식 게이트 건수 원본과 같음, V88 틀 검출만 참 검출로 기록 갱신), 공개 경계 새 검출 0.
+- v1.11-c 회귀: 플러그인 테스트 969건, 시리즈 차분 회귀 46건(이식 게이트 건수 원본과 같음, V88 틀 검출만 참 검출로 기록 갱신), 공개 경계 새 검출 0.
 
 ## [1.10.2] — 2026-11-24
 

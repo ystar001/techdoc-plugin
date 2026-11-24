@@ -526,11 +526,13 @@ def main(
             print(f"오류 (백업 생성 실패): {e}", file=sys.stderr)
             return 1
 
-        # F7: 적용 + 실패 시 자동 롤백
+        # F7: 적용 + 실패 시 자동 롤백 — 손상 ZIP(BadZipFile)·디스크(OSError) 등 어떤 예외든
+        # 일부만 풀린 채 남으면 설치가 깨지므로 PluginError에 한정하지 않는다
         try:
             apply_zip(zip_path, root)
-        except PluginError as e:
-            print(f"오류 (apply): {e}", file=sys.stderr)
+        except Exception as e:  # 반쯤 풀린 설치를 남기지 않는다
+            kind = "" if isinstance(e, PluginError) else f"{type(e).__name__}: "
+            print(f"오류 (apply): {kind}{e}", file=sys.stderr)
             print("롤백을 시도합니다...", file=sys.stderr)
             try:
                 rollback_plugin(root, backup_dir)

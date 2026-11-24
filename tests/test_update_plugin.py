@@ -576,3 +576,78 @@ def test_main_rollback_on_sha256_mismatch(monkeypatch, fake_plugin_dir, fake_rel
     assert rc == 2
     pj = json.loads((fake_plugin_dir / ".claude-plugin" / "plugin.json").read_text())
     assert pj["version"] == "1.0.0"  # plugin 손상 없음
+
+
+# ── 최종 리뷰: PluginError 밖의 예외(손상 ZIP·OSError)에도 롤백 ────────────────
+
+
+def _snapshot(root: Path) -> dict[str, bytes]:
+    return {p.relative_to(root).as_posix(): p.read_bytes()
+            for p in sorted(root.rglob("*"))
+            if p.is_file() and p.relative_to(root).parts[0] != "backups"}
+
+
+def _serve_zip(monkeypatch, zip_bytes: bytes) -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        if "/releases/latest" in str(request.url):
+            return httpx.Response(200, json={
+                "tag_name": "v1.1.1", "name": "v1.1.1", "body": "",
+                "published_at": "2026-05-13",
+                "assets": [{"name": "x.zip",
+                            "browser_download_url": "https://example.invalid/x.zip"}],
+            })
+        return httpx.Response(200, content=zip_bytes)
+
+    monkeypatch.setattr("scripts.update_plugin._http_transport",
+                        lambda: httpx.MockTransport(handler))
+    monkeypatch.setattr("scripts.update_plugin.confirm_with_user", lambda *a, **k: True)
+
+
+def _corrupt_zip(tmp_path: Path) -> bytes:
+    """중앙 목록은 멀쩡하고(is_zipfile 통과) 두 번째 항목 내용이 깨진 ZIP — plugin.json은 먼저 풀린다."""
+    import zipfile
+
+    zp = tmp_path / "corrupt.zip"
+    marker = b"BROKEN-PAYLOAD-0123456789"
+    with zipfile.ZipFile(zp, "w", zipfile.ZIP_STORED) as zf:
+        zf.writestr(".claude-plugin/plugin.json",
+                    json.dumps({"name": "techdoc-plugin", "version": "1.1.0"}))
+        zf.writestr("commands/existing.md", marker)
+    raw = zp.read_bytes()
+    assert raw.count(marker) == 1
+    return raw.replace(marker, b"X" * len(marker))
+
+
+def test_main_rolls_back_on_corrupt_zip(monkeypatch, fake_plugin_dir, tmp_path, capsys):
+    from scripts.update_plugin import main
+
+    before = _snapshot(fake_plugin_dir)
+    _serve_zip(monkeypatch, _corrupt_zip(tmp_path))
+    rc = main(argv=["--yes"], plugin_root=fake_plugin_dir)
+    assert rc != 0
+    assert _snapshot(fake_plugin_dir) == before
+    assert any((fake_plugin_dir / "backups").iterdir())
+    assert "롤백 완료" in capsys.readouterr().err
+
+
+def test_main_rolls_back_on_oserror_during_extract(monkeypatch, fake_plugin_dir,
+                                                   fake_release_zip, capsys):
+    import zipfile
+
+    from scripts.update_plugin import main
+
+    before = _snapshot(fake_plugin_dir)
+    real_extract = zipfile.ZipFile.extractall
+
+    def half_then_fail(self, path=None, members=None, pwd=None):
+        self.extract(".claude-plugin/plugin.json", path)  # 일부를 쓴 뒤 실패
+        raise OSError(28, "No space left on device")
+
+    monkeypatch.setattr(zipfile.ZipFile, "extractall", half_then_fail)
+    _serve_zip(monkeypatch, fake_release_zip.read_bytes())
+    rc = main(argv=["--yes"], plugin_root=fake_plugin_dir)
+    monkeypatch.setattr(zipfile.ZipFile, "extractall", real_extract)
+    assert rc != 0
+    assert _snapshot(fake_plugin_dir) == before
+    err = capsys.readouterr().err
+    assert "No space left" in err and "롤백 완료" in err

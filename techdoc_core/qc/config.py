@@ -25,8 +25,11 @@ from techdoc_core.bundles.schema import GateSpec, Level
 
 CONFIG_NAME = "techdoc.project.yaml"
 SECTION_STYLES = ("arabic", "roman", "letter_middle")
-# 문서 종류 이름(설계 D7). 묶음이 아직 없는 종류도 이름은 정해져 있다 — 오타를 잡으려는 목록
-KNOWN_KINDS = ("tech_report", "methodology", "tech_encyclopedia", "adoption_guide", "policy_report")
+# 문서 종류 이름(설계 D7) — 오타를 잡으려는 목록. 플러그인 디자인 종류(design_templates/ 폴더 이름,
+# 시험으로 고정) + methodology. 이 밖의 종류는 프로젝트 `kind_dir`(비공개 묶음)를 적으면 모르는 종류로
+# 보지 않는다. 묶음이 아직 없는 종류도 이름은 정해져 있다.
+KNOWN_KINDS = ("tech_report", "policy_report", "business_plan", "research_report",
+               "education_material", "methodology")
 _LEVELS = get_args(Level)
 
 # ── extra.* 형식 — 게이트가 읽는 키만(모르는 키는 그대로 둔다) ──
@@ -204,7 +207,7 @@ def load_config(root: Path, path: Path | None = None) -> ProjectConfig:
         if paths.get(key):
             setattr(cfg.paths, key, _opt_path(root, paths[key]))
 
-    if cfg.kind not in KNOWN_KINDS:
+    if cfg.kind not in KNOWN_KINDS and cfg.kind_dir is None:
         cfg.warnings.append(f"모르는 문서 종류 kind: {cfg.kind} (알려진 것: {', '.join(KNOWN_KINDS)})")
     kind = _read_kind(cfg) or {"level": {}, "off": [], "extra": {}, "expects": {}}
 

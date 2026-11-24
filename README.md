@@ -218,7 +218,7 @@ techdoc-plugin/                                  # 플러그인 루트 (v1.1.0)
 │           └── log.py
 │
 ├── bundles/                                     # v1.11.0 규칙·게이트 묶음 (배포 ZIP 포함)
-│   ├── core/     gates.yaml · rules.yaml · dicts/        # 본체 게이트 명세 90종 · 공개 본체 규칙 302건 · 사전
+│   ├── core/     gates.yaml · rules.yaml · dicts/        # 본체 게이트 명세 90종 · 공개 본체 규칙 298건 · 사전
 │   └── kinds/    tech_report/ · methodology/  (kind.yaml)  # 문서 종류 묶음 — 기본 설정·분량 프로필
 ├── techdoc_core/                                # 데이터 모델·렌더러
 │   ├── __init__.py  constants.py  models.py  schemas.py
@@ -1107,7 +1107,7 @@ unzip techdoc-plugin-v1.11.0-wrapped.zip -d ~/.claude/plugins/
 
 | 버전 | 주요 변경 | 파일 수 | 코드 |
 |---|---|---|---|
-| **v1.11.0** (2026-11-24) | **품질 게이트 엔진** `/techdoc-qc`: 판정 4값(pass·fail·대상 없음·skip)과 집행 수준 5종을 가르고 대상 0을 통과로 보지 않음(F86) · 시리즈 게이트 본체·문서 종류 층 57종 이식(F85) + 집필 흔적 V87(F87)·같은 틀 되풀이 V88(F88)·코드 네임스페이스 V90(F75)·시각 필드 번호 V89(F82) · `check_quality`·`format_gate`·`verify_cards`를 게이트로 흡수(PLG·VC 29종, CLI는 계약 그대로인 래퍼) — 게이트 90종 · standard 모드 산출물 읽기 · 묶음 `bundles/`(본체 게이트·공개 본체 규칙 302건·문서 종류 `kinds/`) · 범용 기본값(분량 상한 보존형·웹북 기본 테마 `light`, `classic`→`green` 별칭·V68 경고·공개 경계 0) · `build_release` 발행 앞단 점검 · `update_plugin` installPath 갱신(F108) · KeyRef 검증 상한 제거(F106) · 실제 문서 측정 게이트 결함 수정(F109~F113·F116). 신규 모듈 `qc`·`bundle_split`·`check_public_boundary`·`techdoc_core/qc`·`techdoc_core/bundles`. SCHEMA 유지. | +3 스크립트·+2 패키지 | 953 tests |
+| **v1.11.0** (2026-11-24) | **품질 게이트 엔진** `/techdoc-qc`: 판정 4값(pass·fail·대상 없음·skip)과 집행 수준 5종을 가르고 대상 0을 통과로 보지 않음(F86) · 시리즈 게이트 본체·문서 종류 층 57종 이식(F85) + 집필 흔적 V87(F87)·같은 틀 되풀이 V88(F88)·코드 네임스페이스 V90(F75)·시각 필드 번호 V89(F82) · `check_quality`·`format_gate`·`verify_cards`를 게이트로 흡수(PLG·VC 29종, CLI는 계약 그대로인 래퍼) — 게이트 90종 · standard 모드 산출물 읽기 · 묶음 `bundles/`(본체 게이트·공개 본체 규칙 298건·문서 종류 `kinds/`) · 범용 기본값(분량 상한 보존형·웹북 기본 테마 `light`, `classic`→`green` 별칭·V68 경고·공개 경계 0) · `build_release` 발행 앞단 점검 · `update_plugin` installPath 갱신(F108) · KeyRef 검증 상한 제거(F106 부분 대응) · 실제 문서 측정 게이트 결함 수정(F109·F110·F112·F116, F111·F113 부분 대응). 신규 모듈 `qc`·`bundle_split`·`check_public_boundary`·`techdoc_core/qc`·`techdoc_core/bundles`. SCHEMA 유지. | +3 스크립트·+2 패키지 | 969 tests |
 | **v1.10.2** (2026-11-24) | 묶음 0 버그 수정·도구 승격: `verify_cards` 플러그인 승격 + 카드 ID 파서 일원화(`techdoc_core/card_id`, `2.A.7`·`G-`·`D-N`·`C3` 인식, F101·F58·F64·F69·F70·F73·F79·F81) · KeyRef 정규화(`techdoc_core/keyref_normalize` — key_numbers dict·reliability·category 별칭, 모르는 값은 강등해 보존, F55·F61·F78) · `merge_research` 라운드 꼴 정규화·KeyRef 대조·경고 종료 코드 3(F54·F57·F60·F77) · `build_reflist` skip 시 종료 코드 2(`--allow-skip`) · 신규 `dedupe_keyref`(중복 후보·필드 단위 병합·이월 보고, F63·F72) · TOC HTML 주석 무시(F56·F59) · 차트 SVG 바이트 결정성(F67) | +4 모듈 | 493 tests |
 | **v1.10.1** (2026-07-13) | 웹북 디자인 대개편: **테마 4종**(`--theme` classic 기본=그린 리포트·premium·light·slate — v1.11.0에서 classic은 green으로, 기본은 light로) + 좌측 트리 사이드바·정식 표지(로고·통계 타일·CTA)·전문 검색·pager + **표지 브랜딩**(`--logo`·`--subtitle`·`--institutions` 전 테마 공통). export 로직 무변경 (F52). SCHEMA 유지. | (변동 없음) | 약 23.5k줄 |
 | **v1.10.0** (2026-07-13) | 정형 카드·한글화·소급 서식: `/techdoc-enrich`(서식 소급 개선, 내용 보존, F25), `formal_blocks`(함수명세·상태벡터·파라미터표 구조화+CSV/JSON 추출, F32), `localize`(용어 한글화 토큰맵 `--term-map`, F29). 명령 19종·프롬프트 26종 (findings F25·F32·F29). SCHEMA 유지. | (변동 없음) | 약 23k줄 |

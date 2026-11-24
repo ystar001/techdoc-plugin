@@ -90,7 +90,9 @@ def measure_self_model(output_dir: Path, baseline_dir=None, strict=False, tolera
 
     # 문서 단위 캡션 정합(F42) — 전 카드 본문 집계. _body_text는 리포트에서 제거.
     all_body = "\n".join(c.pop("_body_text", "") for c in results)
-    caption_issues = check_captions(all_body, numbering_style)
+    # 카드 diagrams·figures 캡션은 정의(최종 리뷰 I4) — 시각 필드가 없으면 결과는 전과 같다
+    visual = "\n".join(c.pop("_visual_caps", "") for c in results)
+    caption_issues = check_captions(all_body, numbering_style, visual)
     caption_count = (
         len(caption_issues["duplicate"])
         + len(caption_issues["gap"])

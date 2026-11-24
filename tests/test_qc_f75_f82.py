@@ -90,6 +90,45 @@ def test_f82_visual_numbered_caption_or_no_id_passes():
     assert REGISTRY["V89"](sample_model(cards={"1.1": _card("본문")})).targets_read == 0
 
 
+# ── 최종 리뷰 I4: 카드 diagrams·figures 캡션은 캡션 정의 — 본문 참조가 dangling이 아님 ──
+
+VIS_BODY = "흐름은 그림 A.1-1에서 보듯 세 단계다.\n배치는 그림 A.1-2와 같다."
+
+
+def test_visual_captions_define_captions_for_dangling_ref():
+    card = _card(VIS_BODY,
+                 diagrams=[{"mermaid": "flowchart LR", "caption": "그림 A.1-1 관수 흐름"}],
+                 figures=[{"id": "그림 A.1-2", "path": "a.png", "caption": "배치"}])
+    m = sample_model(cards={"A.1": card}, numbering={"section": "roman"})
+    assert _n("PLG-CQ-caption_dangling_ref", m) == 0
+    assert _n("PLG-CQ-caption_gap", m) == 0
+    # 시각 필드가 없으면 여전히 dangling
+    bare = sample_model(cards={"A.1": _card(VIS_BODY)}, numbering={"section": "roman"})
+    assert _n("PLG-CQ-caption_dangling_ref", bare) == 2
+
+
+def test_visual_captions_in_check_quality_cli(tmp_path):
+    from scripts.check_quality import run_quality_check
+
+    out = tmp_path / "output"
+    (out / "cards").mkdir(parents=True)
+    card = _card("본문은 그림 3-1을 본다.",
+                 diagrams=[{"mermaid": "x", "caption": "그림 3-1 흐름"}])
+    (out / "cards" / "3.1_card.json").write_text(json.dumps(card, ensure_ascii=False),
+                                                 encoding="utf-8")
+    rep = run_quality_check(out)
+    assert rep["phase_a"]["caption_issues"]["dangling_ref"] == []
+    assert all("_visual" not in k for c in rep.get("cards", []) for k in c)
+
+
+def test_check_captions_visual_defs_do_not_count_as_duplicates():
+    from scripts.check_quality import check_captions
+
+    text = "그림 3-1 흐름\n본문 그림 3-1 참조"
+    assert check_captions(text, None, "그림 3-1 흐름") == {
+        "duplicate": [], "gap": [], "dangling_ref": []}
+
+
 # ── F75 코드 네임스페이스 (V90) ──
 
 def _table(*rows: tuple[str, str]) -> str:

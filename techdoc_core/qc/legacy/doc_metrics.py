@@ -167,7 +167,34 @@ def caption_re(style: str | None = None) -> re.Pattern:
     return re.compile(rf"(표|그림|식)\s*({caption_num_re(style).pattern})")
 
 
-def check_captions(text: str, numbering_style: str | None = None) -> dict:
+_VISUAL_FIELDS = ("diagrams", "figures")
+_BARE_NUM = re.compile(r"^[0-9A-Z][0-9A-Za-z.]*-\d+$")
+
+
+def visual_caption_text(card: dict) -> str:
+    """카드 `diagrams[]`·`figures[]`의 캡션 정의 줄 — 렌더에서 캡션으로 실리는 번호(최종 리뷰 I4).
+
+    `caption` 문자열과, `id`가 번호(「그림 A.1-1」 또는 맨 번호 「A.1-1」 → 「그림 A.1-1」)이면 그것도.
+    시각 필드가 없는 카드는 빈 문자열 — 그런 입력의 캡션 점검 결과는 옮기기 전과 같다.
+    """
+    lines: list[str] = []
+    for field in _VISUAL_FIELDS:
+        items = card.get(field) if isinstance(card, dict) else None
+        for it in items if isinstance(items, list) else []:
+            if not isinstance(it, dict):
+                continue
+            cap = it.get("caption")
+            if isinstance(cap, str) and cap.strip():
+                lines.append(cap.replace("**", ""))
+            ident = it.get("id")
+            if isinstance(ident, str) and ident.strip():
+                ident = ident.strip()
+                lines.append(f"그림 {ident}" if _BARE_NUM.match(ident) else ident)
+    return "\n".join(lines)
+
+
+def check_captions(text: str, numbering_style: str | None = None,
+                   visual_defs: str = "") -> dict:
     """캡션 정합 3종 점검 → {duplicate, gap, dangling_ref}.
 
     - duplicate: 같은 캡션이 정의로 2회 이상 등장.
@@ -175,11 +202,19 @@ def check_captions(text: str, numbering_style: str | None = None) -> dict:
     - dangling_ref: 정의 없는 캡션을 본문이 참조.
     정의 = 캡션 토큰이 줄머리(볼드 ``**`` 무시) 시작. 그 외 = 참조.
     `numbering_style`(roman·letter_middle)이면 「표 II.8-1」·「그림 A.1-2」도 캡션으로 본다(F82).
+    `visual_defs`(카드 시각 필드 캡션, `visual_caption_text`)의 캡션 토큰은 어디 있든 정의로 본다 —
+    결번·dangling 판정에만 쓰고 중복으로는 세지 않는다(본문 캡션 줄과 같은 그림일 수 있음).
     """
     rx = caption_re(numbering_style)
     defs: dict[str, int] = {}
     refs: list[str] = []
     per_chapter: dict[tuple[str, str], set[int]] = {}
+    visual: set[str] = set()
+    for m in rx.finditer(visual_defs or ""):
+        ch, num = m.group(2).rsplit("-", 1)
+        visual.add(f"{m.group(1)} {ch}-{num}")
+        if num.isdigit():
+            per_chapter.setdefault((m.group(1), ch), set()).add(int(num))
     for line in text.split("\n"):
         for m in rx.finditer(line):
             kind = m.group(1)
@@ -198,7 +233,7 @@ def check_captions(text: str, numbering_style: str | None = None) -> dict:
         for i in range(1, max(nums_set) + 1):
             if i not in nums_set:
                 gap.append(f"{kind} {ch}-{i}")
-    dangling = sorted({c for c in refs if c not in defs})
+    dangling = sorted({c for c in refs if c not in defs and c not in visual})
     return {"duplicate": duplicate, "gap": sorted(gap), "dangling_ref": dangling}
 
 
@@ -617,4 +652,5 @@ def _check_self_model_card(card_path: Path, baseline_path=None, strict=False, to
         "format": fmt["metrics"],
         # 문서 단위 캡션 집계용(F42) — measure_self_model이 pop 후 join, 리포트엔 미포함.
         "_body_text": "\n".join(sec_text.values()),
+        "_visual_caps": visual_caption_text(data),  # 시각 필드 캡션 정의(I4) — 같이 pop
     }

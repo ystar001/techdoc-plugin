@@ -151,7 +151,7 @@ def convention_hits(rules: list[dict]) -> list[dict]:
 
 
 # ── 본체 규칙 공개판 (v1.11-c, E15·E18 9) ────────────────────────────────────────
-# 판정 매핑(private, `regression/bundles/core_public_map.yaml`)을 대장 본체 규칙에 적용해
+# 판정 매핑(비공개, `<판정 매핑>.yaml` — `--public-map`)을 대장 본체 규칙에 적용해
 # 플러그인 `bundles/core/rules.yaml`(public)을 만든다. 대장 원문은 바꾸지 않는다.
 #   keep    — 그대로 공개(수치가 예시·토큰 참조·외부 표준 이름일 뿐인 경우)
 #   reword  — 플러그인 판 문구로 공개(`rule`, 필요하면 `title`) — 분야 낱말·시리즈 흔적만 걷음

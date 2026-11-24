@@ -83,12 +83,14 @@ def test_standard_gates_match_check_quality(tmp_path):
 
 
 def test_size_lower_bounds_are_warnings_in_core():
-    """E18 — 도구의 절대 분량 FAIL은 qc 본체 기본에서 경고, 나머지 FAIL은 막음."""
+    """E18 — 도구의 절대 분량 FAIL은 qc 본체 기본에서 경고, 나머지 FAIL은 막음.
+
+    출처 비율(학술·기업 R&D)은 문서 종류 목표라 본체 경고, tech_report 묶음이 막음으로(E17)."""
     specs = load_gate_specs([("본체", core_bundle_dir())])
     for gid in ("PLG-CQ-self_model_length", "PLG-CQ-section_length", "PLG-CQ-undersized_cards",
-                "VC-C"):
+                "VC-C", "PLG-CQ-academic_ratio", "PLG-CQ-rd_ratio"):
         assert specs[gid].level == "경고", gid
-    for gid in ("PLG-CQ-ai_estimate_ratio", "PLG-CQ-academic_ratio", "PLG-CQ-rd_ratio",
+    for gid in ("PLG-CQ-ai_estimate_ratio",
                 "PLG-CQ-tech_card_block_fill", "VC-A", "VC-E"):
         assert specs[gid].level == "막음", gid
     for m in FG_METRICS:

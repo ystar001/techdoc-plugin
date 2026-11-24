@@ -64,6 +64,13 @@ def test_public_core_rules_have_no_series_book_deck_words(rules):
     assert {k: v for k, v in hits.items() if v} == {}
 
 
+def test_kind_or_series_conventions_not_in_public_core(rules):
+    """최종 리뷰 — 문서 자체 제안 금지(정책·사업 보고서와 충돌)·제사(책)·시리즈 인쇄 도구·옛 판 동결은
+    공개 본체가 아니다."""
+    assert {"Q1-078", "Q1-051", "Q1-074b", "W-003"} & set(rules) == set()
+    assert not [r.id for r in rules.values() if "build_pdf" in r.rule]
+
+
 def test_series_word_pattern_skips_lookalikes():
     assert not SERIES_WORDS.search("계통오차(편의)는 줄지 않는다. 편집·권장·권한·표지 없이")
     assert SERIES_WORDS.search("다른 편 안내") and SERIES_WORDS.search("덱 한 장")
