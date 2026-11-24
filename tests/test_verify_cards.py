@@ -52,3 +52,10 @@ def test_threshold_override_file_applies(tmp_path):
     finally:
         from scripts import verify_cards
         verify_cards.THRESHOLDS["S"] = 14000
+
+
+def test_tail_prefers_conclusion_after_sections(tmp_path):
+    # 실데이터 회귀(R0 1.2): 마지막 절이 수식 상자로 끝나도 읽는 순서상 끝은 결론
+    card = {"sections": {"s1": {"body": "가" * 15000 + "\n!!! 수식 \"산출\"\n    = 17~19년"}},
+            "conclusion": ["첫째 결론이다.", "둘째 결론이다."]}
+    assert check_card(_write(tmp_path, "1.2_card.json", card))["status"] == "PASS"

@@ -166,12 +166,14 @@ def _text_of(node) -> str:
 
 
 def last_body_tail(card: dict) -> str:
-    """종결부 검사 대상: `sections`(dict면 마지막 값, list면 마지막 원소) → `blocks` 마지막.
+    """종결부 검사 대상: 읽는 순서상 마지막 본문 — `conclusion`(절 결론) → `sections` → `blocks`.
+
+    각각 dict면 마지막 값, list면 마지막 원소의 본문을 본다.
 
     키 순회 순서에 기대지 않는다 — `quick_summary`가 `sections` 뒤에 있어도 요약 상자 끝을
     보지 않는다 (F64 ②). 끝의 마크다운 강조 표지(`**`·`*`·`_`·`` ` ``)는 벗긴다 (F64 ③).
     """
-    for key in ("sections", "blocks"):
+    for key in ("conclusion", "sections", "blocks"):
         node = card.get(key)
         last = None
         if isinstance(node, dict) and node:
