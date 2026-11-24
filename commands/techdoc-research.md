@@ -106,6 +106,8 @@ python -m scripts.build_reflist \
   -o "$OUTPUT_DIR"
 ```
 
+KeyRef의 이탈값(`reliability`·`category` 별칭, `key_numbers` dict·None)은 버리지 않고 정규화해 `[NORM]`으로 알린다. 모르는 category가 `기타`로 들어가면 카테고리 비율이 흐려지니 `[NORM]` 줄을 보고 KeyRef를 고친다. 정규화로도 살릴 수 없는 KeyRef(깨진 frontmatter, 연도 미상 `n.d.` 등)가 있으면 **종료 코드 2**와 함께 파일 목록이 나온다. `reference_list.json`은 이미 쓰여 있다. 그 KeyRef를 고쳐 다시 돌리거나, 빠진 채로 진행하기로 했으면 `--allow-skip`을 붙인다.
+
 ## Depth 옵션별 차등
 
 | depth | researcher별 검색 횟수 | 섹션당 REF 목표 | 소요 시간 |

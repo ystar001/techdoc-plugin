@@ -23,7 +23,7 @@ RELIABILITY_ALIASES: dict[str, str] = {
 }
 _DEMOTED = "미확인"
 
-# category 자연어 표현 → 허용값. 모르는 값은 「기타」로 (버리지 않음). 실데이터 회귀(M4·M8·S3) 37건.
+# category 자연어 표현 → 허용값. 모르는 값은 「기타」로 (버리지 않음). 실데이터 회귀 37건.
 CATEGORY_ALIASES: dict[str, str] = {
     "정부보고서": "정부공공",
     "정부": "정부공공",

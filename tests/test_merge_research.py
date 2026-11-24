@@ -89,7 +89,7 @@ def test_keyref_crosscheck_reports_missing(tmp_path):
     assert r["warnings"]
 
 
-def test_ref_ids_key_is_read(tmp_path):                       # 실데이터 회귀(M4 appB_G): ref_ids
+def test_ref_ids_key_is_read(tmp_path):                       # 실데이터 회귀: 실제 라운드 파일의 ref_ids 키
     _w(tmp_path, "research_round_A.json", {"ref_ids": ["REF-001", "REF-002"]})
     r = merge_research(tmp_path)
     assert r["total_after_dedup"] == 2 and r["warnings"] == []

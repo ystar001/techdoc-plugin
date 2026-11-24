@@ -107,3 +107,53 @@ def test_check_flags_orphan_key_numbers(tmp_path, monkeypatch):
     assert len(warns) == 1 and "고아 수치" in warns[0]
     monkeypatch.setattr(sys, "argv", ["dedupe_keyref", str(kr), "--check"])
     assert dedupe_main() == 3
+
+
+# ── 최종 리뷰 지적 (Critical 1 · Important 2~5) ──
+
+def test_apply_three_way_candidates_does_not_crash(tmp_path):
+    kr = tmp_path / "KeyRef"
+    kr.mkdir()
+    for n in ("001", "002", "003"):
+        _ref(kr, f"REF-{n}", url="https://same", key_numbers=[n])
+    pairs = find_candidates(kr)  # (001,002)·(001,003)·(002,003) 그대로 옮긴 경우
+    reports = apply_pairs(kr, pairs)
+    amap = json.loads((tmp_path / "ref_alias_map.json").read_text(encoding="utf-8"))
+    assert amap == {"REF-002": "REF-001", "REF-003": "REF-001"}
+    assert _fm(kr / "REF-001.md")["key_numbers"] == ["001", "002", "003"]
+    assert any("skipped" in r for r in reports)
+
+
+def test_apply_same_alias_twice_is_skipped(tmp_path):
+    kr = tmp_path / "KeyRef"
+    kr.mkdir()
+    _ref(kr, "REF-001")
+    _ref(kr, "REF-002")
+    pairs = [{"canonical": "REF-001", "alias": "REF-002"}] * 2
+    apply_pairs(kr, pairs)
+    assert (tmp_path / "KeyRef_dup" / "REF-002.md").exists()
+
+
+def test_apply_canonical_equals_alias_rejected(tmp_path):
+    kr = tmp_path / "KeyRef"
+    kr.mkdir()
+    _ref(kr, "REF-001")
+    reports = apply_pairs(kr, [{"canonical": "REF-001", "alias": "REF-001"}])
+    assert (kr / "REF-001.md").exists()
+    assert "error" in reports[0]
+
+
+def test_rewrite_follows_alias_chain():
+    out, _ = rewrite_ref_ids("근거[REF-003].", {"REF-003": "REF-002", "REF-002": "REF-001"})
+    assert out == "근거[REF-001]."
+
+
+def test_rewrite_year_after_comma_is_not_a_list():
+    out, manual = rewrite_ref_ids("(REF-207, 2023년 기준)", {"REF-207": "REF-012"})
+    assert out == "(REF-012, 2023년 기준)" and manual == []
+
+
+def test_broken_frontmatter_does_not_crash_report(tmp_path):
+    _ref(tmp_path, "REF-001", url="https://a")
+    (tmp_path / "REF-009.md").write_text("---\nid: [깨짐\n---\n", encoding="utf-8")
+    assert find_candidates(tmp_path) == []

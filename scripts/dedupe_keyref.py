@@ -36,7 +36,7 @@ TITLE_SIMILARITY_THRESHOLD = 90
 _MIN_TITLE_LEN = 10
 _FM_RE = re.compile(r"^---\n(.*?)\n---\n?", re.DOTALL)
 # 범위·목록 꼴: REF-205~208 · REF-136~144·194·104 · REF-1, 2
-_GROUP_RE = re.compile(r"REF-(\d+)((?:\s*[~·,]\s*\d+)+)")
+_GROUP_RE = re.compile(r"REF-(\d+)((?:\s*[~·]\s*\d+|\s*,\s*(?!\d{4}(?!\d))\d+)+)")
 _TOKEN_RE = re.compile(r"REF-(\d+)(?!\d)")
 _UNION_FIELDS = ("key_numbers", "related_sections")
 _FILL_FIELDS = ("url", "excerpt", "authors", "institution", "venue")
@@ -47,7 +47,10 @@ def _read(path: Path) -> tuple[dict, str]:
     m = _FM_RE.match(text)
     if not m:
         return {}, text
-    fm = yaml.safe_load(m.group(1))
+    try:
+        fm = yaml.safe_load(m.group(1))
+    except yaml.YAMLError:
+        return {}, text  # 깨진 frontmatter는 건너뜀 — build_reflist와 같은 처리
     return (fm if isinstance(fm, dict) else {}), text[m.end():]
 
 
@@ -109,9 +112,18 @@ def merge_pair(canonical: dict, alias: dict) -> tuple[dict, dict]:
     return merged, report
 
 
+def resolve_alias(rid: str, alias_map: dict[str, str]) -> str:
+    """별칭 사슬(003→002→001)을 끝점까지 따라간다. 순환이면 멈춘 자리."""
+    seen = {rid}
+    while rid in alias_map and alias_map[rid] not in seen:
+        rid = alias_map[rid]
+        seen.add(rid)
+    return rid
+
+
 def rewrite_ref_ids(text: str, alias_map: dict[str, str]) -> tuple[str, list[str]]:
     """단독 REF 토큰만 정본으로 바꾼다. 범위·목록 꼴에 걸린 별칭은 그대로 두고 보고(F63 ⑤)."""
-    alias_nums = {_num(a): c for a, c in alias_map.items()}
+    alias_nums = {_num(a): resolve_alias(a, alias_map) for a in alias_map}
     manual: list[str] = []
     protected: list[tuple[int, int]] = []
     for g in _GROUP_RE.finditer(text):
@@ -138,19 +150,31 @@ def _alias_map_path(keyref_dir: Path) -> Path:
 
 
 def apply_pairs(keyref_dir: Path, pairs: list[dict]) -> list[dict]:
-    """확정 쌍 병합 → 이월 보고 목록. 별칭은 KeyRef_dup/로 이동, alias map 누적."""
+    """확정 쌍 병합 → 이월 보고 목록. 별칭은 KeyRef_dup/로 이동, alias map은 쌍마다 기록.
+
+    후보 표를 그대로 옮긴 경우(001·002·003이 서로 짝지어짐)도 견딘다: 정본은 별칭 사슬의
+    끝점으로 풀고, 이미 옮긴 별칭은 건너뛴다. 정본과 별칭이 같으면 거부한다.
+    """
     idx = _index(keyref_dir)
     dup_dir = keyref_dir.parent / "KeyRef_dup"
     map_path = _alias_map_path(keyref_dir)
     amap = json.loads(map_path.read_text(encoding="utf-8")) if map_path.exists() else {}
     reports: list[dict] = []
     for pair in pairs:
-        c_id, a_id = pair["canonical"], pair["alias"]
+        a_id = pair["alias"]
+        c_id = resolve_alias(pair["canonical"], amap)
+        if a_id in amap:
+            reports.append({"canonical": c_id, "alias": a_id,
+                            "skipped": f"이미 {amap[a_id]}로 병합됨"})
+            continue
+        if c_id == a_id:
+            reports.append({"canonical": c_id, "alias": a_id, "error": "정본과 별칭이 같음"})
+            continue
         if c_id not in idx or a_id not in idx:
             reports.append({"canonical": c_id, "alias": a_id, "error": "KeyRef 없음"})
             continue
         c_path, c_fm = idx[c_id]
-        a_path, a_fm = idx[a_id]
+        a_path, a_fm = idx.pop(a_id)
         merged, rep = merge_pair(c_fm, a_fm)
         _, body = _read(c_path)
         _write(c_path, merged, body.rstrip("\n") + f"\n\n<!-- alias: {a_id} 이월 -->\n")
@@ -158,8 +182,9 @@ def apply_pairs(keyref_dir: Path, pairs: list[dict]) -> list[dict]:
         shutil.move(str(a_path), str(dup_dir / a_path.name))
         amap[a_id] = c_id
         idx[c_id] = (c_path, merged)
+        # 쌍마다 기록 — 중간에 멈춰도 옮긴 별칭의 행방이 남는다
+        map_path.write_text(json.dumps(amap, ensure_ascii=False, indent=2), encoding="utf-8")
         reports.append(rep)
-    map_path.write_text(json.dumps(amap, ensure_ascii=False, indent=2), encoding="utf-8")
     return reports
 
 
@@ -241,7 +266,9 @@ def main() -> int:
         pairs = json.loads(Path(args.pairs).read_text(encoding="utf-8"))
         reports = apply_pairs(kr, pairs)
         for r in reports:
-            if "error" in r:
+            if "skipped" in r:
+                print(f"[SKIP] {r['alias']}→{r['canonical']}: {r['skipped']}")
+            elif "error" in r:
                 print(f"[WARN] {r['alias']}→{r['canonical']}: {r['error']}")
             else:
                 print(f"{r['alias']}→{r['canonical']}: key_numbers +{r['key_numbers']}, "

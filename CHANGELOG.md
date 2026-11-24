@@ -8,14 +8,14 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added (도구 승격 — 묶음 0)
 
-- 신규 `scripts/verify_cards.py` — 자식 공용 도구(`techdoc_work/scripts/`)를 플러그인으로 승격. 카드 분량·종결부·인용 수 일괄 점검, `verify_thresholds.json` 임계 재정의 유지. 인식 못 한 ID는 조용히 기본값을 쓰지 않고 경고. 요약 상자(`quick_summary`)는 본문에서 빼고, 종결부는 읽는 순서상 끝(결론 → 마지막 절 → 블록)에서 강조 표지를 벗겨 본다. (findings F101, F64, F69)
+- 신규 `scripts/verify_cards.py` — 자식 프로젝트마다 따로 쓰던 카드 점검 도구를 플러그인으로 승격. 카드 분량·종결부·인용 수 일괄 점검, `verify_thresholds.json` 임계 재정의 유지. 인식 못 한 ID는 조용히 기본값을 쓰지 않고 경고. 요약 상자(`quick_summary`)는 본문에서 빼고, 종결부는 읽는 순서상 끝(결론 → 마지막 절 → 블록)에서 강조 표지를 벗겨 본다. (findings F101, F64, F69)
 - 신규 `techdoc_core/card_id.py` — 카드 ID를 구분자로 나눈 뒤 마디 역할(앞붙이·본문·별첨·분할 표지)을 추론. 별첨 접두 A~Z(하이픈 유무)·`2.A.7`·`C3.XL2`를 인식하고 `verify_cards`·`check_quality`가 공유. (findings F58, F70, F73, F79, F81)
 - 신규 `scripts/dedupe_keyref.py` — KeyRef 중복 **후보만** 보고(URL이 같아도 다른 문헌일 수 있어 자동 병합 안 함), 확정한 쌍은 필드 단위 병합(`key_numbers`·`related_sections` 합집합, 제목·서지는 정본 유지), 별칭은 `KeyRef_dup/`·`ref_alias_map.json`, 정본별 이월 보고, 범위 꼴 인용(`REF-205~208`)에 걸린 별칭은 바꾸지 않고 수동 목록, `--check`로 고아 수치 검사. (findings F63, F72)
 - 신규 `techdoc_core/keyref_normalize.py` — KeyRef frontmatter 이탈값을 버리지 않고 정규화: `key_numbers` dict·None, `reliability`·`category` 별칭, 모르는 값은 `미확인`·`기타`로 강등, 숫자 문자열 연도. 바꾼 사실은 `[NORM]`으로 보고. 연도 미상(`n.d.`)은 지어내지 않는다. (findings F61, F78)
 
 ### Fixed
 
-- `merge_research` — 병렬 researcher의 라운드 산출 꼴 갈림(`refs`·`refs_found`·`ref_ids_used`·`ref_ids`·중첩 `rounds`, 정수 `refs_found`)을 정규화. 빈 라운드·꼴 불명·KeyRef 대조 누락(`--keyref`)은 경고로 모으고 종료 코드 3. 무음 undercount·`TypeError` 크래시 해소. researcher 라운드 JSON 계약 명시. (findings F54, F57, F60, F77)
+- `merge_research` — 병렬 researcher의 라운드 산출 꼴 갈림(`refs`·`refs_found`·`ref_ids_used`·`ref_ids`·중첩 `rounds`, 정수 `refs_found`)을 정규화. 빈 라운드·꼴 불명·KeyRef 대조 누락(`--keyref`)은 경고로 모으고 종료 코드 3. 무음 undercount·`TypeError` 크래시 해소. researcher 라운드 JSON 계약 명시. (findings F60) — 같은 계열의 F54·F57·F77은 이번에 부분 대응(크래시·무음 손실 해소)이고 열린 채 둔다: researcher 출력의 pydantic 강제와 병합 입력을 KeyRef로 바꾸는 일은 다음 판 몫.
 - `build_reflist` — KeyRef를 정규화한 뒤 검증하고, 그래도 빠진 KeyRef가 있으면 파일 목록과 함께 종료 코드 2(`--allow-skip`으로 0). 1990년 이전 문헌 회귀 시험 추가(v1.8.1 F33에서 해소된 하한). (findings F55, F78)
 - `parse_toc` — TOC의 HTML 주석(`<!-- -->`, 여러 줄 포함)을 섹션으로 읽지 않음. (findings F56, F59)
 - `generate_chart` — SVG 출력(`fmt`·spec `format`) 추가, 렌더 시각 메타데이터 제거·clip id 고정(`svg.hashsalt`)으로 같은 명세면 같은 바이트. (findings F67)
@@ -29,7 +29,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Note
 
-- 실데이터 회귀(시리즈 15편 카드 1,174장 · M4·M8·S3 KeyRef): `verify_cards` 판정 달라짐 8장(모두 WARN→PASS, 본문 밖 필드를 종결부로 보던 오탐), 나빠짐 0. `build_reflist` 같은 KeyRef 기준 M4 185→191 · M8 141→162 · S3 427→440(빠짐 9·21·13 → 3·0·0, 남은 3건은 연도 미상).
+- 실데이터 회귀(자식 프로젝트 15개의 카드 1,174장 · 프로젝트 3개의 KeyRef): `verify_cards` 판정 달라짐 8장(모두 WARN→PASS, 본문 밖 필드를 종결부로 보던 오탐), 나빠짐 0. `build_reflist` 같은 KeyRef 기준 185→191 · 141→162 · 427→440(빠짐 9·21·13 → 3·0·0, 남은 3건은 연도 미상).
 - 병합 입력을 라운드 JSON 대신 KeyRef로 바꾸는 근본 개선은 다음 판 몫 — 지금은 KeyRef 대조 경고로 드러낸다.
 
 ## [1.10.1] — 2026-07-13

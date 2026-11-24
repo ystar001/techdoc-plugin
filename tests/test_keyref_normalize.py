@@ -45,7 +45,7 @@ def test_keyref_accepts_pre_1990_year():
     KeyRefSchema(**_minimal(year=1985))
 
 
-# 실데이터 회귀(M4·M8·S3)에서 남은 skip: category 이탈값 37건 · key_numbers None 8건
+# 실데이터 회귀에서 남은 skip: category 이탈값 37건 · key_numbers None 8건
 def test_category_alias_mapped():
     d, _ = normalize_keyref({"category": "정부보고서"})
     assert d["category"] == "정부공공"
