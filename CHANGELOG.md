@@ -33,7 +33,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed (v1.11-c)
 
-- KeyRef `title`·`excerpt` 검증 상한 제거 — 긴 발췌·제목이 든 KeyRef가 참고문헌에서 통째로 빠지던 것. 2,000자를 넘는 발췌는 본문으로 옮기라고 `[NORM]` 보고만 하고 자르지 않는다. (findings F106)
+- KeyRef `title`·`excerpt` 검증 상한 제거 — 긴 발췌·제목이 든 KeyRef가 참고문헌에서 통째로 빠지던 것. 2,000자를 넘는 발췌는 본문으로 옮기라고 `[NORM]` 보고만 하고 자르지 않는다. F106 부분 대응 — 긴 발췌를 frontmatter에서 본문으로 자동 옮기는 일은 v1.12.
 - `/techdoc-enrich`가 `check_quality`를 위치 인자로 불러 실패하던 것 — `-i` 꼴로. (findings F107)
 - 실제 문서 측정에서 찾은 게이트 원리 결함(측정 문서 수치에는 맞추지 않음): V87은 독자 글(draft·렌더 트리)이 있으면 그것만 보고 카드 칸은 독자 글이 없을 때만 `extra.leak.card_fields`로 읽는다 (findings F109) · V68은 `authors`가 비어도 `extra.citation.group_author_fields`(기본 `institution`)를 단체 지은이로 인정 (findings F110) · V6·V14·V30·V68·V87이 지적마다 대상을 글에 담아 (위치, 글)이 고유하고, 엔진은 남은 중복을 `duplicates`·`[중복]` 줄로 따로 알림 (findings F111) · V57은 부모 없는 분할 카드를 부모 절로 묶어 마지막 분할에서 결론을 보고, 마지막 절 표제가 결론·종합·맺음·마무리로 시작하면 결론으로 봄 (findings F112) · V88은 서로 다른 머리 3개(`frame_heads`)가 같은 차례로 4개(`frame_chapters`) 이상 장에 나오는 틀을 잡음 (findings F113) · V2 부분표 (가)·(나)·(계속)은 한 표, V14 하이픈·밑줄로 끝나는 토큰 버림, V47 인라인 코드 안 `*` 무시 (findings F116). 넓힌 본체 기본은 시리즈 층 설정이 원본 판정으로 되돌려 시리즈 회귀 건수는 그대로다.
 - F114 부분 대응 — V24·V56 자칭 서술 낱말·자기 선언 꼴을 넓혔으나, 넓힌 본체 사전이 시리즈 15편에서 참 자칭 서술 36곳을 새로 잡아 「시리즈 0 유지」는 시리즈 층 설정으로만 지킨다. 「보인다」는 오탐이 커서 넣지 않았다.
