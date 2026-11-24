@@ -3,7 +3,7 @@
 > **AI 기술보고서 자동 생성 Claude Code 플러그인** — v1.3.0 (2026-05-13)
 > 레퍼런스 100% 기반 · 카드 중첩식 섹션 · 별첨 논문 수준 심층분석 · LLM Wiki 통합 · Claude Code 네이티브
 
-[![Version](https://img.shields.io/badge/version-1.10.2-green)]()
+[![Version](https://img.shields.io/badge/version-1.11.0-green)]()
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue)]()
 [![License](https://img.shields.io/badge/license-MIT-green)]()
 [![Plugin](https://img.shields.io/badge/claude--code-plugin-purple)]()
@@ -118,7 +118,7 @@ TechDoc은 다음 8개 원칙 위에 구현되었습니다.
 # https://github.com/ystar001/techdoc-plugin/releases/tag/v1.1.0
 
 # 2. 압축 해제
-unzip techdoc-plugin-v1.10.2.zip -d ~/.claude/plugins/techdoc-plugin
+unzip techdoc-plugin-v1.11.0.zip -d ~/.claude/plugins/techdoc-plugin
 
 # 3. Python 의존성
 cd ~/.claude/plugins/techdoc-plugin && pip install -e ".[pdf,docx]"
@@ -174,7 +174,7 @@ techdoc-plugin/                                  # 플러그인 루트 (v1.1.0)
 │   ├── techdoc-resume.md     techdoc-rewrite.md
 │   ├── techdoc-deepdive.md   techdoc-doctor.md
 │   ├── techdoc-enrich.md                                 # ⭐ v1.9.x (서식 소급 개선, F25)
-│   ├── techdoc-qc.md                                 # v1.11 품질 게이트 (F85·F86·F104)
+│   ├── techdoc-qc.md                                 # v1.11.0 품질 게이트 90종 (F85·F86·F75·F82)
 │   ├── techdoc-demo.md       techdoc-update.md          # ⭐ v1.1.0
 │   ├── techdoc-export-wiki.md                           # ⭐ v1.1.0
 │   ├── techdoc-export-notion.md                         # ⭐ v1.2.0
@@ -199,9 +199,9 @@ techdoc-plugin/                                  # 플러그인 루트 (v1.1.0)
 │   ├── parse_toc.py       select_design.py
 │   ├── build_reflist.py   merge_research.py
 │   ├── dedupe_keyref.py   verify_cards.py            # v1.10.2 (F63·F72·F101)
-│   ├── qc.py   bundle_split.py   check_public_boundary.py   # v1.11 (F85)
+│   ├── qc.py   bundle_split.py   check_public_boundary.py   # v1.11.0 (F85)
 │   ├── migrate.py         generate_chart.py
-│   ├── check_quality.py   format_gate.py             # 서식 게이트(self_model)
+│   ├── check_quality.py   format_gate.py             # v1.11.0부터 qc 측정 코드를 부르는 래퍼(계약 불변)
 │   ├── render.py          monitor.py     doctor.py
 │   ├── build_release.py
 │   ├── update_plugin.py                                 # ⭐ v1.1.0
@@ -217,14 +217,17 @@ techdoc-plugin/                                  # 플러그인 루트 (v1.1.0)
 │           ├── report.py   index.py
 │           └── log.py
 │
-├── bundles/core/gates.yaml                       # v1.11 본체 게이트 명세(규칙 id·층·수준)
+├── bundles/                                     # v1.11.0 규칙·게이트 묶음 (배포 ZIP 포함)
+│   ├── core/     gates.yaml · rules.yaml · dicts/        # 본체 게이트 명세 90종 · 공개 본체 규칙 302건 · 사전
+│   └── kinds/    tech_report/ · methodology/  (kind.yaml)  # 문서 종류 묶음 — 기본 설정·분량 프로필
 ├── techdoc_core/                                # 데이터 모델·렌더러
 │   ├── __init__.py  constants.py  models.py  schemas.py
 │   ├── routing_config.py  formal_blocks.py  localize.py   # F21·F32·F29
 │   ├── card_id.py  keyref_normalize.py                    # v1.10.2 (F101·F78)
 │   ├── qc/       config · model · adapters · card_text · registry · engine · numbering · prose · dicts · math_hangul   # v1.11 게이트 엔진
-│   │   └── gates/  citation · structure · sentences · captions · notation · leak · repeat   # 게이트 59종
-│   ├── bundles/  schema · loader                          # v1.11 묶음 명세·층 겹침 로더
+│   │   ├── gates/  citation · structure · sentences · captions · notation · leak · repeat · codes · visual_fields · legacy_quality   # 게이트 90종
+│   │   └── legacy/ doc_metrics · format_metrics · card_checks · abbr   # check_quality·format_gate·verify_cards 측정 코드(qc와 공유)
+│   ├── bundles/  schema · loader                          # v1.11.0 묶음 명세·층 겹침 로더(본체→문서 종류→프로젝트)
 │   ├── renderers/                               # 출력 렌더러
 │   │   ├── html_renderer.py  card_renderer.py
 │   │   ├── pdf_export.py     docx_export.py     md_export.py
@@ -314,7 +317,9 @@ Python 구현은 4개 계층으로 구성됩니다.
 │ Layer 3  품질·진단·마이그레이션                          │
 │   check_quality.py (Phase A 23지표)                      │
 │   verify_cards.py (카드 분량·종결부, v1.10.2)            │
-│   qc.py + techdoc_core.qc (게이트 엔진, v1.11)           │
+│   qc.py + techdoc_core.qc (게이트 엔진 90종, v1.11.0)    │
+│   techdoc_core.qc.legacy (check_quality·format_gate·     │
+│     verify_cards 측정 공유 — 세 CLI는 래퍼, v1.11.0)     │
 │   doctor.py (환경 진단 15항목)                           │
 │   migrate.py (schema_version 변환)                       │
 │   monitor.py (writer_state 실시간 폴링)                  │
@@ -331,6 +336,7 @@ Python 구현은 4개 계층으로 구성됩니다.
 │   parse_toc.py · select_design.py                        │
 │   techdoc_core (models · schemas · constants · renderers)│
 │   techdoc_core.card_id · keyref_normalize (v1.10.2)      │
+│   techdoc_core.bundles + bundles/{core,kinds} (v1.11.0)  │
 │   wiki/markers.py · frontmatter.py · filename.py · assets.py · lint.py · mkdocs_setup.py (v1.1.0) │
 └─────────────────────────────────────────────────────────┘
 ```
@@ -822,7 +828,7 @@ GitHub Releases에서 자동 다운로드·교체. LLM 호출 없이 결정론�
 ```json
 {
   "name": "techdoc-plugin",
-  "version": "1.1.0",
+  "version": "1.11.0",
   "description": "TechDoc — AI 기술보고서 생성 Cowork Plugin",
   "license": "MIT",
   "commands": "./commands/",
@@ -925,7 +931,7 @@ techdoc_auto: true
 | **재실행** | `/techdoc-resume` | 단계 단위 | 가변 |
 | | `/techdoc-rewrite` | **카드 단위** ⭐ | 2~3분 |
 | | `/techdoc-enrich` | **서식 소급 개선** (내용 보존, F25) ⭐ | 1~2분 |
-| 품질 | `/techdoc-qc` | **품질 게이트** — 경로만 받아 게이트 실행, 결과마다 규칙 번호·대상 수·판정·집행 수준, 게이트 59종 (v1.11) | 수 초~1분 |
+| 품질 | `/techdoc-qc` | **품질 게이트** — 경로만 받아 게이트 실행(self-model 카드·렌더 트리·standard 산출물), 결과마다 규칙 번호·대상 수·판정·집행 수준, 게이트 90종(`check_quality`·`format_gate`·`verify_cards` 흡수 포함) (v1.11.0) | 수 초~1분 |
 | | `/techdoc-deepdive` | **별첨 개별** ⭐ | 10~15분 |
 | **Wiki** ⭐ | `/techdoc-export-wiki` | LLM Wiki 변환·누적 | 1~2분 |
 | **Notion** ⭐ | `/techdoc-export-notion` (v1.2.0) | TechDoc 보고서 → Notion publish (페이지 계층 + KeyRef DB) | 30초~3분 |
@@ -973,6 +979,16 @@ techdoc_auto: true
 | `--ref url:URL` | `--ref url:https://arxiv.org/...` | 단일 URL WebFetch |
 | `--ref site:URL` | `--ref site:https://kiast.or.kr` | `site:` 검색 추가 |
 
+### 웹북 테마·품질 게이트 (v1.11.0)
+
+| 명령·옵션 | 기본값 | 값 | 효과 |
+|---|---|---|---|
+| `/techdoc-render --webbook --theme` | `light` | `light` / `green` / `premium` / `slate` | 웹북 색 팔레트. 옛 이름 `classic`은 `green`의 별칭(v1.11.0부터 기본이 중립 `light`) |
+| `/techdoc-qc <root> --config` | `<root>/techdoc.project.yaml` | 파일 경로 | 층·번호 꼴·문서 종류(`kind`)·끄기·면제·수준·`extra` 설정 |
+| `/techdoc-qc --gates` | (전부) | `V8,V68,…` | 지정한 게이트만 실행 |
+| `/techdoc-qc --json` | 카드 폴더의 부모/`qc_report.json` | 파일 경로 | 결과 JSON 위치 |
+| `/techdoc-qc --selftest` · `--all` | — | — | 게이트 자기검사만 · 지적을 게이트마다 전부 출력 |
+
 ### Wiki 옵션 (v1.1.0 신규)
 
 | 옵션 | 효과 |
@@ -1012,7 +1028,7 @@ techdoc_auto: true
 ```bash
 # 1. Release 다운로드
 # https://github.com/ystar001/techdoc-plugin/releases/tag/v1.1.0
-unzip techdoc-plugin-v1.10.2.zip -d ~/.claude/plugins/techdoc-plugin
+unzip techdoc-plugin-v1.11.0.zip -d ~/.claude/plugins/techdoc-plugin
 
 # 2. Python 의존성
 cd ~/.claude/plugins/techdoc-plugin && pip install -e ".[pdf,docx]"
@@ -1045,7 +1061,7 @@ claude --plugin-dir .
 
 ```bash
 # 래퍼 폴더 포함 ZIP — 아무 곳에 해제해도 techdoc-plugin/ 폴더 자동 생성
-unzip techdoc-plugin-v1.10.2-wrapped.zip -d ~/.claude/plugins/
+unzip techdoc-plugin-v1.11.0-wrapped.zip -d ~/.claude/plugins/
 ```
 
 ### 검증
@@ -1091,6 +1107,7 @@ unzip techdoc-plugin-v1.10.2-wrapped.zip -d ~/.claude/plugins/
 
 | 버전 | 주요 변경 | 파일 수 | 코드 |
 |---|---|---|---|
+| **v1.11.0** (2026-11-24) | **품질 게이트 엔진** `/techdoc-qc`: 판정 4값(pass·fail·대상 없음·skip)과 집행 수준 5종을 가르고 대상 0을 통과로 보지 않음(F86) · 시리즈 게이트 본체·문서 종류 층 57종 이식(F85) + 집필 흔적 V87(F87)·같은 틀 되풀이 V88(F88)·코드 네임스페이스 V90(F75)·시각 필드 번호 V89(F82) · `check_quality`·`format_gate`·`verify_cards`를 게이트로 흡수(PLG·VC 29종, CLI는 계약 그대로인 래퍼) — 게이트 90종 · standard 모드 산출물 읽기 · 묶음 `bundles/`(본체 게이트·공개 본체 규칙 302건·문서 종류 `kinds/`) · 범용 기본값(분량 상한 보존형·웹북 기본 테마 `light`, `classic`→`green` 별칭·V68 경고·공개 경계 0) · `build_release` 발행 앞단 점검 · `update_plugin` installPath 갱신(F108) · KeyRef 검증 상한 제거(F106) · 실제 문서 측정 게이트 결함 수정(F109~F113·F116). 신규 모듈 `qc`·`bundle_split`·`check_public_boundary`·`techdoc_core/qc`·`techdoc_core/bundles`. SCHEMA 유지. | +3 스크립트·+2 패키지 | 953 tests |
 | **v1.10.2** (2026-11-24) | 묶음 0 버그 수정·도구 승격: `verify_cards` 플러그인 승격 + 카드 ID 파서 일원화(`techdoc_core/card_id`, `2.A.7`·`G-`·`D-N`·`C3` 인식, F101·F58·F64·F69·F70·F73·F79·F81) · KeyRef 정규화(`techdoc_core/keyref_normalize` — key_numbers dict·reliability·category 별칭, 모르는 값은 강등해 보존, F55·F61·F78) · `merge_research` 라운드 꼴 정규화·KeyRef 대조·경고 종료 코드 3(F54·F57·F60·F77) · `build_reflist` skip 시 종료 코드 2(`--allow-skip`) · 신규 `dedupe_keyref`(중복 후보·필드 단위 병합·이월 보고, F63·F72) · TOC HTML 주석 무시(F56·F59) · 차트 SVG 바이트 결정성(F67) | +4 모듈 | 493 tests |
 | **v1.10.1** (2026-07-13) | 웹북 디자인 대개편: **테마 4종**(`--theme` classic 기본=그린 리포트·premium·light·slate — v1.11.0에서 classic은 green으로, 기본은 light로) + 좌측 트리 사이드바·정식 표지(로고·통계 타일·CTA)·전문 검색·pager + **표지 브랜딩**(`--logo`·`--subtitle`·`--institutions` 전 테마 공통). export 로직 무변경 (F52). SCHEMA 유지. | (변동 없음) | 약 23.5k줄 |
 | **v1.10.0** (2026-07-13) | 정형 카드·한글화·소급 서식: `/techdoc-enrich`(서식 소급 개선, 내용 보존, F25), `formal_blocks`(함수명세·상태벡터·파라미터표 구조화+CSV/JSON 추출, F32), `localize`(용어 한글화 토큰맵 `--term-map`, F29). 명령 19종·프롬프트 26종 (findings F25·F32·F29). SCHEMA 유지. | (변동 없음) | 약 23k줄 |
