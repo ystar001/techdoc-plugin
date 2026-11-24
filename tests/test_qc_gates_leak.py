@@ -56,7 +56,11 @@ def test_v87_filename_pass():
 def test_v87_extra_file_patterns():
     text = "params_4b.py를 고쳤다."
     assert _f(text) == []
-    assert _kinds(text, extra={"leak": {"file_patterns": [r"\w+\.py"]}}) == ["filename"]
+    # v1.11-c: file_patterns는 allow와 같은 글롭 꼴, 정규식은 `re:` 접두
+    assert _kinds(text, extra={"leak": {"file_patterns": ["*.py"]}}) == ["filename"]
+    assert _kinds(text, extra={"leak": {"file_patterns": ["params_?b.py"]}}) == ["filename"]
+    assert _kinds(text, extra={"leak": {"file_patterns": [r"re:\w+\.py"]}}) == ["filename"]
+    assert _f(text, extra={"leak": {"file_patterns": ["*.txt"]}}) == []
 
 
 def test_v87_allow_list():

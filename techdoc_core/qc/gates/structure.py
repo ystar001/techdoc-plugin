@@ -26,6 +26,7 @@ from techdoc_core.qc.model import DocModel
 from techdoc_core.qc.numbering import (
     CAPTION_KINDS,
     CAPTION_TOKEN,
+    ROMAN,
     appendix_letters,
     head_num,
     lead_num,
@@ -171,7 +172,7 @@ def _draft_head_res(style: str) -> list[re.Pattern]:
 def _chapters(ids: set[str], style: str) -> set[int]:
     out = {int(c.split(".")[0]) for c in ids if re.fullmatch(r"\d+\.\d+", c)}
     if style == "roman":  # `II.6` — 장 번호는 부를 넘어 이어진다
-        out |= {int(m.group(1)) for c in ids if (m := re.fullmatch(r"[IVX]+\.(\d+)", c))}
+        out |= {int(m.group(1)) for c in ids if (m := re.fullmatch(rf"{ROMAN}\.(\d+)", c))}
     return out
 
 
@@ -281,8 +282,15 @@ CONC_NUM = re.compile(r"\d+(?:[.,]\d+)*")
 
 
 def _jargon_re(model: DocModel) -> re.Pattern | None:
-    """요약에 풀이 없이 넣지 않는 분야 전문어 — 분야 층 값이라 `extra.structure.qs_jargon`으로만."""
+    """요약에 풀이 없이 넣지 않는 분야 전문어(정규식 조각) — 분야 층 값이라 본체 기본은 비어 있다.
+
+    두 곳을 합친다: 층 사전 `dicts/qs_jargon.json`(`{"items": [...]}`, 분야·시리즈 묶음이 싣는다 —
+    `load_dict` 층 겹침 규칙) + 설정 `extra.structure.qs_jargon`.
+    """
     words = [str(w) for w in _cfg(model).get("qs_jargon") or [] if str(w)]
+    layered = load_dict("qs_jargon.json", list(model.layers or []))
+    items = layered.get("items") if isinstance(layered, dict) else layered
+    words += [str(w) for w in items or [] if str(w) and str(w) not in words]
     return re.compile("|".join(words)) if words else None
 
 
@@ -506,9 +514,10 @@ X_CAPTION = re.compile(r"(?:표|그림)\s(" + NUM + r"-[0-9]+|" + NUM + r")")
 X_REF_SEC = re.compile(r"(?<![0-9.])(" + NUM + r")(?![0-9])")
 X_OBSOLETE = re.compile(r"(?m)^.*\|\s*구 (?:" + NUM + r"|[^|]*구 " + NUM + r")[^|]*\|.*$")
 # roman(F82) — `II.6.3`·`II.6-1`. 부 번호가 로마 숫자라 아라비아 `NUM`으로는 못 본다
-NUM_ROMAN = r"[IVX]+(?:\.[0-9]+)+(?:-[0-9]+)?"
-X_HEAD_SEC_ROMAN = re.compile(r"(?m)^#{1,3} ([IVX]+(?:\.[0-9]+)+)(?=[ .])")
-X_CAPTION_ROMAN = re.compile(r"(?:표|그림)\s([IVX]+(?:\.[0-9]+)*-[0-9]+|[IVX]+(?:\.[0-9]+)+)")
+NUM_ROMAN = ROMAN + r"(?:\.[0-9]+)+(?:-[0-9]+)?"
+X_HEAD_SEC_ROMAN = re.compile(r"(?m)^#{1,3} (" + ROMAN + r"(?:\.[0-9]+)+)(?=[ .])")
+X_CAPTION_ROMAN = re.compile(r"(?:표|그림)\s(" + ROMAN + r"(?:\.[0-9]+)*-[0-9]+|" + ROMAN
+                             + r"(?:\.[0-9]+)+)")
 X_REF_SEC_ROMAN = re.compile(r"(?<![\w.])(" + NUM_ROMAN + r")(?![0-9])")
 X_OBSOLETE_ROMAN = re.compile(r"(?m)^.*\|\s*구 (?:" + NUM_ROMAN + r"|[^|]*구 " + NUM_ROMAN + r")[^|]*\|.*$")
 # 절 번호처럼 생긴 날짜·판 번호·표준 번호는 참조가 아니다
@@ -538,6 +547,19 @@ def dead_xrefs(text: str, anchors: set, peer: tuple = (), ref_re: re.Pattern = X
             if not (s in anchors or (peer and s.startswith(peer)) or s in versions)]
 
 
+def roman_standard_number(num: str, parts: set[str]) -> bool:
+    """로마 숫자 꼴이지만 표준 번호(ITU `X.509`·`V.92`·`I.430`)인 것 — 절 참조가 아니다(v1.11-c).
+
+    ① 첫 숫자 마디가 세 자리 이상(아라비아 쪽 연도·표준 번호 규칙과 같은 원리) ② 문서 앵커(표제·캡션)
+    어디에도 없는 부 번호 — 부 IV까지인 문서의 「V.92」는 이 문서의 절일 수 없다.
+    """
+    head, _, rest = num.partition(".")
+    first = re.match(r"\d+", rest)
+    if first and len(first.group(0)) >= 3:
+        return True
+    return head not in parts
+
+
 @gate("V30", samples=[
     Sample(sample_model(tree={"a.md": "## 3.2.1 제목\n\n3.2.2절을 보라.\n"}), expect=1),
     Sample(sample_model(tree={"a.md": "## 3.2.1 제목\n\n3.2.1절과 IEEE 802.15.4를 보라.\n"}), expect=0),
@@ -555,10 +577,13 @@ def v30_md_xrefs(model: DocModel) -> GateOutput:
     anchors: set[str] = set()
     for t in texts.values():
         anchors |= set(head_sec.findall(t)) | set(head_apx.findall(t)) | set(caption.findall(t))
+    parts = {a.split(".")[0] for a in anchors if re.match(ROMAN + r"\.", a)} if roman else set()
     out: list[Finding] = []
     for name, text in texts.items():
         t = obsolete.sub("", text)
         for m in dead_xrefs(t, anchors, peer, ref_sec):
+            if roman and roman_standard_number(m, parts):
+                continue
             out.append(Finding(name, f"죽은 참조 {m}"))
         for m in ref_apx.findall(t):
             if m not in anchors:
@@ -650,7 +675,7 @@ def v34_section_lead(model: DocModel) -> GateOutput:
 HEADING = re.compile(r"^(#{1,4})\s+(.+?)\s*$")
 _HEAD_NUM = (r"제?\d+(?:\.[\dA-Z]+)*[장절]?\.?\s*(?:—|-|:)?\s*|[A-Z]-\d+\.?\s*(?:—|-)?\s*|\d+\.\s+")
 _HEAD_NUM_RE = re.compile(rf"^(?:{_HEAD_NUM})")
-_HEAD_NUM_ROMAN_RE = re.compile(rf"^(?:[IVX]+(?:\.[\dA-Z]+)+\.?\s*(?:—|-|:)?\s*|{_HEAD_NUM})")
+_HEAD_NUM_ROMAN_RE = re.compile(rf"^(?:{ROMAN}(?:\.[\dA-Z]+)+\.?\s*(?:—|-|:)?\s*|{_HEAD_NUM})")
 HEAD_FORM = [
     ("물음꼴 표제", re.compile(r"(?:[운은인는한른]가|을까|할까|일까|정하나|보나|맞나|있나|없나|되나|드나|오나|쓰나|\?)$")),
     ("「~때」 꼴 표제", re.compile(r"[가-힣]\s때$")),

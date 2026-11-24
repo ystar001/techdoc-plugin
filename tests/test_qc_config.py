@@ -12,7 +12,10 @@ def test_defaults_without_config(tmp_path):
     assert cfg.paths.render_tree == tmp_path / "output" / "render" / "tree"
     assert cfg.paths.references == tmp_path / "output" / "reference_list.json"
     assert cfg.numbering == {"section": "arabic", "appendix": "letter"}
-    assert cfg.extra == {} and cfg.gates_off == []
+    # v1.11-c: 설정 파일이 없어도 기본 종류 tech_report 묶음이 겹친다(본체 기본만은 default_config)
+    assert cfg.gates_off == [] and cfg.warnings == []
+    assert set(cfg.extra) == {"check_quality", "verify_cards", "repeat"}
+    assert default_config(tmp_path).extra == {}
 
 
 def test_series_style_paths_and_numbering(tmp_path):

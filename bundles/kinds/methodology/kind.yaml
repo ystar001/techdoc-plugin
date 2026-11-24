@@ -1,0 +1,22 @@
+# 문서 종류 묶음 — methodology (표준 방법론 문서, v1.11-c Task 4 · E18 1·2·12)
+#
+# 겹침: 본체 기본 → 이 파일 → 프로젝트 techdoc.project.yaml (뒤가 이김).
+#   표(dict)는 키마다 재귀로 겹치고, 값·목록은 프로젝트가 적으면 통째로 교체한다.
+# 구조 게이트 V21(목표·핵심 질문 요약)·V57(절 결론)은 bundles/core/gates.yaml의 `kinds: [methodology]`로
+# 이 종류에만 돈다.
+schema: techdoc-kind/1
+description: >-
+  목표 상자·핵심 질문·절 결론을 갖춘 방법론 문서. 분량은 하한 경고만 —
+  특정 시리즈의 편 분량(예: 절 1만 자대)은 시리즈 층 설정 extra.*에 둔다.
+gates:
+  level: {}
+  off: []
+extra:
+  # 분량 하한(경고) — 범용 하한은 플러그인 카드 규칙의 가장 낮은 하한(800자)과 같다.
+  # 이보다 높은 하한은 문서 장르·시리즈의 관례라 시리즈 층 설정이 싣는다(E17·E18).
+  check_quality:
+    size_thresholds: {S: 800, L1: 800, L2: 800, L3: 800, P0: 800, "?": 800}
+  verify_cards:
+    thresholds: {S: 800, L1: 800, L2: 800, L3: 800, P0: 800,
+                 XL1: 800, XL2: 800, XL3: 800, XL4: 800, XL5: 800}
+expects: {}

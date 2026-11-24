@@ -49,7 +49,7 @@ def main(argv: list[str] | None = None) -> int:
     root = Path(args.root)
     cfg = load_config(root, Path(args.config) if args.config else None)
     specs = load_gate_specs(layer_dirs(cfg))
-    validate_gate_ids(cfg, set(specs))
+    validate_gate_ids(cfg, specs)
     if args.gates:
         wanted = [g.strip() for g in args.gates.split(",") if g.strip()]
         unknown = [g for g in wanted if g not in specs]

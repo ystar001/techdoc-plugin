@@ -41,13 +41,16 @@ def run_selftests(funcs: dict[str, Callable]) -> list[str]:
 
 def _config_hash(cfg: ProjectConfig) -> str:
     payload = json.dumps({"kind": cfg.kind, "numbering": cfg.numbering, "off": cfg.gates_off,
-                          "exempt": cfg.exempt, "level": cfg.level_overrides, "extra": cfg.extra},
+                          "exempt": cfg.exempt, "level": cfg.level_overrides, "extra": cfg.extra,
+                          "expects": cfg.expects},
                          ensure_ascii=False, sort_keys=True, default=str)
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()[:12]
 
 
-def _expected(spec: GateSpec, kind: str) -> bool:
-    return spec.expects.get(kind, "").replace(" ", "") == ">=1"
+def _expected(spec: GateSpec, kind: str, cfg_expects: dict[str, str] | None = None) -> bool:
+    """「있어야 함」 — 설정(문서 종류 묶음·프로젝트 `expects`)이 게이트 명세의 kind별 값보다 앞선다."""
+    want = (cfg_expects or {}).get(spec.id, spec.expects.get(kind, ""))
+    return str(want).replace(" ", "") == ">=1"
 
 
 def _exempted(gid: str, loc: str, exempt: dict[str, dict]) -> bool:
@@ -117,7 +120,7 @@ def run_qc(model: DocModel, specs: dict[str, GateSpec], funcs: dict[str, Callabl
             row["count"] = len(items)
             row["items"] = [{"loc": f.loc, "msg": f.msg} for f in items]
             if out.targets_read == 0 and not items:
-                if _expected(spec, model.kind):
+                if _expected(spec, model.kind, cfg.expects):
                     row.update(verdict="fail", count=1,
                                reason=f"있어야 할 대상이 없음({model.kind})")
                 else:

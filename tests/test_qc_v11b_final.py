@@ -168,9 +168,16 @@ def _tree_cards(n=5):
     return {"1장/1.1. 가.md": text}
 
 
-def test_v88_allows_plugin_card_blocks_for_tech_report():
-    assert _msgs("V88", sample_model(kind="tech_report", tree=_tree_cards())) == []
-    assert _msgs("V88", sample_model(kind="methodology", tree=_tree_cards()))
+def test_v88_allows_plugin_card_blocks_for_tech_report(tmp_path):
+    # v1.11-c: 허용은 게이트의 kind 분기가 아니라 tech_report 묶음(extra.repeat.block_heads)이 싣는다
+    def extra_of(kind):
+        (tmp_path / "techdoc.project.yaml").write_text(f"kind: {kind}\n", encoding="utf-8")
+        return load_config(tmp_path).extra
+
+    tech = sample_model(kind="tech_report", tree=_tree_cards(), extra=extra_of("tech_report"))
+    assert _msgs("V88", tech) == []
+    meth = sample_model(kind="methodology", tree=_tree_cards(), extra=extra_of("methodology"))
+    assert _msgs("V88", meth)
 
 
 # ── 6. 카드 하나의 타입 오류 ──

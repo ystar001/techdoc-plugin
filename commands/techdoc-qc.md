@@ -51,6 +51,7 @@ python -m scripts.qc "$PROJECT_ROOT" --selftest          # 게이트 자기검�
 ```yaml
 schema: techdoc-project/1
 kind: methodology              # 문서 종류 묶음 (기본 tech_report)
+kind_dir: ../_bundles/kinds/my_kind   # 비공개 문서 종류 묶음 경로 (선택 — 없으면 플러그인 bundles/kinds/<kind>)
 domain: ../_bundles/agriculture   # 분야 묶음 경로 (선택)
 series: ../my-series/rules        # 시리즈 묶음 경로 (선택)
 numbering: {section: arabic, appendix: letter}   # arabic(1.1) · roman(II.6) · letter_middle(2.A.7)
@@ -61,8 +62,11 @@ paths:
   draft: output/draft            # md 직접 저작 원고가 있으면 산문 게이트가 트리 대신 본다
 gates:
   off: [V45]                     # 끌 게이트
-  exempt: {"1.1": [V13]}         # 카드별 면제
+  exempt:
+    "1.1|sec2": {gates: [V13], why: "개정 이력 표가 옛 이름을 인용"}   # 그 카드의 그 섹션만
+    "1.4": {gates: [V27], why: "법령 원문 인용 카드"}                    # 그 카드의 지적 전부
   level: {V68: 경고}             # 집행 수준 덮어쓰기
+expects: {V57: ">=1"}            # 이 문서에 있어야 할 대상(없으면 fail) — 보통 문서 종류 묶음이 싣는다
 extra:
   citation:
     internal_files: [PLAN.md]    # 참고문헌에 나오면 안 되는 내부 작업 파일 이름
@@ -70,6 +74,16 @@ extra:
 ```
 
 설정이 부르는 게이트 id가 없는 id면 경고가 나온다(조용히 무시하지 않음). `domain`·`series` 경로가 없거나 `kind`가 모르는 이름이어도 경고한다. `gates.exempt`의 카드 id는 **따옴표로 감싼다**(`"1.10"` — YAML은 따옴표 없는 1.10을 숫자 1.1로 읽는다, 그러면 오류로 멈춘다).
+
+**면제 키 두 꼴**: `"<카드id>|<섹션키>"`는 그 섹션의 지적만, 파이프 없는 `"<카드id>"`는 **그 카드의 지적 전부**(그 카드의 모든 섹션·분할 조각 `cid|…`)를 면제한다 — 넓은 면제라 사유(`why`)를 꼭 적는다. 면제가 먹지 않는 게이트(명세 `exemptable: false` — V6·V7·V8·V13·V59 등 원본이 면제를 거치지 않던 것)에 적은 면제는 경고 한 줄을 남기고 지적은 그대로 둔다.
+
+**문서 종류 묶음과 겹침 규칙**(v1.11-c): 설정은 **본체 기본 → 문서 종류 묶음(`bundles/kinds/<kind>/kind.yaml`, 또는 `kind_dir`) → 이 파일** 순서로 겹친다. 뒤가 이긴다.
+- 표(dict) — `extra`·`gates.level`·`expects` — 는 키마다 재귀로 겹친다. 이 파일이 적은 키만 바뀐다.
+- 값·목록 — `gates.off`, `extra.*`의 목록 — 은 **통째로 교체**한다(이어 붙이지 않음). 예: 이 파일에 `gates.off`를 적으면 문서 종류 묶음의 `off`는 버려진다.
+- 문서 종류 묶음 꼴: `schema: techdoc-kind/1`, `gates: {level, off}`, `extra`, `expects`. 플러그인은 `tech_report`(분량 하한 800자 경고·V88 카드 블록 표제 `extra.repeat.block_heads`)와 `methodology`(분량 하한 경고)를 싣는다. 묶음이 없는 종류(`policy_report` 등)는 본체 기본으로 돌고 경고 한 줄을 남긴다.
+- 분량 하한은 경고뿐이다(E18). 시리즈 고유 분량(예: 절 1만 자대)은 시리즈 설정 `extra.check_quality.size_thresholds`·`extra.verify_cards.thresholds`에 둔다.
+
+**`extra.*` 형식 검사**: 게이트가 읽는 키는 형을 본다 — 목록 자리에 문자열(`allow_heads: "결론"`), 정수 자리에 글자(`max_repeats: "abc"`), `max_repeats: 0`(1 이상이어야 함)은 키 이름을 담은 오류로 멈춘다.
 
 ## 게이트 (v1.11 — 90종)
 
@@ -169,6 +183,8 @@ extra:
 | id | 검사 | 층 | 수준 |
 |---|---|---|---|
 | V88 | 같은 틀 되풀이 — 한 장 안 같은 표제 머리 3회 초과 | 본체 | 경고 |
+
+설정: V87 `extra.leak.file_patterns`(작업 파일 이름 글롭 — `allow`와 같은 `fnmatch` 꼴 `*.py`, 정규식은 `re:` 접두)·`extra.leak.allow`(글자 그대로 또는 글롭). V88 `extra.repeat.max_repeats`(1 이상, 기본 3)·`allow_heads`(프로젝트)·`block_heads`(문서 종류 묶음 — 둘을 합쳐 세지 않음). V21 분야 전문어는 `extra.structure.qs_jargon`과 층 사전 `dicts/qs_jargon.json`(`{"items": [...]}`)을 합친다.
 
 ### 시각 필드·코드 네임스페이스(신규) (2)
 

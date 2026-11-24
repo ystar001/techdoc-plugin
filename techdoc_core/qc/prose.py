@@ -9,7 +9,7 @@ from __future__ import annotations
 import re
 from collections.abc import Iterator
 
-from techdoc_core.qc.numbering import CAPTION_KINDS, CAPTION_TOKEN, head_re
+from techdoc_core.qc.numbering import CAPTION_KINDS, CAPTION_TOKEN, head_re, normalize_captions
 
 FENCE = re.compile(r"^\s*```")
 SKIP_LINE = re.compile(r"^\s*(?:\||#{1,6}\s|>|!!!|\$\$|[-*+]\s*\||<div\b)")
@@ -31,17 +31,25 @@ CALC_BOX = re.compile(r"^\s*!!!\s+수식\b")
 HEAD = head_re("arabic")
 
 
-def is_cap_line(s: str) -> bool:
-    """캡션 정의줄인가 — 굵은 옛 꼴과 굵게 없는 정본 꼴 모두."""
-    return bool(CAP_LINE_ANY.match(s))
+def is_cap_line(s: str, style: str | None = None) -> bool:
+    """캡션 정의줄인가 — 굵은 옛 꼴과 굵게 없는 정본 꼴 모두.
+
+    번호 꼴이 roman이면 번호 뒤 마침표 없는 캡션(「표 II.8-1 제목」·「표 A.1-1 제목」)도 캡션이다(F82).
+    """
+    return bool(CAP_LINE_ANY.match(normalize_captions(s, style)))
 
 
 def strip_en_gloss(s: str) -> str:
     return EN_GLOSS.sub("", s)
 
 
-def prose_lines(text: str) -> Iterator[tuple[int, str]]:
-    """(줄번호, 줄) — 산문만. 펜스·표·표제·인용구·캡션 정의 제외."""
+def prose_lines(text: str, style: str | None = None) -> Iterator[tuple[int, str]]:
+    """(줄번호, 줄) — 산문만. 펜스·표·표제·인용구·캡션 정의 제외.
+
+    캡션은 번호 꼴에 맞춰 정규화해 본다(F82, `numbering.normalize_captions` — roman의 마침표 없는
+    캡션 「**표 II.8-1 제목**」·「표 A.1-1 제목」을 아라비아 캡션처럼). 돌려주는 줄은 원문 그대로다.
+    """
+    norm = normalize_captions(text, style).split("\n")
     infence = False
     for i, ln in enumerate(text.split("\n"), 1):
         if FENCE.match(ln):
@@ -49,7 +57,7 @@ def prose_lines(text: str) -> Iterator[tuple[int, str]]:
             continue
         if infence or not ln.strip():
             continue
-        if SKIP_LINE.match(ln) or CAP_DEF.match(ln):
+        if SKIP_LINE.match(ln) or CAP_DEF.match(norm[i - 1]):
             continue
         yield i, ln
 
@@ -57,9 +65,11 @@ def prose_lines(text: str) -> Iterator[tuple[int, str]]:
 def paragraphs(text: str, style: str | None = None) -> Iterator[tuple[int, str, str]]:
     """(시작줄, 한 줄로 이은 문단, 속한 표제 글) — 산문 문단만.
 
-    목록 항목은 저마다 한 문단, `!!! 수식` 상자 안(들여 쓴 줄)은 산문이 아니다.
+    목록 항목은 저마다 한 문단, `!!! 수식` 상자 안(들여 쓴 줄)은 산문이 아니다. 캡션 정의줄은 번호 꼴에
+    맞춰 정규화해 알아본다(F82 — `prose_lines`와 같음).
     """
     head_rx = head_re(style)
+    text = normalize_captions(text, style)
     infence = False
     buf: list[str] = []
     start = 0

@@ -327,7 +327,7 @@ def abbr_first_use(texts: dict[str, str], rule: re.Pattern | None,
                     continue
                 # 요약 상자(<div …>)·수식 줄은 본문 산문이 아니다
                 if (fence or not st or st.startswith(("#", "!!! ", "주: ", ">", "<", "$$"))
-                        or re.match(r"\*\*(표|그림|차트)\s", st) or is_cap_line(st)):
+                        or re.match(r"\*\*(표|그림|차트)\s", st) or is_cap_line(st, style)):
                     continue
                 masked = ABBR_MASK.sub(lambda m: "\x00" * len(m.group(0)), line)
                 for m in ABBR_TOKEN.finditer(masked):

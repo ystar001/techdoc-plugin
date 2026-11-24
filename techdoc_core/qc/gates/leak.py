@@ -8,7 +8,7 @@
   알아본 것만 센다. 분할 표지 없는 「3.2」는 정상적인 절 번호라 세지 않는다.
 - `filename` — 작업 파일 이름: 플러그인 파이프라인이 쓰는 파일(`*_card.json`·`writer_state.json`·
   `reference_list.json`·`research_round_*.json`·`KeyRef/` 등) + 설정 `extra.leak.file_patterns`
-  (정규식 조각 목록).
+  (글롭 목록 — `allow`와 같은 `fnmatch` 꼴 `*.py`·`params_?.txt`. 정규식이 필요하면 `re:` 접두).
 - `split` — writer 분할 안내 「다음 분할」·「이전 분할」.
 - `this_card` — 카드 지칭 「이 카드」.
 
@@ -64,8 +64,38 @@ def _cfg(model: DocModel) -> dict:
     return (model.extra or {}).get("leak") or {}
 
 
+# 파일 이름 한 글자(ASCII) — 글롭 `*`·`?`가 공백·경로 구분자·한글 조사를 넘지 않게
+_GLOB_CHAR = r"[0-9A-Za-z_.\-]"
+
+
+def glob_fragment(pat: str) -> str:
+    """설정 파일 꼴 → 정규식 조각(앞뒤 고정 없음). `re:`로 시작하면 정규식 조각 그대로.
+
+    글롭은 `fnmatch`와 같은 기호(`*`·`?`·`[...]`)를 받되, 본문에서 찾는 것이라 `*`·`?`는 ASCII 파일
+    이름 글자만 먹는다 — `allow`(fnmatch)와 같은 꼴로 적을 수 있게(v1.11-c).
+    """
+    if pat.startswith("re:"):
+        return pat[3:]
+    out, i = [], 0
+    while i < len(pat):
+        c = pat[i]
+        if c == "*":
+            out.append(_GLOB_CHAR + "*")
+        elif c == "?":
+            out.append(_GLOB_CHAR)
+        elif c == "[" and (j := pat.find("]", i + 2)) != -1:
+            body = pat[i + 1:j]
+            out.append("[" + ("^" + body[1:] if body.startswith("!") else body) + "]")
+            i = j
+        else:
+            out.append(re.escape(c))
+        i += 1
+    return "".join(out)
+
+
 def _file_re(model: DocModel) -> re.Pattern:
-    pats = list(PLUGIN_WORK_FILES) + [str(p) for p in _cfg(model).get("file_patterns") or [] if str(p)]
+    pats = list(PLUGIN_WORK_FILES) + [glob_fragment(str(p))
+                                      for p in _cfg(model).get("file_patterns") or [] if str(p)]
     return re.compile(r"(?<![0-9A-Za-z_.\-])(?:" + "|".join(f"(?:{p})" for p in pats) + ")")
 
 

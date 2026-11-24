@@ -9,20 +9,22 @@
 - 표제 머리: 구분 기호 「—」·「:」 앞 부분. 구분 기호가 없으면 표제 전체. 공백은 하나로 모은다.
 - 장: 렌더 트리의 장 폴더(파일의 부모 폴더). 폴더 없이 놓인 파일은 번호 꼴의 절 파일 이름
   (`3.1. 제목.md`)에서 장 번호를 읽고, 그것도 없으면 파일 하나를 장으로 본다.
-- 같은 머리가 장 안에서 `extra.repeat.max_repeats`(기본 3)회를 넘으면 넘은 표제마다 지적한다.
-- 허용 목록 `extra.repeat.allow_heads`(문서 종류 설정 — 예: 「사례」 장마다 같은 소표제)에 든 머리는
-  세지 않는다.
-- 문서 종류 tech_report는 플러그인 렌더러가 카드마다 같은 블록 표제(`constants.DEFAULT_SECTION_TITLES`
-  — 「정의·범위」「원리·구조」…)를 내므로 그 표제를 기본 허용한다. 다른 종류에는 적용하지 않는다.
+- 같은 머리가 장 안에서 `extra.repeat.max_repeats`(1 이상 정수, 기본 3)회를 넘으면 넘은 표제마다
+  지적한다. 0·음수·정수 아님은 설정 읽기(`config.validate_extra`)에서 거절한다.
+- 허용 목록 `extra.repeat.allow_heads`(프로젝트·시리즈 설정 — 예: 「사례」 장마다 같은 소표제)와
+  `extra.repeat.block_heads`(문서 종류 묶음 — 렌더러가 카드마다 내는 고정 블록 표제)에 든 머리는 세지
+  않는다. 둘은 합친다 — 프로젝트가 allow_heads를 적어도 문서 종류의 블록 표제는 남는다.
+- 문서 종류 tech_report 묶음(`bundles/kinds/tech_report/kind.yaml`)이 플러그인 카드 블록 표제
+  (`constants.DEFAULT_SECTION_TITLES` — 「정의·범위」「원리·구조」…)를 block_heads로 싣는다(v1.11-c Task 4,
+  예전에는 이 게이트의 kind 분기였다).
 """
 from __future__ import annotations
 
 import re
 from collections import Counter
 
-from techdoc_core.constants import DEFAULT_SECTION_TITLES
 from techdoc_core.qc.model import DocModel
-from techdoc_core.qc.numbering import section_file_re
+from techdoc_core.qc.numbering import ROMAN, section_file_re
 from techdoc_core.qc.registry import Finding, GateOutput, Sample, gate, sample_model
 
 FENCE = re.compile(r"^\s*(?:```|~~~)")
@@ -31,7 +33,7 @@ ANCHOR = re.compile(r"\{#[^}\n]*\}")
 MARKS = re.compile(r"\*\*|__|`")
 _NUM_PREFIX = {
     "arabic": r"\d+(?:[.\-]\d+)*",
-    "roman": r"(?:[IVX]+|\d+)(?:[.\-]\d+)*",
+    "roman": rf"(?:{ROMAN}|\d+)(?:[.\-]\d+)*",
     "letter_middle": r"\d+(?:\.[A-Z0-9]+)*",
 }
 SEPARATOR = re.compile(r"\s*[—:]\s*")
@@ -96,9 +98,9 @@ def v88_repeated_frame(model: DocModel) -> GateOutput:
     style = _style(model)
     cfg = _cfg(model)
     allow = {re.sub(r"\s+", " ", str(a).strip()) for a in cfg.get("allow_heads") or [] if str(a).strip()}
-    if model.kind == "tech_report":  # 플러그인 카드 블록 표제는 렌더러의 고정 틀
-        allow |= {heading_head(t, style) for t in DEFAULT_SECTION_TITLES.values()}
-    limit = int(cfg.get("max_repeats") or DEFAULT_MAX)
+    # 문서 종류 묶음의 고정 블록 표제 — 표제 머리 규칙(번호·구분 기호)을 거친 꼴로 비교
+    allow |= {heading_head(str(t), style) for t in cfg.get("block_heads") or [] if str(t).strip()}
+    limit = DEFAULT_MAX if cfg.get("max_repeats") is None else int(cfg["max_repeats"])
     seen: Counter[tuple[str, str]] = Counter()
     n = 0
     out: list[Finding] = []

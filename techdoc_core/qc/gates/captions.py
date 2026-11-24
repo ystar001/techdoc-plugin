@@ -27,7 +27,7 @@ from techdoc_core.qc.card_text import card_texts
 from techdoc_core.qc.dicts import layers_key, load_dict
 from techdoc_core.qc.gates.structure import CAP_DEF_CHART, CAP_OPEN, base_id, cap_defs
 from techdoc_core.qc.model import DocModel
-from techdoc_core.qc.numbering import appendix_letters, normalize_captions
+from techdoc_core.qc.numbering import ROMAN, appendix_letters, normalize_captions
 from techdoc_core.qc.prose import strip_en_gloss
 from techdoc_core.qc.registry import Finding, GateOutput, Sample, gate, sample_model
 
@@ -475,7 +475,7 @@ _TBL_SEP_LINE = re.compile(r"^\|[\s:|-]+\|\s*$")
 
 def ref_val_re(letters: str, style: str = "arabic") -> re.Pattern:
     """참조 열 값 — 절·장 번호, 별첨 번호. roman이면 「II.6」도(F82 번호 꼴)."""
-    roman = r"[IVX]+(?:\.\d+)+|" if style == "roman" else ""
+    roman = ROMAN + r"(?:\.\d+)+|" if style == "roman" else ""
     return re.compile(rf"^(?:{roman}제?\d+(?:\.\d+)*(?:\.[A-Z]\.\d+)?(?:절|장|항)?|[{letters}]-\d+"
                       rf"|별첨 ?[{letters}]|이 절)(?:[\s·,~∼]|$)")  # noqa: RUF001
 

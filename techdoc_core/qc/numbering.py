@@ -5,25 +5,31 @@
 
 이식한 게이트는 **아라비아일 때 원본 정규식을 그대로 쓰고**, 다른 꼴일 때만 이 모듈의 조각을 쓴다
 (차분 회귀에서 원본과 같은 건수를 지키기 위해).
+
+로마 숫자 글자 집합은 `ROMAN`(`[IVXLC]` — `techdoc_core.card_id`와 같음, v1.11-c)으로 통일한다.
 """
 from __future__ import annotations
 
 import re
 
+# 로마 숫자 부 번호 — card_id._ROMAN_RE와 같은 글자 집합(I·V·X·L·C, 부 100개까지)
+ROMAN = r"[IVXLC]+"
+
 SECTION_NUM = {
     "arabic": r"\d+(?:\.\d+)+",
-    "roman": r"[IVX]+(?:\.\d+)+",
+    "roman": rf"{ROMAN}(?:\.\d+)+",
     "letter_middle": r"\d+\.[A-Z]\.\d+(?:\.\d+)*",
 }
 _HEAD_NUM = {
     "arabic": r"[0-9][0-9A-Za-z.\-]*",  # 원본 prose_gates.HEAD
-    "roman": r"(?:[IVX]+|[0-9])[0-9A-Za-z.\-]*",
+    # 로마 숫자 뒤에 영문자가 바로 붙으면 낱말(「Introduction」·「Cloud」)이지 번호가 아니다
+    "roman": rf"(?:{ROMAN}(?![A-Za-z])|[0-9])[0-9A-Za-z.\-]*",
     "letter_middle": r"[0-9][0-9A-Za-z.\-]*",
 }
 _CAPTION_NUM = {
     "arabic": r"\d+(?:\.\d+)*-\d+",
     # 별첨 캡션 「표 A.1-1」·「그림 B.2-3」 — 머리가 별첨 문자 한 자(F82)
-    "roman": r"(?:[IVX]+|\d+|[A-Z])(?:\.\d+)*-\d+",
+    "roman": rf"(?:{ROMAN}|\d+|[A-Z])(?:\.\d+)*-\d+",
     "letter_middle": r"\d+(?:\.[A-Z0-9]+)*-\d+",
 }
 
@@ -76,16 +82,16 @@ def normalize_captions(text: str, style: str | None) -> str:
     return _ROMAN_CAP_CHART.sub(r"\1\2.", text)
 
 
-_LEAD = {"arabic": r"[0-9]+", "roman": r"[IVX]+", "letter_middle": r"[0-9]+"}
+_LEAD = {"arabic": r"[0-9]+", "roman": ROMAN, "letter_middle": r"[0-9]+"}
 _SECTION_FILE = {
     "arabic": r"^(\d+)\.(\d+)([^.\s]*)\.\s",  # 원본 prose_gates._SEC_FILE
-    "roman": r"^([IVX]+)\.(\d+)([^.\s]*)\.\s",
+    "roman": rf"^({ROMAN})\.(\d+)([^.\s]*)\.\s",
     "letter_middle": r"^(\d+)\.([A-Z0-9]+(?:\.\d+)*)([^.\s]*)\.\s",
 }
 
 
 def lead_num(style: str | None) -> str:
-    """번호의 첫 마디(부·장) 조각 — arabic `[0-9]+` · roman `[IVX]+`."""
+    """번호의 첫 마디(부·장) 조각 — arabic `[0-9]+` · roman `[IVXLC]+`."""
     return _LEAD[_style(style)]
 
 

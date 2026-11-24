@@ -22,6 +22,7 @@ from functools import lru_cache
 from techdoc_core.qc.card_text import card_texts
 from techdoc_core.qc.dicts import layers_key, load_dict
 from techdoc_core.qc.model import DocModel
+from techdoc_core.qc.numbering import ROMAN
 from techdoc_core.qc.prose import (
     BOLD,
     CAP_PLAIN,
@@ -521,7 +522,7 @@ _TABLE_READ_REST = (
     r"|(?<![가-힣])(?:열|행|칸)을 (?:위에서부터|아래로|차례로|따라) ?읽")
 TABLE_READ = re.compile(r"(?:표|그림) ?\d+(?:\.[0-9A-Z]+)*-\d+" + _TABLE_READ_REST)
 # roman(F82) — 「표 II.6-1」도 표 번호로
-TABLE_READ_ROMAN = re.compile(r"(?:표|그림) ?(?:[IVX]+|\d+)(?:\.[0-9A-Z]+)*-\d+" + _TABLE_READ_REST)
+TABLE_READ_ROMAN = re.compile(r"(?:표|그림) ?(?:" + ROMAN + r"|\d+)(?:\.[0-9A-Z]+)*-\d+" + _TABLE_READ_REST)
 _CAP_KEY = (re.compile(r"^\*\*(표|그림|차트)\s*([\dA-Za-z][\w.\-]*)\.\*\*\s*(.*)$"),
             re.compile(r"^(표|그림|차트)\s([\dA-Za-z][0-9A-Za-z.\-]*)\.\s+(.*)$"))
 
@@ -537,7 +538,7 @@ def _guide_sent(model: DocModel) -> re.Pattern:
     """개요의 안내 문장 — 「…편」 같은 문서 이름 꼴은 `extra.prose.guide_words`(정규식 조각)로 더한다."""
     head = _GUIDE_HEAD
     if _style(model) == "roman":
-        head = r"[IVX]+\.\d+절|" + head
+        head = ROMAN + r"\.\d+절|" + head
     words = "".join("|" + str(w) for w in _prose_cfg(model).get("guide_words") or [] if str(w))
     return re.compile(r"(?:" + head + words + _GUIDE_TAIL)
 
@@ -551,7 +552,8 @@ def _overview(name: str, model: DocModel) -> bool:
 def _line_hits(model: DocModel, want: str) -> GateOutput:
     """원본 v2.2 줄 루프 — 펜스·빈 줄·표제를 건너뛰고 한 게이트의 지적만 모은다."""
     texts = _no_index(_texts(model))
-    table_read = TABLE_READ_ROMAN if _style(model) == "roman" else TABLE_READ
+    style = _style(model)
+    table_read = TABLE_READ_ROMAN if style == "roman" else TABLE_READ
     guide = _guide_sent(model) if want == "V54" else None
     out: list[Finding] = []
     for name, text in texts.items():
@@ -577,7 +579,7 @@ def _line_hits(model: DocModel, want: str) -> GateOutput:
                 for m in SELF_DECL.finditer(ln):
                     out.append(Finding(loc, f"문서 자기 선언 — {ln[max(0, m.start() - 16):m.end() + 10]}"))
             elif want == "V69":
-                if not ln.lstrip().startswith(("|", "**표", "**그림")) and not is_cap_line(ln):
+                if not ln.lstrip().startswith(("|", "**표", "**그림")) and not is_cap_line(ln, style):
                     for m in table_read.finditer(ln):
                         out.append(Finding(loc, f"표 읽어 주기 — {ln[max(0, m.start() - 12):m.end() + 12]}"))
             elif want == "V53":
@@ -589,11 +591,11 @@ def _line_hits(model: DocModel, want: str) -> GateOutput:
                         nxt = lines[j]
                         m = LAYOUT_WORDS.search(nxt)
                         if m and not nxt.lstrip().startswith(("|", "```", "#", "**표", "**그림")) \
-                                and not is_cap_line(nxt):
+                                and not is_cap_line(nxt, style):
                             out.append(Finding(f"{name}:{j + 1}",
                                                f"그림 구성 설명 — {nxt[max(0, m.start() - 16):m.end() + 16]}"))
             elif want == "V54":
-                if ln.lstrip().startswith(("|", ">", "!!!", "**표", "**그림", "**차트")) or is_cap_line(ln):
+                if ln.lstrip().startswith(("|", ">", "!!!", "**표", "**그림", "**차트")) or is_cap_line(ln, style):
                     continue
                 for s in re.split(r"(?<=다\.)\s+", ln.strip()):
                     if overview and guide.search(s) and len(s) < 80:
