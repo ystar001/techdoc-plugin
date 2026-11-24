@@ -35,22 +35,29 @@ _STR = "문자열"
 _POS_INT = "1 이상 정수"
 _INT_MAP = "{이름: 0 이상 정수} 표"
 _DICT = "표(dict)"
+_BOOL = "참·거짓"
 EXTRA_SHAPES: dict[str, dict[str, str]] = {
     "citation": {"internal_files": _STR_LIST, "nonprimary_ok": _DICT,
-                 "card_ref_list_pattern": _STR, "group_authors_ok": _STR_LIST},
+                 "card_ref_list_pattern": _STR, "group_authors_ok": _STR_LIST,
+                 "group_author_fields": _STR_LIST},
     "code_namespace": {"pattern": _STR, "allow": _STR_LIST},
-    "leak": {"file_patterns": _STR_LIST, "allow": _STR_LIST},
+    "leak": {"file_patterns": _STR_LIST, "allow": _STR_LIST, "card_fields": _STR_LIST,
+             "plan_docs": _STR_LIST},
     "check_quality": {"size_thresholds": _INT_MAP},
     "verify_cards": {"thresholds": _INT_MAP},
     "terms": {"abbr_rule_sentence": _STR},
-    "repeat": {"allow_heads": _STR_LIST, "block_heads": _STR_LIST, "max_repeats": _POS_INT},
+    "repeat": {"allow_heads": _STR_LIST, "block_heads": _STR_LIST, "max_repeats": _POS_INT,
+               "frame_heads": _POS_INT, "frame_chapters": _POS_INT},
     "prose": {"meta_words": _STR_LIST, "guide_words": _STR_LIST,
-              "overview_prefixes": _STR_LIST, "markers": _DICT},
+              "overview_prefixes": _STR_LIST, "markers": _DICT,
+              "selfref_nouns": _STR_LIST, "selfref_verbs": _STR_LIST},
     "caption": {"skip_table_titles": _STR_LIST, "standard_table_words": _STR_LIST,
                 "chart_axis_types": _STR_LIST, "chart_axis_keys": _DICT},
     "structure": {"peer_doc_names": _STR_LIST, "peer_prefix": _STR_LIST, "qs_jargon": _STR_LIST,
                   "intro_exempt_titles": _STR_LIST, "folder_names": _STR_LIST,
-                  "appendix_letters": _STR},
+                  "appendix_letters": _STR, "conclusion_titles": _STR_LIST,
+                  "conclusion_split_groups": _BOOL, "summary_retired_fields": _STR_LIST,
+                  "summary_limits": _INT_MAP},
 }
 
 
@@ -130,6 +137,8 @@ def _shape_ok(shape: str, v) -> bool:
         return _is_int(v) and v >= 1
     if shape == _INT_MAP:
         return isinstance(v, dict) and all(_is_int(x) and x >= 0 for x in v.values())
+    if shape == _BOOL:
+        return isinstance(v, bool)
     return isinstance(v, dict)
 
 

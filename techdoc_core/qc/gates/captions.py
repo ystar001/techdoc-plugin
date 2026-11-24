@@ -122,20 +122,25 @@ def v6_caption_links(model: DocModel) -> GateOutput:
         caps = cap_defs(whole)
         short = sum(1 for m in _CAP_TEXT.finditer(whole) if len(m.group(1)) > MAX_CAPTION_CHARS)
         loc = f"{cid} 도표"
+        # 원본은 결손 수만큼 센다 — 건수는 그대로 두고 지적마다 대상을 글에 담아 (위치, 글)이 고유(F111)
         if vis and len(caps) < vis and not _is_front(cid, model):
-            out += [Finding(f"{loc}: 캡션 결손", f"{cid} 캡션 결손 {vis - len(caps)}/{vis}")] * (vis - len(caps))
+            miss = vis - len(caps)
+            out += [Finding(f"{loc}: 캡션 결손", f"{cid} 캡션 결손 {i}/{miss}(도표 {vis}개)")
+                    for i in range(1, miss + 1)]
         if short:
+            longs = [m.group(1) for m in _CAP_TEXT.finditer(whole)
+                     if len(m.group(1)) > MAX_CAPTION_CHARS]
             out += [Finding(f"{loc}: 캡션 길이",
-                            f"{cid} 캡션 {MAX_CAPTION_CHARS}자 초과 {short}")] * short
+                            f"{cid} 캡션 {MAX_CAPTION_CHARS}자 초과 {i}/{short}: {t[:24]}…")
+                    for i, t in enumerate(longs, 1)]
         body_only = _CAP_LINE_STRIP.sub("", whole)
         uncalled = [f"{k} {n.rstrip('.')}" for k, n in caps
                     if not re.search(
                         rf"{'(?:그림|차트|사진|다이어그램)' if k != '표' else '표'}\s*"
                         rf"{re.escape(n.rstrip('.'))}(?![\d\-.])", body_only)]
-        if uncalled:
-            msg = (f"{cid} 본문이 부르지 않는 도표 {len(uncalled)}/{vis}: " + ", ".join(uncalled[:5])
-                   + (" …" if len(uncalled) > 5 else ""))
-            out += [Finding(f"{loc}: 부르지 않음", msg)] * len(uncalled)
+        out += [Finding(f"{loc}: 부르지 않음",
+                        f"{cid} 본문이 부르지 않는 도표 {name} ({i}/{len(uncalled)}, 도표 {vis}개)")
+                for i, name in enumerate(uncalled, 1)]
     return GateOutput(len(model.cards), out)
 
 

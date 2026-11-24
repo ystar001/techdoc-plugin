@@ -128,6 +128,27 @@ def cap_defs(whole: str) -> list:
     return CAP_DEF_LINE.findall(whole) + CAP_DEF_CHART.findall(whole)
 
 
+# 부분표 표지 — 같은 번호를 (가)·(나)로 나누거나 「(계속)」으로 이어 실은 표는 한 표다(F116)
+PART_MARK = re.compile(r"\((?:[가-하]|[a-h]|계속|이어짐|continued)\)", re.I)
+
+
+def caption_number_uses(whole: str) -> Counter:
+    """도표 번호마다 몇 개의 서로 다른 도표가 그 번호를 쓰는가 — 1을 넘으면 번호 중복.
+
+    부분표 표지(`(가)`·`(나)`·`(계속)`)가 캡션 줄에 있는 정의는 같은 표의 조각이라 따로 세지 않는다 —
+    표지 없는 정의 수, 그것이 0이면 1(조각만 있는 표). 표지 없는 같은 번호 둘은 여전히 중복이다.
+    """
+    plain: Counter = Counter()
+    parts: Counter = Counter()
+    for rx in (CAP_DEF_LINE, CAP_DEF_CHART):
+        for m in rx.finditer(whole):
+            key = f"{m.group(1)} {m.group(2).rstrip('.')}"
+            end = whole.find("\n", m.start())
+            line = whole[m.start(): end if end != -1 else len(whole)]
+            (parts if PART_MARK.search(line) else plain)[key] += 1
+    return Counter({k: max(plain[k], 1 if parts[k] else 0) for k in set(plain) | set(parts)})
+
+
 _VISUAL_CAP = re.compile(
     r"^\s*(?:\*\*)?(그림|표|차트|사진|다이어그램)\s*([\dA-Za-z](?:[\dA-Za-z.\-]*[\dA-Za-z])?)")
 
@@ -257,8 +278,7 @@ def v2_cross_refs(model: DocModel) -> GateOutput:
             num = num0.rstrip(".")
             if f"{kind}{num}" not in defined and num.startswith(mine):
                 out.append(Finding(f"{cid} 도표", f"{cid} → {kind} {num} 정의 없음"))
-        dup = Counter(f"{k} {n.rstrip('.')}" for k, n in cap_defs(whole))
-        for key, cnt in dup.items():
+        for key, cnt in caption_number_uses(whole).items():
             if cnt > 1:
                 out.append(Finding(f"{cid} 도표", f"{cid} → {key} 번호 중복 ×{cnt}"))  # noqa: RUF001
     return GateOutput(len(cards), out)
@@ -336,17 +356,33 @@ def goal_defects(qs, jargon: re.Pattern | None = None) -> list[str]:
     return out
 
 
-def summary_defects(summ: str, jargon: re.Pattern | None = None) -> list[str]:
-    """옛 꼴 요약 — 20~160자 · 1~2문장 · 한 문장 110자 · 전문어 · 사례로 시작 · 「알 수 있다」 끝."""
+SUMMARY_LIMITS = {"min_chars": QS_MIN, "max_chars": QS_MAX, "min_sentences": QS_SENTS[0],
+                  "max_sentences": QS_SENTS[1], "sentence_max": QS_SENT_MAX}
+
+
+def summary_limits(model: DocModel) -> dict:
+    """옛 꼴 요약의 한계 — `extra.structure.summary_limits`(문서 종류·시리즈 설정)가 키마다 덮는다(F117)."""
+    lim = dict(SUMMARY_LIMITS)
+    lim.update({k: int(v) for k, v in (_cfg(model).get("summary_limits") or {}).items()
+                if k in SUMMARY_LIMITS})
+    return lim
+
+
+def summary_defects(summ: str, jargon: re.Pattern | None = None,
+                    limits: dict | None = None) -> list[str]:
+    """옛 꼴 요약 — 20~160자 · 1~2문장 · 한 문장 110자 · 전문어 · 사례로 시작 · 「알 수 있다」 끝.
+
+    숫자 한계는 `limits`(기본 `SUMMARY_LIMITS` — 원본 값)."""
+    lim = {**SUMMARY_LIMITS, **(limits or {})}
     summ = summ.replace("\\$", "$")  # 통화 이스케이프의 역슬래시는 독자가 보는 글자가 아니다
     bad = []
-    if not (QS_MIN <= len(summ) <= QS_MAX):
-        bad.append(f"길이 {len(summ)}자(기준 {QS_MIN}~{QS_MAX})")
+    if not (lim["min_chars"] <= len(summ) <= lim["max_chars"]):
+        bad.append(f"길이 {len(summ)}자(기준 {lim['min_chars']}~{lim['max_chars']})")
     sents = [s for s in QS_SPLIT.split(summ) if s.strip()]
-    if not (QS_SENTS[0] <= len(sents) <= QS_SENTS[1]):
-        bad.append(f"문장 {len(sents)}개(기준 {QS_SENTS[0]}~{QS_SENTS[1]})")
+    if not (lim["min_sentences"] <= len(sents) <= lim["max_sentences"]):
+        bad.append(f"문장 {len(sents)}개(기준 {lim['min_sentences']}~{lim['max_sentences']})")
     longest = max((len(s) for s in sents), default=0)
-    if longest > QS_SENT_MAX:
+    if longest > lim["sentence_max"]:
         bad.append(f"한 문장 {longest}자")
     jarg = sorted(set(jargon.findall(summ))) if jargon else []
     if jarg:
@@ -365,8 +401,15 @@ def summary_defects(summ: str, jargon: re.Pattern | None = None) -> list[str]:
         "questions": ["기록의 요건은 무엇인가?", "여덟 항목은 어떤 차례로 채우나?"]})}), expect=0),
 ])
 def v21_quick_summary(model: DocModel) -> GateOutput:
-    """핵심요약 — 「이 절의 목표」 상자 또는 옛 꼴 요약의 규약, 본문 절의 요약 없음, 한 줄 정리 잔존."""
+    """핵심요약 — 「이 절의 목표」 상자 또는 옛 꼴 요약의 규약, 본문 절의 요약 없음, 폐지한 칸 잔존.
+
+    폐지한 칸(원본 시리즈의 「→ 한 줄 정리」 `one_sentence`)은 문서 규약이라 설정
+    `extra.structure.summary_retired_fields`(기본 없음 — 작성기가 그 칸을 만들어도 결함이 아니다, F117)가
+    정한다. 옛 꼴 요약의 숫자 한계는 `extra.structure.summary_limits`.
+    """
     jargon = _jargon_re(model)
+    limits = summary_limits(model)
+    retired = [str(k) for k in _cfg(model).get("summary_retired_fields") or [] if str(k)]
     out: list[Finding] = []
     for cid, card in model.cards.items():
         loc = f"{cid}|-: 핵심요약"
@@ -382,16 +425,16 @@ def v21_quick_summary(model: DocModel) -> GateOutput:
             summ = (q.get("summary") or "").strip()
         else:
             summ = str(q or "").strip()
-        one = (q.get("one_sentence") or "").strip() if isinstance(q, dict) else ""
+        left = [k for k in retired if isinstance(q, dict) and str(q.get(k) or "").strip()]
         # 개요(0.x)와 별첨 앞머리는 규약상 요약을 두지 않는다
         if not goal and not summ and _is_body_section(cid, model):
             out.append(Finding(loc, f"{cid} 핵심요약이 없다"))
         if summ:
-            bad = summary_defects(summ, jargon)
+            bad = summary_defects(summ, jargon, limits)
             if bad:
                 out.append(Finding(loc, f"{cid} 핵심요약 — {' / '.join(bad)}"))
-        if one:  # 「→ 한 줄 정리」는 폐지 — 결론은 절 끝 목록이 맡는다
-            out.append(Finding(loc, f"{cid} 한 줄 정리가 남아 있다"))
+        for k in left:  # 폐지한 칸(시리즈: 「→ 한 줄 정리」 — 결론은 절 끝 목록이 맡는다)
+            out.append(Finding(loc, f"{cid} 한 줄 정리가 남아 있다({k})"))
     return GateOutput(len(model.cards), out)
 
 
@@ -416,21 +459,67 @@ def conclusion_defects(items, body: str) -> list[str]:
     return out
 
 
+CONCLUSION_TITLES = ("결론", "종합", "맺음", "마무리")
+_SPLIT_NO = re.compile(r"\.X?L(\d+)$")
+
+
+def _conclusion_targets(model: DocModel, cfg: dict):
+    """(위치 id, 결론을 볼 카드, 합친 본문, 결론을 볼 카드의 절 표제 목록) — V57 대상."""
+    groups: dict[str, list[tuple[int, str]]] = {}
+    for cid, card in model.cards.items():
+        if _is_body_section(cid, model):
+            yield cid, card, "\n".join(b for _, _, b in sections_of(card)), \
+                [t for _, t, _ in sections_of(card)]
+            continue
+        m = _SPLIT_NO.search(cid)
+        base = base_id(cid)
+        if m and base not in model.cards and _is_body_section(base, model):
+            groups.setdefault(base, []).append((int(m.group(1)), cid))
+    if cfg.get("conclusion_split_groups") is False:
+        return
+    for base, parts in groups.items():
+        parts.sort()
+        last = model.cards[parts[-1][1]]
+        body = "\n".join(b for _, c in parts for _, _, b in sections_of(model.cards[c]))
+        yield base, last, body, [t for _, t, _ in sections_of(last)]
+
+
+def _has_conclusion_section(sec_titles: list[str], titles: list[str], style: str) -> bool:
+    """마지막 절 표제 머리가 결론 낱말로 시작하는가 — 번호(`II.6 종합 — …`)·구분 기호는 걷는다."""
+    from techdoc_core.qc.gates.repeat import heading_head
+
+    if not sec_titles or not titles:
+        return False
+    head = heading_head(sec_titles[-1], style if style in ("arabic", "roman", "letter_middle")
+                        else "arabic")
+    return any(head.startswith(t) for t in titles)
+
+
 @gate("V57", samples=[
     Sample(sample_model(cards={"1.1": _card("본문 3건.")}), expect=1),
     Sample(sample_model(cards={"1.1": _card("본문 3건.", conclusion=[
         "관측은 기록이다.", "기록은 판단의 바탕이다.", "판단은 3건으로 묶인다."])}), expect=0),
 ])
 def v57_conclusion(model: DocModel) -> GateOutput:
-    """절 끝 결론 — 본문 절에만. 3~5항목·120자·문장 끝·안내/출처 없음·본문에 있는 수치·질문마다 답."""
+    """절 끝 결론 — 본문 절에만. 3~5항목·120자·문장 끝·안내/출처 없음·본문에 있는 수치·질문마다 답.
+
+    대상(F112): 본문 절 카드(`N.M`) + 부모 카드 없이 분할로만 있는 절(`N.M.L1`~) — 분할은 부모 절
+    하나로 묶어 마지막 분할에서 결론을 본다(본문은 분할 전부를 합침). 부모 카드가 있으면 원본처럼
+    부모만 본다. 분할 묶음은 `extra.structure.conclusion_split_groups`(기본 켬)로 끈다.
+    결론 자리: `conclusion` 칸(항목 규약을 봄) 또는 마지막 절의 결론 표제(`extra.structure.
+    conclusion_titles`, 기본 「결론·종합·맺음·마무리」로 시작하는 표제 머리 — 산문 절이라 있음만 봄).
+    """
     out: list[Finding] = []
     targets = 0
-    for cid, card in model.cards.items():
-        if not _is_body_section(cid, model):
-            continue
+    cfg = _cfg(model)
+    titles = [str(t) for t in (cfg.get("conclusion_titles") if cfg.get("conclusion_titles")
+                               is not None else CONCLUSION_TITLES) if str(t)]
+    for cid, card, body, sec_titles in _conclusion_targets(model, cfg):
         targets += 1
-        body = "\n".join(b for _, _, b in sections_of(card))
         conc = card.get("conclusion")
+        if not (isinstance(conc, list) and conc) and _has_conclusion_section(
+                sec_titles, titles, _style(model)):
+            continue
         cb = conclusion_defects(conc, body)
         nq = len(goal_questions(card.get("quick_summary")))
         nc = len(conc) if isinstance(conc, list) else 0
@@ -578,16 +667,16 @@ def v30_md_xrefs(model: DocModel) -> GateOutput:
     for t in texts.values():
         anchors |= set(head_sec.findall(t)) | set(head_apx.findall(t)) | set(caption.findall(t))
     parts = {a.split(".")[0] for a in anchors if re.match(ROMAN + r"\.", a)} if roman else set()
+    from techdoc_core.qc.gates.leak import number_repeats
+
     out: list[Finding] = []
     for name, text in texts.items():
         t = obsolete.sub("", text)
-        for m in dead_xrefs(t, anchors, peer, ref_sec):
-            if roman and roman_standard_number(m, parts):
-                continue
-            out.append(Finding(name, f"죽은 참조 {m}"))
-        for m in ref_apx.findall(t):
-            if m not in anchors:
-                out.append(Finding(name, f"죽은 참조 별첨 {m}"))
+        msgs = [f"죽은 참조 {m}" for m in dead_xrefs(t, anchors, peer, ref_sec)
+                if not (roman and roman_standard_number(m, parts))]
+        msgs += [f"죽은 참조 별첨 {m}" for m in ref_apx.findall(t) if m not in anchors]
+        # 같은 파일에서 같은 죽은 참조가 되풀이되면 건수는 그대로, 글에 차례를 붙여 고유하게(F111)
+        out += [Finding(name, msg) for msg in number_repeats(msgs, "이 파일")]
     return GateOutput(len(texts), out)
 
 

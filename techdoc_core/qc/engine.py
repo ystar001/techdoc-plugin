@@ -73,7 +73,8 @@ def run_qc(model: DocModel, specs: dict[str, GateSpec], funcs: dict[str, Callabl
     report = {"schema": "techdoc-qc/1", "plugin": __version__, "root": str(model.root),
               "kind": model.kind, "config_hash": _config_hash(cfg),
               "warnings": list(cfg.warnings) + list(model.load_errors),
-              "selftest_errors": [], "gate_errors": [], "exempted": {}, "input_empty": False,
+              "selftest_errors": [], "gate_errors": [], "exempted": {}, "duplicates": {},
+              "input_empty": False,
               "summary": summary, "results": []}
     if model.is_empty():
         report["input_empty"] = True
@@ -120,6 +121,11 @@ def run_qc(model: DocModel, specs: dict[str, GateSpec], funcs: dict[str, Callabl
                 items = list(out.findings)
             row["targets_read"] = out.targets_read
             row["count"] = len(items)
+            # 같은 (위치, 글) 지적 — 건수는 원본 계약대로 두고 따로 알린다(F111, 게이트가 고칠 일)
+            dups = len(items) - len({(f.loc, f.msg) for f in items})
+            if dups:
+                row["duplicates"] = dups
+                report["duplicates"][gid] = dups
             row["items"] = [{"loc": f.loc, "msg": f.msg} for f in items]
             if out.targets_read == 0 and not items:
                 if _expected(spec, model.kind, cfg.expects):
@@ -152,6 +158,8 @@ def format_report(report: dict, top: int = 8) -> str:
     lines += [f"  [SELFTEST] {e}" for e in report.get("selftest_errors", [])]
     lines += [f"  [GATE ERROR] {e}" for e in report.get("gate_errors", [])]
     lines += [f"  [면제] {g} {n}건" for g, n in sorted(report.get("exempted", {}).items())]
+    lines += [f"  [중복] {g} {n}건 — 같은 위치·같은 글(건수에는 그대로 듦)"
+              for g, n in sorted(report.get("duplicates", {}).items(), key=lambda x: _natural(x[0]))]
     lines.append(f"{'ID':<8}{'검사':<34}{'대상':>6}{'건수':>7}  상태")
     for r in report["results"]:
         mark = _FAIL_MARK[r["level"]] if r["verdict"] == "fail" else _MARK[r["verdict"]]

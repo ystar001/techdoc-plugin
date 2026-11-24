@@ -153,8 +153,9 @@ def test_v21_goal_box_and_one_sentence():
     bad = sample_model(cards={"1.1": _card("x", quick_summary={**_G_OK, "goal": "짧다."})})
     assert _n("V21", bad) == 1
     summ = "이 절은 관측값을 기록하는 요건과 그 쓰임을 다룬다."
-    old = sample_model(cards={"1.1": _card("x", quick_summary={"summary": summ, "one_sentence": "→ 끝"})})
-    assert _n("V21", old) == 1
+    old = sample_model(cards={"1.1": _card("x", quick_summary={"summary": summ, "one_sentence": "→ 끝"})},
+                       extra={"structure": {"summary_retired_fields": ["one_sentence"]}})
+    assert _n("V21", old) == 1  # 시리즈 규약(폐지한 칸) — 본체 기본은 칸을 허용한다(F117)
 
 
 def test_v21_jargon_is_config_only():
@@ -183,8 +184,14 @@ def test_v57_missing_and_good_conclusion():
 
 
 def test_v57_targets_only_body_sections():
-    out = REGISTRY["V57"](sample_model(cards={"0.1": _card("x"), "A-1": _card("x"), "1.1.L1": _card("x")}))
+    cards = {"0.1": _card("x"), "A-1": _card("x"), "1.1.L1": _card("x")}
+    # 원본(시리즈 층 설정): 분할 카드는 대상 밖
+    out = REGISTRY["V57"](sample_model(
+        cards=cards, extra={"structure": {"conclusion_split_groups": False}}))
     assert out.targets_read == 0 and out.findings == []
+    # 본체 기본(F112): 부모 카드 없는 분할은 부모 절 하나로 묶어 본다 — 개요·별첨은 여전히 밖
+    out = REGISTRY["V57"](sample_model(cards=cards))
+    assert out.targets_read == 1 and [f.loc for f in out.findings] == ["1.1|-: 결론"]
 
 
 # ── V59 별첨 문자 ──

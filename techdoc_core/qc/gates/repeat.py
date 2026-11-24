@@ -14,6 +14,10 @@
 - 허용 목록 `extra.repeat.allow_heads`(프로젝트·시리즈 설정 — 예: 「사례」 장마다 같은 소표제)와
   `extra.repeat.block_heads`(문서 종류 묶음 — 렌더러가 카드마다 내는 고정 블록 표제)에 든 머리는 세지
   않는다. 둘은 합친다 — 프로젝트가 allow_heads를 적어도 문서 종류의 블록 표제는 남는다.
+- **장을 가로지르는 틀**(v1.11-c, F113): 머리 하나의 장 안 횟수로는 분할마다 한 번씩 되풀이되는 틀
+  (장 안 3회씩 여러 장)을 원리상 못 본다. 그래서 서로 다른 머리 `extra.repeat.frame_heads`(기본 3)개가
+  같은 차례로 이어진 묶음이 `extra.repeat.frame_chapters`(기본 4)개 이상의 장에 나오면 그 틀이 나온
+  장마다 지적 하나를 더 낸다. 허용 머리는 차례에서 미리 빼므로 카드 블록 표제는 틀이 되지 않는다.
 - 문서 종류 tech_report 묶음(`bundles/kinds/tech_report/kind.yaml`)이 플러그인 카드 블록 표제
   (`constants.DEFAULT_SECTION_TITLES` — 「정의·범위」「원리·구조」…)를 block_heads로 싣는다(v1.11-c Task 4,
   예전에는 이 게이트의 kind 분기였다).
@@ -38,6 +42,8 @@ _NUM_PREFIX = {
 }
 SEPARATOR = re.compile(r"\s*[—:]\s*")
 DEFAULT_MAX = 3
+DEFAULT_FRAME_HEADS = 3  # 틀로 보는 머리 묶음의 길이
+DEFAULT_FRAME_CHAPTERS = 4  # 틀이 이만큼의 장에 나오면 지적
 
 
 def _style(model: DocModel) -> str:
@@ -104,6 +110,7 @@ def v88_repeated_frame(model: DocModel) -> GateOutput:
     seen: Counter[tuple[str, str]] = Counter()
     n = 0
     out: list[Finding] = []
+    seq: dict[str, list[tuple[str, str]]] = {}  # 장 → [(머리, 위치)] 차례대로(허용 머리 뺌)
     for tf in model.prose():
         chap = chapter_of(tf.rel, style)
         for i, title in headings(tf.text):
@@ -111,10 +118,48 @@ def v88_repeated_frame(model: DocModel) -> GateOutput:
             head = heading_head(title, style)
             if not head or head in allow:
                 continue
+            seq.setdefault(chap, []).append((head, f"{tf.rel}:{i}"))
             seen[chap, head] += 1
             k = seen[chap, head]
             if k > limit:
                 out.append(Finding(f"{tf.rel}:{i}",
                                    f"같은 틀 되풀이 — 표제 머리 「{head}」가 장 「{chap}」 안에서 "
                                    f"{k}번째({limit}회 넘음)"))
+    out += cross_chapter_frames(seq, cfg)
     return GateOutput(n, out)
+
+
+def cross_chapter_frames(seq: dict[str, list[tuple[str, str]]], cfg: dict) -> list[Finding]:
+    """장을 가로지르는 표제 틀(F113) — 서로 다른 머리 k개(`frame_heads`, 기본 3)가 같은 차례로 이어진
+    묶음이 `frame_chapters`(기본 4)개 이상의 장에 나오면, 그 틀이 나온 장마다 지적 하나.
+
+    머리 하나의 장 안 횟수(위)로는 분할마다 한 번씩 되풀이되는 틀(장 안 3회씩 여러 장)을 못 본다.
+    허용 머리(`allow_heads`·`block_heads`)는 차례에서 미리 뺐으므로 문서 종류의 카드 블록 표제는 틀이
+    되지 않는다.
+    """
+    k = int(cfg.get("frame_heads") or DEFAULT_FRAME_HEADS)
+    need = int(cfg.get("frame_chapters") or DEFAULT_FRAME_CHAPTERS)
+    grams: dict[str, dict[tuple[str, ...], str]] = {}  # 장 → {틀: 첫 위치}
+    for chap, items in seq.items():
+        found: dict[tuple[str, ...], str] = {}
+        for j in range(len(items) - k + 1):
+            g = tuple(h for h, _ in items[j:j + k])
+            if len(set(g)) == k and g not in found:
+                found[g] = items[j][1]
+        grams[chap] = found
+    count = Counter(g for found in grams.values() for g in found)
+    frequent = {g for g, c in count.items() if c >= need}
+    out: list[Finding] = []
+    for chap, found in grams.items():
+        hit = [g for g in found if g in frequent]
+        if not hit:
+            continue
+        heads: list[str] = []
+        for g in hit:
+            heads += [h for h in g if h not in heads]
+        shown = " → ".join(heads[:6]) + (" …" if len(heads) > 6 else "")
+        n_ch = max(count[g] for g in hit)
+        out.append(Finding(found[hit[0]],
+                           f"같은 틀 되풀이 — 표제 머리 틀 「{shown}」이 {n_ch}개 장에 걸쳐 나옴"
+                           f"(장 「{chap}」, 기준 {need}장)"))
+    return out

@@ -72,6 +72,8 @@ extra:
     internal_files: [PLAN.md]    # 참고문헌에 나오면 안 되는 내부 작업 파일 이름
     nonprimary_ok: {REF-012: "1차 문헌이 없는 사실"}   # 백과사전 출처 면제(사유 필수)
     group_authors_ok: [R Core Team]   # 정당한 단체 지은이 — V68 「… Team」 자리표시로 안 잡음
+  leak:
+    plan_docs: [PRD, case_plan.md]    # 프로젝트 계획 문서 — 「PRD §1.2」·「PRD REQ-003」·파일 이름을 V87이 잡음
 ```
 
 설정이 부르는 게이트 id가 없는 id면 경고가 나온다(조용히 무시하지 않음). `domain`·`series` 경로가 없거나 `kind`가 모르는 이름이어도 경고한다. `gates.exempt`의 카드 id는 **따옴표로 감싼다**(`"1.10"` — YAML은 따옴표 없는 1.10을 숫자 1.1로 읽는다, 그러면 오류로 멈춘다).
@@ -184,9 +186,17 @@ extra:
 
 | id | 검사 | 층 | 수준 |
 |---|---|---|---|
-| V88 | 같은 틀 되풀이 — 한 장 안 같은 표제 머리 3회 초과 | 본체 | 경고 |
+| V88 | 같은 틀 되풀이 — 한 장 안 같은 표제 머리 3회 초과 · 같은 머리 묶음이 여러 장에 걸침 | 본체 | 경고 |
 
-설정: V87 `extra.leak.file_patterns`(작업 파일 이름 글롭 — `allow`와 같은 `fnmatch` 꼴 `*.py`, 정규식은 `re:` 접두)·`extra.leak.allow`(글자 그대로 또는 글롭). V88 `extra.repeat.max_repeats`(1 이상, 기본 3)·`allow_heads`(프로젝트)·`block_heads`(문서 종류 묶음 — 둘을 합쳐 세지 않음). V21 분야 전문어는 `extra.structure.qs_jargon`과 층 사전 `dicts/qs_jargon.json`(`{"items": [...]}`)을 합친다.
+설정: V87 `extra.leak.file_patterns`(작업 파일 이름 글롭 — `allow`와 같은 `fnmatch` 꼴 `*.py`, 정규식은 `re:` 접두)·`extra.leak.allow`(글자 그대로 또는 글롭)·`extra.leak.plan_docs`(프로젝트 계획 문서 이름 — 기본 없음, 플러그인은 계획 문서를 만들지 않는다)·`extra.leak.card_fields`(독자 글이 없을 때만 읽는 카드 칸, 기본 `scope_note`·`split_continuation_note`). V87은 **독자 글(draft·렌더 트리)이 있으면 그것만** 본다 — 카드 칸은 렌더되지 않거나 이미 트리에 있다. V88 `extra.repeat.max_repeats`(1 이상, 기본 3)·`allow_heads`(프로젝트)·`block_heads`(문서 종류 묶음 — 둘을 합쳐 세지 않음)·`frame_heads`(틀 길이, 기본 3)·`frame_chapters`(틀이 걸친 장 수 기준, 기본 4). V21 분야 전문어는 `extra.structure.qs_jargon`과 층 사전 `dicts/qs_jargon.json`(`{"items": [...]}`)을 합친다.
+
+**실제 문서 검출 측정 반영(v1.11-c, F109~F117)** — 본체 기본을 넓히고, 원본 판정이 필요한 문서(시리즈)는 설정으로 되돌린다.
+
+- V68 `extra.citation.group_author_fields`(기본 `[institution]`): `authors`가 비어도 이 칸에 이름이 있으면 단체 지은이로 본다. `[]`이면 `authors`만.
+- V57 `extra.structure.conclusion_split_groups`(기본 켬): 부모 카드 없는 분할(`II.6.L1`~)을 부모 절 하나로 묶어 마지막 분할에서 결론을 본다. `conclusion_titles`(기본 결론·종합·맺음·마무리): 마지막 절 표제 머리가 이 낱말로 시작하면 결론이 있는 것으로 본다(`[]`이면 `conclusion` 칸만).
+- V21 `extra.structure.summary_retired_fields`(기본 없음): 남아 있으면 결함인 폐지 칸(시리즈는 `[one_sentence]`). `summary_limits`(`min_chars`·`max_chars`·`min_sentences`·`max_sentences`·`sentence_max`, 기본 20·160·1·2·110).
+- V24 자칭 서술 낱말은 층 사전 `dicts/meta_self_reference.json`(`nouns`·`verbs` — 「섹션」·「정한다·정리한다·본다·묻는다」 포함). `extra.prose.selfref_nouns`·`selfref_verbs`는 목록을 통째로 바꾼다.
+- 같은 위치·같은 글의 지적은 보고에 `[중복] Vnn n건`으로 따로 알린다(건수는 원본 계약대로). V6·V14·V30·V87은 지적마다 대상(표 번호·낱말·차례)을 글에 담아 고유하다.
 
 ### 시각 필드·코드 네임스페이스(신규) (2)
 

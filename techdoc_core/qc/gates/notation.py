@@ -142,6 +142,8 @@ def v42_private_mark(model: DocModel) -> GateOutput:
 # 펜스 밖 모든 줄(표 칸 포함)을 본다 — 원본 V45와 같은 줄 순회.
 
 INLINE_CODE = re.compile(r"(?<!`)`([^`\n]+)`(?!`)")
+# 인라인 코드 범위(백틱 n개로 열고 같은 수로 닫음) — V47이 덮어 쓴다
+_CODE_SPAN = re.compile(r"(`+)(?!`).+?(?<!`)\1(?!`)")
 ITAL_KO = re.compile(r"(?<![*\w\\])\*(?!\s)([^*\n]*[가-힣][^*\n]*?)(?<!\s)\*(?![*\w])")
 CURRENCY_BARE = re.compile(r"(?<!\\)(?:(?<=US)\$(?![\d{\\])|\$(?=/))")
 AUTHOR_TAG = re.compile(r"\[분석:\s[^\]]*\]")
@@ -173,9 +175,13 @@ def v46_hangul_inline_code(model: DocModel) -> GateOutput:
     Sample(sample_model(tree={"a.md": "*Pseudomonas syringae*\n"}), expect=0),
 ])
 def v47_hangul_italic(model: DocModel) -> GateOutput:
-    """한글 기울임(*…*) — 한글 글꼴엔 기울임체가 없어 가짜 기울임."""
+    """한글 기울임(*…*) — 한글 글꼴엔 기울임체가 없어 가짜 기울임.
+
+    인라인 코드(`…`)는 같은 길이 빈칸으로 덮은 뒤 본다 — 코드 안 `*`(경로 `case/*`)는 강조 표시가
+    아니다(F116, V87과 같은 원리)."""
     return _line_gate(model, lambda line: [
-        f"한글 기울임 — {m.group(0)[:30]}" for m in ITAL_KO.finditer(line)])
+        f"한글 기울임 — {m.group(0)[:30]}"
+        for m in ITAL_KO.finditer(_CODE_SPAN.sub(lambda c: " " * len(c.group(0)), line))])
 
 
 @gate("V49", samples=[
@@ -419,8 +425,10 @@ def summary_ghosts(card: dict) -> list[str]:
         return []
     body_all = "\n".join(b for _, _, b in sections_of(card))
     qs_wo_ref = QS_REF.sub("", qs)
+    # 하이픈·밑줄로 끝나는 토큰(「AI-기반」에서 잘린 「AI-」)은 낱말이 아니다(F116)
     return sorted(t for t in set(QS_TOKEN.findall(qs_wo_ref))
                   if t not in body_all and not t.startswith(("REF", "http"))
+                  and not t.endswith(("-", "_"))
                   and t.lower() not in ("quick", "summary"))
 
 
@@ -438,7 +446,8 @@ def v14_summary_body(model: DocModel) -> GateOutput:
         if _qs_text(card.get("quick_summary", "")):
             n += 1
         ghosts = summary_ghosts(card)
-        msg = f"{cid} 요약에만 있고 본문에 없음 {len(ghosts)}건: {', '.join(ghosts[:6])}"
-        # 원본은 한 자리를 n건으로 센다(hit(…, len(ghosts))) — 엔진 건수 = 지적 수라 n개를 낸다
-        out += [Finding(f"{cid}|-: 요약", msg) for _ in ghosts]
+        # 원본은 한 자리를 n건으로 센다(hit(…, len(ghosts))) — 엔진 건수 = 지적 수라 n개를 내되,
+        # 지적마다 그 낱말을 글에 담아 (위치, 글)이 고유하다(F111)
+        out += [Finding(f"{cid}|-: 요약", f"{cid} 요약에만 있고 본문에 없음 — {g} ({i}/{len(ghosts)})")
+                for i, g in enumerate(ghosts, 1)]
     return GateOutput(n, out)

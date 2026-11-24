@@ -148,11 +148,35 @@ _META_REST = [
 ]
 
 
+_SELFREF_NOUNS = ("장", "절", "항", "영역", "판")  # 사전이 없을 때(원본 목록)
+_SELFREF_VERBS = ("답한다", "다룬다", "적는다", "세운다", "하는 일", "무엇인가")
+
+
+@lru_cache(maxsize=16)
+def _selfref_words(layers: tuple = ()) -> tuple[tuple[str, ...], tuple[str, ...]]:
+    """자칭 서술 낱말 — 층 사전 `dicts/meta_self_reference.json`의 nouns·verbs(F114)."""
+    d = load_dict("meta_self_reference.json", list(layers)) or {}
+    nouns = tuple(str(w) for w in d.get("nouns") or _SELFREF_NOUNS if str(w))
+    verbs = tuple(str(w) for w in d.get("verbs") or _SELFREF_VERBS if str(w))
+    return nouns, verbs
+
+
 def _meta(model: DocModel) -> list[tuple[str, re.Pattern]]:
-    """자칭 서술의 문서 이름(시리즈 「작물편」)은 `extra.prose.meta_words`로 더한다."""
-    words = "".join("|" + re.escape(str(w)) for w in _prose_cfg(model).get("meta_words") or [] if str(w))
-    selfref = re.compile(r"이\s*(?:장|절|항|영역" + words + r"|판)(?:은|이|의|에서는)\s*[^.\n]{0,40}?"
-                         r"(?:답한다|다룬다|적는다|세운다|하는 일|무엇인가)")
+    """자칭 서술의 문서 이름(시리즈 「작물편」)은 `extra.prose.meta_words`로 더한다.
+
+    글 단위 명사·서술 동사 목록은 층 사전(`meta_self_reference.json`)이 싣는다(v1.11-c, F114).
+    설정 `extra.prose.selfref_nouns`·`selfref_verbs`가 있으면 그 목록으로 통째로 바꾼다 — 시리즈 층
+    설정이 원본 목록을 지키는 자리.
+    """
+    nouns, verbs = _selfref_words(layers_key(model))
+    cfg = _prose_cfg(model)
+    if cfg.get("selfref_nouns") is not None:
+        nouns = tuple(str(w) for w in cfg["selfref_nouns"] if str(w))
+    if cfg.get("selfref_verbs") is not None:
+        verbs = tuple(str(w) for w in cfg["selfref_verbs"] if str(w))
+    words = [*nouns, *(str(w) for w in _prose_cfg(model).get("meta_words") or [] if str(w))]
+    selfref = re.compile(r"이\s*(?:" + "|".join(map(re.escape, words)) + r")(?:은|이|의|에서는)\s*"
+                         r"[^.\n]{0,40}?(?:" + "|".join(map(re.escape, verbs)) + ")")
     return [("자칭 서술", selfref), *_META_REST]
 
 
@@ -512,8 +536,11 @@ _GUIDE_TAIL = (r")(?:의 \S+)?(?:에|이|을|를|에서|에게|으로)?\s*"
                r"|참고한다|다룬다)\.$")
 CAPTION_CALL = re.compile(r"^(?P<subj>[^.]{4,70}?)(?:은|는|이|가)\s+(?P<k>표|그림)\s(?P<n>[\dA-Z][\w.\-]*?)"
                           r"[와과]\s같다\.$")
+# 「이 문서의 해석이다」 꼴(F114) — 서술어(이다·이며)로 끝나는 자기 선언만. 괄호 출처 표시
+# 「(이 문서의 정리)」는 서술어가 없어 잡지 않는다
 SELF_DECL = re.compile(r"것이 이 문서의|이 문서의 (?:정식화|위상|독자는|기여|핵심 명제)|독자는 [^.]{0,40}셋이다"
-                       r"|그치지 않고 [^.]{0,40}이 문서")
+                       r"|그치지 않고 [^.]{0,40}이 문서"
+                       r"|(?<!것이 )이 문서의 (?:해석|판단|선택|정리)(?:이다|이며)")
 _TABLE_READ_REST = (
     r"(?:에서|의|을 보면|를 보면)[^.\n]{0,50}?(?<=[\s)」'’])(?:열|행|칸)(?! 편| 가지| 개)(?=[을를이가은는에의과와(,]|\s|$)"  # noqa: RUF001
     r"|(?<![가-힣])(?:열|칸|항목|행)(?:이|은|는|에) ?[「'‘][^」'’]{1,30}[」'’](?:인|이라고|으로 적힌|로 적힌)\s"  # noqa: RUF001

@@ -5,6 +5,10 @@
 지은이 「… Team」을 자리표시로 잡는다(시리즈 다음판 3). 「R Core Team」처럼 정당한 단체 지은이는
 `extra.citation.group_authors_ok`로 허용하고, V68 본체 수준은 경고다 — 막음은 시리즈·문서 종류
 층이 올린다(E18 13).
+
+「지은이 빈칸」은 `authors`가 비고 단체 지은이 칸(`extra.citation.group_author_fields`, 기본
+`institution` — 플러그인 KeyRef 스키마)도 빌 때만이다(v1.11-c, F110). 원본 시리즈 check_v2는 `authors`만
+보았으므로 시리즈 층 설정은 이 목록을 비워 원본 판정을 지킨다.
 """
 from __future__ import annotations
 
@@ -230,6 +234,9 @@ def _entries(tf: TreeFile) -> int:
     return sum(1 for ln in tf.text.split("\n") if ln.startswith("- "))
 
 
+GROUP_AUTHOR_FIELDS = ("institution",)
+
+
 @gate("V68", samples=[
     Sample(sample_model(reference_md={"참고문헌.md": "## 영문\n- et al. (2020). T. [REF-001]\n"}),
            expect=1),
@@ -242,12 +249,22 @@ def v68_reference_list(model: DocModel) -> GateOutput:
     group_ok = frozenset(_author_key(str(a))
                          for a in _citation_cfg(model).get("group_authors_ok") or [])
     out: list[Finding] = []
+    from techdoc_core.qc.gates.leak import number_repeats
+
     for tf in model.reference_md:
-        out += [Finding(tf.rel, msg) for msg in ref_list_issues(tf.text, internal, group_ok)]
+        # 같은 항목 글이 목록에 되풀이되면 건수는 그대로, 차례를 붙여 지적을 고유하게(F111)
+        out += [Finding(tf.rel, msg)
+                for msg in number_repeats(ref_list_issues(tf.text, internal, group_ok), "이 파일")]
+    # 단체 지은이 칸(F110) — `authors`가 비어도 이 칸에 이름이 있으면 APA 단체 지은이로 지은이가 있다.
+    # 플러그인 KeyRef 스키마의 `institution`이 기본. 지은이 칸만 보는 문서 규약은 []로 끈다
+    gfields = _citation_cfg(model).get("group_author_fields")
+    gfields = [str(f) for f in (GROUP_AUTHOR_FIELDS if gfields is None else gfields) if str(f)]
     for r in model.references:
         authors = [a for a in (r.get("authors") or []) if str(a).strip()]
         authors = [a for a in authors if not _AUTHOR_PLACEHOLDER.match(str(a).strip())]
-        if not authors:
+        group = [g for f in gfields if isinstance(g := r.get(f), str) and g.strip()
+                 and not _AUTHOR_PLACEHOLDER.match(g.strip())]
+        if not authors and not group:
             out.append(Finding("reference_list.json",
                                f"지은이 빈칸 — {r.get('id')} {str(r.get('title') or '')[:30]}"))
     targets = sum(_entries(tf) for tf in model.reference_md) + len(model.references)
