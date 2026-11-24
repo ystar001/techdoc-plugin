@@ -5,12 +5,18 @@ import sys
 
 from scripts.qc import main as qc_main
 
+# 본문 절 카드는 「이 절의 목표」 상자와 절 끝 결론을 갖춰야 V21·V57을 통과한다(v1.11-b)
+_GOAL = {"goal": "기록의 요건이 무엇인지 알고, 값 하나를 판단에 쓸 수 있게 적을 수 있다.",
+         "questions": ["기록의 요건은 무엇인가?", "여덟 항목은 어떤 차례로 채우나?"]}
+_CONC = ["관측은 기록이다.", "기록은 판단의 바탕이다.", "판단은 차례로 묶인다."]
+
 
 def _project(tmp_path, body="근거[REF-001]. 또[REF-002].", refs=("REF-001",)):
     cards = tmp_path / "output" / "cards"
     cards.mkdir(parents=True)
     (cards / "1.1_card.json").write_text(
-        json.dumps({"sections": {"s": {"body": body}}}, ensure_ascii=False), encoding="utf-8")
+        json.dumps({"sections": {"s": {"body": body}}, "quick_summary": _GOAL,
+                    "conclusion": _CONC}, ensure_ascii=False), encoding="utf-8")
     (tmp_path / "output" / "reference_list.json").write_text(
         json.dumps({"refs": [{"id": r, "authors": ["Kim, H."]} for r in refs]}),
         encoding="utf-8")
@@ -26,7 +32,7 @@ def test_cli_writes_json_and_exit_code(tmp_path):
     assert qc_main([str(root)]) == 1
     rep = json.loads((root / "output" / "qc_report.json").read_text(encoding="utf-8"))
     assert rep["summary"]["blocking_total"] == 1
-    assert {r["gate"] for r in rep["results"]} == {"V8", "V13", "V45", "V68"}
+    assert {"V8", "V13", "V45", "V68", "V2", "V21", "V57"} <= {r["gate"] for r in rep["results"]}
 
 
 def test_cli_clean_project_exit_0(tmp_path):

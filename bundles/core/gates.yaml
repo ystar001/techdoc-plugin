@@ -30,3 +30,90 @@
   core: [품질]
   level: 막음
   inputs: [reference_md, references]
+# ── v1.11-b Task 2: 구조·상호참조 12종 (시리즈 check_v2·prose_gates 이식) ──
+- id: V2
+  title: 끊어진 상호참조
+  rules: [Q1-003, Q3-004, Q3-005, Q3-067, W-028]
+  layer: 문서종류
+  core: [일관성, 품질]
+  level: 막음
+  inputs: [cards]
+- id: V21
+  title: 핵심요약 규약
+  rules: [Q6-004, Q6-049, W-027]
+  layer: 문서종류
+  core: [쉬운 말, 일관성, 품질]
+  level: 막음
+  inputs: [cards]
+- id: V26
+  title: 개요 절 아래 분업·항해 하위절
+  rules: [Q4-006, Q6-008]
+  layer: 문서종류
+  core: [품질]
+  level: 막음
+  inputs: [tree]
+- id: V30
+  title: md 상호참조
+  rules: [Q1-003]
+  layer: 문서종류
+  core: [품질]
+  level: 막음
+  inputs: [tree]
+- id: V31
+  title: 표제 형식
+  rules: [Q6-001, Q6-007]
+  layer: 문서종류
+  core: [일관성, 품질]
+  level: 막음
+  inputs: [tree]
+- id: V34
+  title: 절 도입부
+  rules: [Q6-049]
+  layer: 문서종류
+  core: [쉬운 말, 품질]
+  level: 막음
+  inputs: [tree]
+- id: V39
+  title: 표제 꼴
+  rules: [Q6-001, Q6-015]
+  layer: 본체
+  core: [일관성, 품질]
+  level: 막음
+  inputs: [tree]
+- id: V44
+  title: 물음꼴 볼드 소표제
+  rules: [Q5-019, Q5-029, Q5-032]
+  layer: 본체
+  core: [쉬운 말]
+  level: 막음
+  inputs: [tree]
+- id: V57
+  title: 절 끝 결론
+  rules: [Q1-002, Q5-050, Q6-024, Q6-050]
+  layer: 문서종류
+  core: [쉬운 말, 품질]
+  level: 막음
+  inputs: [cards]
+  expects: {methodology: ">=1"}   # 방법론 문서에서 결론을 둘 본문 절이 없으면 「대상 없음」이 아니라 실패(F86)
+- id: V59
+  title: 별첨 문자가 A부터 건너뛰지 않음
+  rules: [Q6-023, Q6-064]
+  layer: 문서종류
+  core: [일관성, 품질]
+  level: 막음
+  inputs: [cards]
+  exemptable: false   # 원본은 면제를 적용하지 않음(문서 전체 지적)
+- id: V72
+  title: 별첨 번호 꼴
+  rules: [Q6-037, W-065]
+  layer: 문서종류
+  core: [일관성, 품질]
+  level: 막음
+  inputs: [tree]
+- id: V78
+  title: 항 안 번호 층위
+  rules: [Q4-023, Q5-028, Q6-040, Q6-056, Q6-057]
+  layer: 문서종류
+  core: [쉬운 말, 일관성, 품질]
+  level: 시범
+  inputs: [tree]

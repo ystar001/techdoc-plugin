@@ -51,6 +51,29 @@ def caption_num_re(style: str | None) -> re.Pattern:
     return re.compile(_CAPTION_NUM[_style(style)])
 
 
+_LEAD = {"arabic": r"[0-9]+", "roman": r"[IVX]+", "letter_middle": r"[0-9]+"}
+_SECTION_FILE = {
+    "arabic": r"^(\d+)\.(\d+)([^.\s]*)\.\s",  # 원본 prose_gates._SEC_FILE
+    "roman": r"^([IVX]+)\.(\d+)([^.\s]*)\.\s",
+    "letter_middle": r"^(\d+)\.([A-Z0-9]+(?:\.\d+)*)([^.\s]*)\.\s",
+}
+
+
+def lead_num(style: str | None) -> str:
+    """번호의 첫 마디(부·장) 조각 — arabic `[0-9]+` · roman `[IVX]+`."""
+    return _LEAD[_style(style)]
+
+
+def head_num(style: str | None) -> str:
+    """표제 번호 조각(묶음 없음) — arabic은 원본 prose_gates.HEAD의 번호 꼴."""
+    return _HEAD_NUM[_style(style)]
+
+
+def section_file_re(style: str | None) -> re.Pattern:
+    """렌더 트리의 절 파일 이름 「3.1. 제목.md」·「II.6. 제목.md」."""
+    return re.compile(_SECTION_FILE[_style(style)])
+
+
 def appendix_letters(extra: dict | None) -> str:
     """별첨 문자 범위(정규식 문자 집합 안쪽) — 기본 A-Z, `extra.structure.appendix_letters`로."""
     return ((extra or {}).get("structure") or {}).get("appendix_letters") or "A-Z"

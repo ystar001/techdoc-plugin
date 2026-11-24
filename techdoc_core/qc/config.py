@@ -27,6 +27,7 @@ class Paths:
     render_tree: Path
     references: Path
     draft: Path  # md 직접 저작 원고 — 있으면 산문 게이트가 렌더 트리 대신 본다(시리즈 규칙)
+    outline: Path  # final_outline.json — 문서 구조 선언(아직 안 쓴 별첨도 실재로, V2)
 
 
 @dataclass
@@ -47,7 +48,8 @@ class ProjectConfig:
 def _default_paths(root: Path) -> Paths:
     out = root / "output"
     return Paths(cards=out / "cards", render_tree=out / "render" / "tree",
-                 references=out / "reference_list.json", draft=out / "draft")
+                 references=out / "reference_list.json", draft=out / "draft",
+                 outline=out / "final_outline.json")
 
 
 def default_config(root: Path) -> ProjectConfig:
@@ -79,7 +81,7 @@ def load_config(root: Path, path: Path | None = None) -> ProjectConfig:
     cfg.numbering = numbering
 
     paths = data.get("paths") or {}
-    for key in ("cards", "render_tree", "references", "draft"):
+    for key in ("cards", "render_tree", "references", "draft", "outline"):
         if paths.get(key):
             setattr(cfg.paths, key, _opt_path(root, paths[key]))
 

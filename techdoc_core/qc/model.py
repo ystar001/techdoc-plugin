@@ -20,6 +20,7 @@ class DocModel:
     draft: list[TreeFile] = field(default_factory=list)
     references: list[dict] = field(default_factory=list)
     reference_md: list[TreeFile] = field(default_factory=list)
+    outline: dict = field(default_factory=dict)  # final_outline.json — 별첨 선언(V2)
     numbering: dict = field(default_factory=dict)
     exempt: dict[str, dict] = field(default_factory=dict)  # "<cid>|<sec>" → {gates, why}
     extra: dict = field(default_factory=dict)

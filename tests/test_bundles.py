@@ -7,7 +7,11 @@ from techdoc_core.bundles.schema import RuleSpec
 
 def test_core_gate_specs_load():
     specs = load_gate_specs([("core", core_bundle_dir())])
-    assert set(specs) == {"V8", "V13", "V45", "V68"}
+    assert set(specs) == {"V8", "V13", "V45", "V68",  # v1.11-a
+                          "V2", "V21", "V26", "V30", "V31", "V34", "V39", "V44",  # v1.11-b 구조
+                          "V57", "V59", "V72", "V78"}
+    assert specs["V59"].exemptable is False and specs["V78"].level == "시범"
+    assert specs["V57"].expects == {"methodology": ">=1"}
     assert specs["V8"].level == "막음"
     assert specs["V8"].rules == ["Q1-003"]
     assert specs["V13"].core == ["품질", "일관성"]

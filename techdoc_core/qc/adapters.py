@@ -92,6 +92,18 @@ def _load_references(path: Path, errors: list[str]) -> list[dict]:
     return [r for r in refs or [] if isinstance(r, dict)]
 
 
+def _load_outline(path: Path, errors: list[str]) -> dict:
+    """final_outline.json — 원본처럼 읽지 못하면 빈 것으로(별첨 선언이 없을 뿐)."""
+    if not path.is_file():
+        return {}
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, UnicodeDecodeError) as e:
+        errors.append(f"{path.name}: 문서 구조 선언을 읽지 못함 — {e}")
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
 def build_model(root: Path, cfg: ProjectConfig) -> DocModel:
     errors: list[str] = []
     tree, ref_md = _load_tree(cfg.paths.render_tree, errors)
@@ -103,6 +115,7 @@ def build_model(root: Path, cfg: ProjectConfig) -> DocModel:
         draft=_load_draft(cfg.paths.draft, errors),
         references=_load_references(cfg.paths.references, errors),
         reference_md=ref_md,
+        outline=_load_outline(cfg.paths.outline, errors),
         numbering=dict(cfg.numbering),
         exempt=dict(cfg.exempt),
         extra=dict(cfg.extra),

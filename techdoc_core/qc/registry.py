@@ -51,15 +51,20 @@ def gate(gate_id: str, samples: list[Sample] | None = None):
 def sample_model(*, root: Path | None = None, kind: str = "tech_report",
                  cards: dict[str, dict] | None = None, tree: dict[str, str] | None = None,
                  references: list[dict] | None = None, reference_md: dict[str, str] | None = None,
-                 exempt: dict[str, dict] | None = None, extra: dict | None = None) -> DocModel:
+                 exempt: dict[str, dict] | None = None, extra: dict | None = None,
+                 draft: dict[str, str] | None = None, outline: dict | None = None,
+                 numbering: dict | None = None) -> DocModel:
     """자기검사·테스트용 작은 모델."""
     return DocModel(
         root=root or Path("."),
         kind=kind,
         cards=dict(cards or {}),
         tree=[TreeFile(k, v) for k, v in (tree or {}).items()],
+        draft=[TreeFile(k, v) for k, v in (draft or {}).items()],
         references=list(references or []),
         reference_md=[TreeFile(k, v) for k, v in (reference_md or {}).items()],
+        outline=dict(outline or {}),
+        numbering=dict(numbering or {}),
         exempt=dict(exempt or {}),
         extra=dict(extra or {}),
     )
