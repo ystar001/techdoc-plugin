@@ -2,6 +2,7 @@
 
 아래 층(문서 종류·분야·시리즈·프로젝트)이 위 층과 같은 id를 다시 정의하면
 `override: true`일 때만 바꾼다. 조용한 덮어쓰기는 오류다.
+규칙 명세(rules.yaml)도 같은 층 목록으로 읽는다(`load_rule_specs`, v1.11-c).
 """
 from __future__ import annotations
 
@@ -10,7 +11,7 @@ from pathlib import Path
 import yaml
 from pydantic import ValidationError
 
-from techdoc_core.bundles.schema import GateSpec
+from techdoc_core.bundles.schema import GateSpec, RuleSpec
 
 LAYER_ORDER = ("core", "kind", "domain", "series", "project")
 
@@ -89,6 +90,47 @@ def read_kind_bundle(directory: Path) -> dict | None:
             raise BundleError(f"{path}: {name}의 형이 틀림 — {typ.__name__} 필요")
     return {"level": {str(k): str(v) for k, v in level.items()}, "off": [str(g) for g in off],
             "extra": extra, "expects": {str(k): str(v) for k, v in expects.items()}}
+
+
+RULES_FILE = "rules.yaml"
+
+
+def _read_rules(layer: str, directory: Path) -> list[RuleSpec]:
+    path = directory / RULES_FILE
+    if not path.is_file():
+        return []
+    try:
+        rows = yaml.safe_load(path.read_text(encoding="utf-8")) or []
+    except yaml.YAMLError as e:
+        raise BundleError(f"{layer}/{RULES_FILE}: YAML 오류 — {e}") from e
+    if not isinstance(rows, list):
+        raise BundleError(f"{layer}/{RULES_FILE}: 최상위는 리스트여야 함")
+    out: list[RuleSpec] = []
+    for i, row in enumerate(rows):
+        try:
+            out.append(RuleSpec(**row))
+        except (ValidationError, TypeError) as e:
+            raise BundleError(f"{layer}/{RULES_FILE}[{i}]: {e}") from e
+    return out
+
+
+def load_rule_specs(layers: list[tuple[str, Path | None]]) -> dict[str, RuleSpec]:
+    """[(층 이름, 디렉토리)] → {규칙 id: RuleSpec}. 각 층의 `rules.yaml`이 있으면 읽는다.
+
+    본체 층은 플러그인이 싣는 공개판(`bundles/core/rules.yaml`, v1.11-c), 아래 층은 프로젝트가
+    준다. 규칙은 덮어쓰지 않는다 — 같은 id가 두 층에 있으면 BundleError(층을 옮긴 규칙은 한 곳에만).
+    """
+    specs: dict[str, RuleSpec] = {}
+    where: dict[str, str] = {}
+    for layer, directory in layers:
+        if directory is None or not Path(directory).is_dir():
+            continue
+        for spec in _read_rules(layer, Path(directory)):
+            if spec.id in specs:
+                raise BundleError(f"{layer}/{spec.id}: {where[spec.id]} 층에 이미 있음")
+            specs[spec.id] = spec
+            where[spec.id] = layer
+    return specs
 
 
 def load_gate_specs(layers: list[tuple[str, Path | None]]) -> dict[str, GateSpec]:

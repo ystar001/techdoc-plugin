@@ -36,6 +36,9 @@ class GateSpec(BaseModel):
     id: str
     title: str
     rules: list[str] = Field(default_factory=list)
+    # 아래 층(문서 종류·분야·시리즈) 규칙 id — 공개 본체 규칙 묶음(bundles/core/rules.yaml)에 없고
+    # private 묶음에 있다. `rules:`에는 공개 본체 규칙만 둔다 (v1.11-c, E15)
+    lower_rules: list[str] = Field(default_factory=list)
     layer: Layer
     core: list[Core] = Field(default_factory=list)
     level: Level

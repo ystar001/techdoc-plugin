@@ -1,4 +1,5 @@
 # 본체 층 게이트 명세 (v1.11-a). 규칙 id·핵심 규칙은 규칙 대장의 enforce.gate에서 거꾸로 찾은 값.
+# rules: 는 공개 본체 규칙(rules.yaml)에 있는 id만, 아래 층(문서 종류·분야·시리즈) 규칙은 lower_rules: (v1.11-c)
 - id: V8
   title: 인용 REF가 참고문헌 목록에 있나·고아 REF
   rules: [Q1-003]
@@ -11,7 +12,8 @@
 - id: V13
   title: 참고문헌 중복 등록·백과사전·말미 목록
   exemptable: false
-  rules: [Q1-004, Q1-005, Q1-026]
+  rules: [Q1-004, Q1-005]
+  lower_rules: [Q1-026]
   layer: 본체
   core: [품질, 일관성]
   level: 막음
@@ -40,7 +42,8 @@
   inputs: [cards]
 - id: V21
   title: 핵심요약 규약
-  rules: [Q6-004, Q6-049, W-027]
+  rules: [Q6-004]
+  lower_rules: [Q6-049, W-027]
   layer: 문서종류
   core: [쉬운 말, 일관성, 품질]
   level: 막음
@@ -48,7 +51,8 @@
   kinds: [methodology]   # 목표 상자·절 결론을 두는 방법론 문서 구조 — 다른 종류는 「문서 종류 밖」
 - id: V26
   title: 개요 절 아래 분업·항해 하위절
-  rules: [Q4-006, Q6-008]
+  rules: [Q6-008]
+  lower_rules: [Q4-006]
   layer: 문서종류
   core: [품질]
   level: 막음
@@ -69,7 +73,7 @@
   inputs: [tree]
 - id: V34
   title: 절 도입부
-  rules: [Q6-049]
+  lower_rules: [Q6-049]
   layer: 문서종류
   core: [쉬운 말, 품질]
   level: 막음
@@ -90,7 +94,8 @@
   inputs: [tree]
 - id: V57
   title: 절 끝 결론
-  rules: [Q1-002, Q5-050, Q6-024, Q6-050]
+  rules: [Q1-002, Q5-050, Q6-050]
+  lower_rules: [Q6-024]
   layer: 문서종류
   core: [쉬운 말, 품질]
   level: 막음
@@ -99,7 +104,8 @@
   expects: {methodology: ">=1"}   # 방법론 문서에서 결론을 둘 본문 절이 없으면 「대상 없음」이 아니라 실패(F86)
 - id: V59
   title: 별첨 문자가 A부터 건너뛰지 않음
-  rules: [Q6-023, Q6-064]
+  rules: [Q6-023]
+  lower_rules: [Q6-064]
   layer: 문서종류
   core: [일관성, 품질]
   level: 막음
@@ -107,7 +113,8 @@
   exemptable: false   # 원본은 면제를 적용하지 않음(문서 전체 지적)
 - id: V72
   title: 별첨 번호 꼴
-  rules: [Q6-037, W-065]
+  rules: [Q6-037]
+  lower_rules: [W-065]
   layer: 문서종류
   core: [일관성, 품질]
   level: 막음
@@ -222,7 +229,8 @@
   inputs: [tree]
 - id: V56
   title: 문서 자기 선언
-  rules: [Q2-007, Q5-042]
+  rules: [Q5-042]
+  lower_rules: [Q2-007]
   layer: 문서종류
   core: [쉬운 말, 품질]
   level: 경고
@@ -290,7 +298,7 @@
   inputs: [cards]
 - id: V40
   title: 근거 등급 열
-  rules: [Q1-015, Q2-005]
+  lower_rules: [Q1-015, Q2-005]
   layer: 문서종류
   core: [일관성, 품질]
   level: 경고
@@ -396,7 +404,8 @@
   inputs: [tree]
 - id: V64
   title: 약어 장 첫 등장 풀이
-  rules: [Q3-009, Q3-010, Q3-011, Q3-014, Q3-056]
+  rules: [Q3-009, Q3-010, Q3-011]
+  lower_rules: [Q3-014, Q3-056]
   layer: 문서종류
   core: [쉬운 말, 일관성]
   level: 막음

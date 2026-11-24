@@ -90,7 +90,9 @@ def run_qc(model: DocModel, specs: dict[str, GateSpec], funcs: dict[str, Callabl
     for gid in sorted(specs, key=_natural):
         spec = specs[gid]
         level = cfg.level_overrides.get(gid, spec.level)
-        row = {"gate": gid, "title": spec.title, "rules": list(spec.rules), "layer": spec.layer,
+        # 보고의 rules는 이 게이트가 집행하는 규칙 전부 — 공개 본체 규칙 + 아래 층 규칙(lower_rules)
+        row = {"gate": gid, "title": spec.title, "rules": [*spec.rules, *spec.lower_rules],
+               "layer": spec.layer,
                "core": list(spec.core), "level": level, "verdict": "", "reason": "",
                "targets_read": 0, "count": 0, "items": []}
         fn = funcs.get(gid)
