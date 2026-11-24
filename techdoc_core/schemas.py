@@ -68,9 +68,9 @@ class KeyRefSchema(BaseModel):
     authors: list[str] = Field(default_factory=list)
     year: int = Field(..., ge=1000, le=2100)
     venue: str = ""  # 학회·저널·기업명
-    title: str = Field(..., max_length=300)
+    title: str  # F106: 길이 상한 없음 — 긴 제목도 참고문헌에서 빠지지 않게 (표시만 줄임)
     url: str = ""
-    excerpt: str = Field(default="", max_length=2000)
+    excerpt: str = ""  # F106: 상한 없음 — 아주 긴 발췌는 keyref_normalize가 [NORM]으로 보고만
     key_numbers: list[str] = Field(default_factory=list)
     technologies: list[Technology] = Field(default_factory=list)
     projects: list[Project] = Field(default_factory=list)

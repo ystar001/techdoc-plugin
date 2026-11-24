@@ -49,3 +49,20 @@ def test_main_warnings_survive_cp949_stderr(tmp_path, monkeypatch):
     monkeypatch.setattr(sys, "argv", ["build_reflist", "--keyref", str(tmp_path),
                                       "-o", str(tmp_path / "out")])
     assert reflist_main() == 2
+
+
+def test_long_excerpt_and_title_not_skipped(tmp_path):
+    """F106: 3,000자 발췌·400자 제목도 참고문헌에서 빠지지 않고, 정규화 보고 1건."""
+    title = "가" * 400
+    excerpt = "나" * 3000
+    (tmp_path / "REF-001.md").write_text(
+        f"---\nid: REF-001\ncategory: 학술\nsource: 출처\nyear: 2020\ntitle: {title}\n"
+        f"excerpt: {excerpt}\nreliability: 확인됨\n---\n본문\n", encoding="utf-8")
+    r = build_reflist(tmp_path)
+    assert r["total_refs"] == 1
+    assert r["_meta"]["skipped"] == 0
+    assert r["refs"][0]["excerpt"] == excerpt  # 자르지 않음
+    assert r["refs"][0]["title"] == title
+    assert r["_meta"]["normalized"] == 1
+    assert len(r["_meta"]["normalize_notes"]) == 1
+    assert "excerpt" in r["_meta"]["normalize_notes"][0]

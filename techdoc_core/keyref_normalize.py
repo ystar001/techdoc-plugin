@@ -40,6 +40,9 @@ CATEGORY_ALIASES: dict[str, str] = {
 }
 _CATEGORY_FALLBACK = "기타"
 
+# F106: 이보다 긴 excerpt는 보고만 한다(검증 상한 아님 — 데이터는 그대로 통과).
+LONG_EXCERPT_CHARS = 2000
+
 
 def _stringify(item: object) -> str:
     if isinstance(item, dict):
@@ -79,6 +82,12 @@ def normalize_keyref(data: dict) -> tuple[dict, list[str]]:
         else:
             out["reliability"] = _DEMOTED
             notes.append(f"reliability '{rel}'는 허용값이 아님 → '{_DEMOTED}'로 강등")
+
+    exc = out.get("excerpt")
+    if isinstance(exc, str) and len(exc) > LONG_EXCERPT_CHARS:
+        # F106: 자르지 않는다 — 보고만 하고 데이터는 그대로 통과
+        notes.append(f"excerpt {len(exc):,}자 > {LONG_EXCERPT_CHARS:,}자 — 긴 원문은 본문으로 "
+                     "옮기기를 권함 (데이터는 그대로 둠)")
 
     year = out.get("year")
     if isinstance(year, str) and year.strip().isdigit():
