@@ -148,3 +148,24 @@ def test_build_outline_falls_back_to_subtopic_count():
     parsed = [{"id": "1.1", "title": "관개", "subtopics": ["a", "b", "c", "d", "e"]}]
     outline = build_outline("작물 백과", parsed)
     assert outline.sections[0].estimated_length == "long"  # 5개 ≥ 5 → long
+
+
+# ── F56·F59: TOC 상단 HTML 주석을 섹션으로 읽지 않음 ──
+
+def test_html_comment_lines_are_not_sections(tmp_path):
+    p = tmp_path / "toc.md"
+    p.write_text("<!-- 작성 지침 -->\n<!-- 둘째 -->\n1.1 서론\n● 배경\n1.2 방법\n", encoding="utf-8")
+    secs = parse_toc_file(p)
+    assert [s["id"] for s in secs] == ["1.1", "1.2"]
+
+
+def test_multiline_html_comment_block_skipped(tmp_path):
+    p = tmp_path / "toc.md"
+    p.write_text("<!--\n문서용 메모\n여러 줄\n-->\n1.1 서론\n", encoding="utf-8")
+    assert [s["id"] for s in parse_toc_file(p)] == ["1.1"]
+
+
+def test_comment_inside_table_toc_skipped(tmp_path):
+    p = tmp_path / "toc.md"
+    p.write_text("<!-- 메모 -->\n| ID | 제목 |\n|---|---|\n| 1.1 | 서론 |\n", encoding="utf-8")
+    assert [s["id"] for s in parse_toc_file(p)] == ["1.1"]

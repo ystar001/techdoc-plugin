@@ -67,12 +67,20 @@ def is_pure_id(cell: str) -> bool:
     return bool(PURE_ID_RE.match(cell.strip()))
 
 
+_HTML_COMMENT_RE = re.compile(r"<!--.*?-->", re.S)
+
+
+def strip_html_comments(text: str) -> str:
+    """`<!-- … -->` 주석(여러 줄 포함)을 지운다. 줄 수는 보존(주석 줄은 빈 줄로) (F56·F59)."""
+    return _HTML_COMMENT_RE.sub(lambda m: "\n" * m.group(0).count("\n"), text)
+
+
 def parse_toc_file(file_path: Path | str) -> list[dict]:
     """TOC 파일 → 섹션 리스트. 마크다운 표면 표 파서, 아니면 평문 파서."""
     path = Path(file_path)
     if not path.exists():
         raise FileNotFoundError(format_error("TECHDOC-E010", f"TOC file not found: {file_path}"))
-    text = path.read_text(encoding="utf-8")
+    text = strip_html_comments(path.read_text(encoding="utf-8"))
     if any(is_separator_row(ln) for ln in text.splitlines()):
         rows = parse_toc_table(text)
         if rows:
