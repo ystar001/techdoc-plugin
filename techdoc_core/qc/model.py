@@ -23,6 +23,7 @@ class DocModel:
     outline: dict = field(default_factory=dict)  # final_outline.json — 별첨 선언(V2)
     numbering: dict = field(default_factory=dict)
     exempt: dict[str, dict] = field(default_factory=dict)  # "<cid>|<sec>" → {gates, why}
+    image_license: str | None = None  # 이미지 라이선스 대장 글(V7) — 파일이 없으면 None
     extra: dict = field(default_factory=dict)
     load_errors: list[str] = field(default_factory=list)
 

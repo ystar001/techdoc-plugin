@@ -335,3 +335,82 @@
   core: [쉬운 말, 품질]
   level: 시범
   inputs: [tree]
+# ── v1.11-b Task 5 용어·표기·기타 ──
+- id: V22
+  title: 콜아웃 본문 들여쓰기
+  rules: [Q8-026]
+  layer: 본체
+  core: [품질]
+  level: 막음
+  inputs: [cards]
+- id: V37
+  title: 수식 손상
+  rules: [Q3-005, Q8-024]
+  layer: 본체
+  core: [일관성, 품질]
+  level: 막음
+  inputs: [tree]
+- id: V42
+  title: 사적 기호
+  rules: [Q5-029, Q5-030]
+  layer: 본체
+  core: [쉬운 말]
+  level: 경고
+  inputs: [tree]
+- id: V46
+  title: 한글이 든 인라인 코드
+  rules: [Q8-005]
+  layer: 본체
+  core: [품질]
+  level: 경고
+  inputs: [tree]
+- id: V47
+  title: 한글 기울임
+  rules: [Q8-006]
+  layer: 본체
+  core: [품질]
+  level: 경고
+  inputs: [tree]
+- id: V48
+  title: 수식 안 한글
+  rules: [Q8-007]
+  layer: 본체
+  core: [품질]
+  level: 막음
+  inputs: [tree]
+- id: V49
+  title: 이스케이프 안 된 통화 $
+  rules: [Q8-008]
+  layer: 본체
+  core: [품질]
+  level: 막음
+  inputs: [tree]
+- id: V51
+  title: 저작 도구 표시
+  rules: [Q5-002, Q5-034]
+  layer: 본체
+  core: [쉬운 말]
+  level: 막음
+  inputs: [tree]
+- id: V64
+  title: 약어 장 첫 등장 풀이
+  rules: [Q3-009, Q3-010, Q3-011, Q3-014, Q3-056]
+  layer: 문서종류
+  core: [쉬운 말, 일관성]
+  level: 막음
+  inputs: [tree]
+- id: V7
+  title: 이미지 라이선스 대장
+  rules: [Q1-047]
+  layer: 본체
+  core: [품질]
+  level: 막음
+  inputs: [cards]
+  exemptable: false   # 원본은 면제를 적용하지 않음(fail에 바로 더함)
+- id: V14
+  title: 요약·본문 일치
+  rules: [Q1-002]
+  layer: 문서종류
+  core: [품질]
+  level: 막음
+  inputs: [cards]

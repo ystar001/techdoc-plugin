@@ -1,2 +1,8 @@
 """본체 게이트 모음 — 모듈을 import하면 REGISTRY에 등록된다 (v1.11)."""
-from techdoc_core.qc.gates import captions, citation, sentences, structure  # noqa: F401
+from techdoc_core.qc.gates import (  # noqa: F401
+    captions,
+    citation,
+    notation,
+    sentences,
+    structure,
+)

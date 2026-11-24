@@ -104,6 +104,13 @@ def _load_outline(path: Path, errors: list[str]) -> dict:
     return data if isinstance(data, dict) else {}
 
 
+def _load_license(path: Path, errors: list[str]) -> str | None:
+    """이미지 라이선스 대장(V7) — 없으면 None(이미지가 있으면 V7이 전부 잡는다, 원본과 같음)."""
+    if not path.is_file():
+        return None
+    return _read_md(path, path.name, errors)
+
+
 def build_model(root: Path, cfg: ProjectConfig) -> DocModel:
     errors: list[str] = []
     tree, ref_md = _load_tree(cfg.paths.render_tree, errors)
@@ -118,6 +125,7 @@ def build_model(root: Path, cfg: ProjectConfig) -> DocModel:
         outline=_load_outline(cfg.paths.outline, errors),
         numbering=dict(cfg.numbering),
         exempt=dict(cfg.exempt),
+        image_license=_load_license(cfg.paths.image_license, errors),
         extra=dict(cfg.extra),
         load_errors=errors,
     )
