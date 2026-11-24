@@ -2,9 +2,12 @@
 from techdoc_core.qc.gates import (  # noqa: F401
     captions,
     citation,
+    codes,
     leak,
+    legacy_quality,
     notation,
     repeat,
     sentences,
     structure,
+    visual_fields,
 )

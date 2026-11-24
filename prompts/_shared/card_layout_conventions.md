@@ -94,6 +94,8 @@ mermaid parse가 실패해 그림이 통째로 안 나온다.
   카드(3000자 이상)는 시각 요소 없이 산문만으로 채우지 않는다.
 - 수치·비교·분류·절차·구조는 **표 또는 다이어그램**으로 먼저 제시하고 본문으로 해석한다.
 - 카드의 `figures`(`{path, caption}`)·`diagrams`(`{mermaid, caption}`) 필드를 적극 채운다.
+- 그림·표 번호는 **`caption` 앞에** 적는다(예: `"caption": "그림 3-2 관수 제어 흐름"`). 렌더 산출물에는
+  캡션만 실리므로 번호를 `id`에만 넣으면 번호가 사라진다 — `/techdoc-qc` V89가 경고한다(F82).
 - `check_quality` format_gate의 `visual_density`가 밀도 부족을 WARNING으로 표시한다.
 
 ### 정형 사양 블록 (F32 — 방법론·표준 카드)

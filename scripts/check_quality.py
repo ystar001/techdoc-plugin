@@ -5,6 +5,12 @@
   기술연구 5개: 대학·기업·연구기관 패턴 (REQ-012~014)
   카드 시스템 6개: 섹션당 카드 수·블록 충족률·최소 길이·종합분석 블록
 
+v1.11-c: 측정 코드는 `techdoc_core.qc.legacy.doc_metrics`로 옮겼다 — qc 게이트 PLG-CQ-*가 같은
+함수를 쓴다. 이 모듈은 기존 공개 이름(`run_quality_check`·`measure_document`·`measure_self_model`·
+`_parse_call_id`·`SIZE_THRESHOLDS` 등)과 결과 계약(`total_fail`·`total_warning`·`overall`·`mode`·
+`phase_a`, FAIL이면 종료 코드 2)을 그대로 지키는 래퍼다. 캡션 번호 꼴은 프로젝트 설정
+(`techdoc.project.yaml`의 `numbering.section`)을 따른다 — 없으면 아라비아(F82).
+
 사용법:
     python -m scripts.check_quality --input ./output/document_final.json \
         --refs ./output/reference_list.json
@@ -14,569 +20,65 @@ from __future__ import annotations
 
 import argparse
 import json
-import re
 import sys
 from pathlib import Path
 
-from scripts.extract_glossary import (
-    _looks_like_abbr,
-    find_abbreviations,
-    find_explanation_pairs,
-)
-from techdoc_core.card_id import parse_card_id_parts
-from techdoc_core.constants import (
-    CARD_LENGTH_RULES,
-    CARDS_PER_SECTION,
-    MAX_AI_ESTIMATE_RATIO,
-    MIN_REF_PER_SECTION,
-    MIN_SECTION_LENGTH,
-)
+import scripts.extract_glossary  # noqa: F401 — 옮기기 전처럼 cp949 콘솔 안전화(import 부수효과)
 from techdoc_core.models import Document
-from techdoc_core.schemas import QualityIssueSchema
-
-TAG_RE = re.compile(r"<[^>]+>")
-
-
-def strip_html(html: str) -> str:
-    return TAG_RE.sub("", html or "").strip()
-
-
-def count_citations(html: str) -> int:
-    return len(re.findall(r"\[REF-\d{3}\]", html or ""))
-
-
-def count_ai_estimates(html: str) -> int:
-    """AI 추정 표현 패턴 검출."""
-    patterns = (
-        r"~로 알려져 있다",
-        r"~할 것으로 보인다",
-        r"~로 추정된다",
-        r"~라고 한다",
-        r"것으로 알려졌다",
-    )
-    count = 0
-    for pat in patterns:
-        count += len(re.findall(pat.replace("~", "[가-힣]+"), html or ""))
-    return count
-
-
-def check_institution_number_pattern(html: str) -> int:
-    """대학·기업·연구기관 + 수치 패턴 (REQ-012~014)."""
-    text = strip_html(html)
-    # "XX대학" 또는 "XX Univ" + 숫자%/수치
-    uni_pat = re.compile(r"(?:[가-힣A-Za-z]{2,}\s*(?:대학|Univ|University))[^.!?]{0,200}\d+\.?\d*\s*(?:%|%p|배|건)")
-    corp_pat = re.compile(r"(?:[가-힣A-Z][가-힣A-Za-z]{1,}\s*(?:연구소|Research|R&D|Labs|AI))[^.!?]{0,200}\d+")
-    return len(uni_pat.findall(text)) + len(corp_pat.findall(text))
-
-
-def check_product_pattern(html: str) -> int:
-    """기업명 + 제품·모델명 + 스펙 패턴."""
-    text = strip_html(html)
-    # 영문 제품명 + 숫자 스펙
-    pat = re.compile(r"[A-Z][a-zA-Z]+[-\s]?[\w\d]+[^.!?]{0,200}\d+\.?\d*\s*(?:GHz|MHz|nm|W|kW|dB|kbps|Mbps|Gbps)")
-    return len(pat.findall(text))
-
-
-def check_project_pattern(html: str) -> int:
-    """연구기관 + 프로젝트명 + 기간·예산 패턴."""
-    text = strip_html(html)
-    # 연도 범위 (2020-2025 등) + 기관
-    pat = re.compile(r"20\d{2}\s*[-~]\s*20\d{2}[^.!?]{0,100}(?:프로젝트|Project|연구|Research)")
-    return len(pat.findall(text))
-
-
-# ── 표기 일관성 지표 (F16, Plan H) ──────────────────────────────────────────
-#
-# extract_glossary 의 약어 정규식·페어 추출을 재사용(상단 import).
-# LLM 호출 0회·결정론적. glossary 미제공 시 두 지표 모두 0.
-
-# 외래어 표준안 ↔ 흔한 변형 사전 (국립국어원 외래어 표기법 기준 일부).
-# key = 표준어, value = 본문에서 발견 시 비표준으로 카운트할 변형 목록.
-_KNOWN_VARIANTS: dict[str, tuple[str, ...]] = {
-    "데이터": ("데이타",),
-    "센서": ("센써",),
-    "메시지": ("메세지",),
-    "로봇": ("로보트",),
-    "디지털": ("디지탈",),
-    "콘텐츠": ("컨텐츠", "컨텐트"),
-    "알고리즘": ("알고리듬",),
-    "네트워크": ("네트웍",),
-}
-
-
-def check_abbreviation_consistency(html: str, defined: set | None = None) -> int:
-    """풀이 없이 처음 등장한 미정의 약어 수.
-
-    `정식명(ABBR)` 풀이 페어로 본문에서 정의됐거나 `defined`(대문자 집합)에 있으면 정의됨.
-    그 외 약어는 미정의로 카운트(약어 종류 기준, 등장 횟수 아님).
-    """
-    text = strip_html(html)
-    defined_upper = {d.upper() for d in (defined or set())}
-    # 본문 내 풀이 페어로 정의된 약어
-    for pair in find_explanation_pairs(text):
-        defined_upper.add(pair["abbr"].upper())
-
-    undefined: set[str] = set()
-    for abbr in find_abbreviations(text):
-        if not _looks_like_abbr(abbr):
-            continue
-        if abbr.upper() in defined_upper:
-            continue
-        undefined.add(abbr.upper())
-    return len(undefined)
-
-
-def check_terminology_consistency(text: str, glossary: dict | None = None) -> int:
-    """glossary 표준어의 알려진 변형이 본문에 등장한 횟수.
-
-    내장 변형 사전(_KNOWN_VARIANTS) + glossary 키를 표준어로 간주.
-    표준어에 변형이 등록돼 있고 그 변형이 본문에 나타나면 카운트.
-
-    참고: _KNOWN_VARIANTS(예: 데이타→데이터)는 국립국어원 표기 기준이라
-    glossary와 무관하게 검사한다. 따라서 이 지표는 abbreviation 지표와 달리
-    glossary 미제공 시에도 발화할 수 있다(의도된 비대칭). 단 WARNING이라
-    FAIL/exit code에는 영향 없음.
-    """
-    plain = strip_html(text)
-    glossary = glossary or {}
-    count = 0
-    # glossary 키 + 내장 사전의 표준어를 검사 대상으로
-    standards = set(_KNOWN_VARIANTS) | set(glossary.keys())
-    for std in standards:
-        variants = _KNOWN_VARIANTS.get(std, ())
-        for variant in variants:
-            count += plain.count(variant)
-    return count
-
-
-# ── 캡션 정합 게이트 (F42) ──────────────────────────────────────────────────
-#
-# 장 단위 통번호 캡션(표 N-M·그림 N-M·식 N-M)의 유일성·순번·본문 참조 정합을 점검.
-# 정의(줄머리/볼드 시작)와 참조(문장 중간)를 휴리스틱으로 구분. LLM 0회·결정론적.
-
-CAPTION_RE = re.compile(r"(표|그림|식)\s*(\d+)-(\d+)")
-
-
-def check_captions(text: str) -> dict:
-    """캡션 정합 3종 점검 → {duplicate, gap, dangling_ref}.
-
-    - duplicate: 같은 캡션이 정의로 2회 이상 등장.
-    - gap: 장별 캡션 순번의 결번(예: 표 10-1·10-2·10-4 → 10-3 누락).
-    - dangling_ref: 정의 없는 캡션을 본문이 참조.
-    정의 = 캡션 토큰이 줄머리(볼드 ``**`` 무시) 시작. 그 외 = 참조.
-    """
-    defs: dict[str, int] = {}
-    refs: list[str] = []
-    per_chapter: dict[tuple[str, str], set[int]] = {}
-    for line in text.split("\n"):
-        for m in CAPTION_RE.finditer(line):
-            kind, ch, num = m.group(1), m.group(2), m.group(3)
-            cap = f"{kind} {ch}-{num}"
-            prefix = line[: m.start()].lstrip().lstrip("*").lstrip()
-            if prefix == "":  # 줄머리(볼드 포함) → 정의
-                defs[cap] = defs.get(cap, 0) + 1
-                per_chapter.setdefault((kind, ch), set()).add(int(num))
-            else:
-                refs.append(cap)
-
-    duplicate = sorted(c for c, n in defs.items() if n > 1)
-    gap: list[str] = []
-    for (kind, ch), nums_set in per_chapter.items():
-        for i in range(1, max(nums_set) + 1):
-            if i not in nums_set:
-                gap.append(f"{kind} {ch}-{i}")
-    dangling = sorted({c for c in refs if c not in defs})
-    return {"duplicate": duplicate, "gap": sorted(gap), "dangling_ref": dangling}
-
-
-def measure_document(
-    document: Document,
-    reference_list: dict | None = None,
-    glossary: dict | None = None,
-) -> dict:
-    """Phase A 23개 지표 + 표기 일관성 2개 측정.
-
-    glossary 미제공 시 표기 일관성 지표는 0(기존 흐름 무변경).
-    """
-    metrics: dict = {}
-    issues: list[QualityIssueSchema] = []
-
-    # ── 기본 12개 ──
-    all_content = " ".join(s.html_content or "" for s in document.sections)
-    total_citations = count_citations(all_content)
-    total_ai_estimates = count_ai_estimates(all_content)
-    total_text = strip_html(all_content)
-    word_count = len(total_text)
-
-    metrics["total_sections"] = len(document.sections)
-    metrics["total_word_count"] = word_count
-    metrics["total_citations"] = total_citations
-    metrics["ai_estimate_count"] = total_ai_estimates
-    metrics["ai_estimate_ratio"] = round(total_ai_estimates / max(1, total_citations), 3)
-
-    # 섹션별 검증
-    short_sections = 0
-    low_citation_sections = 0
-    for sec in document.sections:
-        text = strip_html(sec.html_content or "")
-        if len(text) < MIN_SECTION_LENGTH:
-            short_sections += 1
-            issues.append(QualityIssueSchema(
-                metric="section_length",
-                severity="FAIL",
-                section_id=sec.section_id,
-                expected=f">={MIN_SECTION_LENGTH}",
-                actual=str(len(text)),
-                action=f"섹션 {sec.section_id} 재작성",
-            ))
-        sec_cites = count_citations(sec.html_content or "")
-        if sec_cites < MIN_REF_PER_SECTION:
-            low_citation_sections += 1
-            issues.append(QualityIssueSchema(
-                metric="section_citations",
-                severity="WARNING",
-                section_id=sec.section_id,
-                expected=f">={MIN_REF_PER_SECTION}",
-                actual=str(sec_cites),
-            ))
-
-    metrics["short_sections"] = short_sections
-    metrics["low_citation_sections"] = low_citation_sections
-    metrics["has_h2_all"] = all("<h2" in (s.html_content or "") for s in document.sections)
-
-    if metrics["ai_estimate_ratio"] > MAX_AI_ESTIMATE_RATIO:
-        issues.append(QualityIssueSchema(
-            metric="ai_estimate_ratio",
-            severity="FAIL",
-            expected=f"<={MAX_AI_ESTIMATE_RATIO}",
-            actual=str(metrics["ai_estimate_ratio"]),
-            action="근거 미확인 문장 제거",
-        ))
-
-    # ── 기술연구 5개 ──
-    tech_patterns = sum(check_institution_number_pattern(s.html_content or "") for s in document.sections)
-    product_patterns = sum(check_product_pattern(s.html_content or "") for s in document.sections)
-    project_patterns = sum(check_project_pattern(s.html_content or "") for s in document.sections)
-
-    metrics["tech_institution_number_patterns"] = tech_patterns
-    metrics["product_spec_patterns"] = product_patterns
-    metrics["project_period_patterns"] = project_patterns
-
-    # ── 표기 일관성 2개 (F16) ──
-    # glossary 미제공 시 두 지표 모두 0 (기존 흐름 무변경).
-    glossary = glossary or {}
-    defined_abbrs = {str(k).upper() for k in glossary}
-    undefined_abbreviations = check_abbreviation_consistency(all_content, defined=defined_abbrs)
-    terminology_inconsistencies = check_terminology_consistency(all_content, glossary=glossary)
-    metrics["undefined_abbreviations"] = undefined_abbreviations
-    metrics["terminology_inconsistencies"] = terminology_inconsistencies
-
-    # 임계: 미정의 약어 3종 초과 / 표기 변형 1회 이상 → medium WARN
-    if glossary and undefined_abbreviations > 3:
-        issues.append(QualityIssueSchema(
-            metric="undefined_abbreviations",
-            severity="WARNING",
-            expected="<=3",
-            actual=str(undefined_abbreviations),
-            action="첫 등장 약어 풀이(정식명(ABBR)) 추가 또는 glossary 보강",
-        ))
-    if terminology_inconsistencies > 0:
-        issues.append(QualityIssueSchema(
-            metric="terminology_inconsistencies",
-            severity="WARNING",
-            expected="0",
-            actual=str(terminology_inconsistencies),
-            action="외래어 표준 표기로 통일 (terminology_rules 참조)",
-        ))
-
-    if reference_list:
-        cat_counts = {c["category"]: c["count"] for c in reference_list.get("category_coverage", [])}
-        total = reference_list.get("total_refs", 1)
-        academic_ratio = cat_counts.get("학술", 0) / total
-        rd_ratio = cat_counts.get("기업R&D", 0) / total
-        metrics["academic_ratio"] = round(academic_ratio, 3)
-        metrics["rd_ratio"] = round(rd_ratio, 3)
-
-        if academic_ratio < 0.35:
-            issues.append(QualityIssueSchema(
-                metric="academic_ratio",
-                severity="FAIL",
-                expected=">=0.35",
-                actual=str(metrics["academic_ratio"]),
-                action="학술 레퍼런스 추가 (arxiv·IEEE·ACM·RISS)",
-            ))
-        if rd_ratio < 0.24:
-            issues.append(QualityIssueSchema(
-                metric="rd_ratio",
-                severity="FAIL",
-                expected=">=0.24",
-                actual=str(metrics["rd_ratio"]),
-                action="기업 R&D 레퍼런스 추가",
-            ))
-
-    # ── 카드 시스템 6개 ──
-    tech_min, _tech_max = CARDS_PER_SECTION["tech"]
-    proj_min, _proj_max = CARDS_PER_SECTION["project"]
-
-    section_ids = [s.section_id for s in document.sections]
-    sections_with_tech_cards: dict[str, int] = {sid: 0 for sid in section_ids}
-    sections_with_project_cards: dict[str, int] = {sid: 0 for sid in section_ids}
-
-    for c in document.tech_cards:
-        sid = ".".join(c.id.split(".")[:2])
-        if sid in sections_with_tech_cards:
-            sections_with_tech_cards[sid] += 1
-    for c in document.project_cards:
-        sid = ".".join(c.id.split(".")[:2])
-        if sid in sections_with_project_cards:
-            sections_with_project_cards[sid] += 1
-
-    under_tech = [sid for sid, cnt in sections_with_tech_cards.items() if cnt < tech_min]
-    under_proj = [sid for sid, cnt in sections_with_project_cards.items() if cnt < proj_min]
-    metrics["tech_card_total"] = len(document.tech_cards)
-    metrics["project_card_total"] = len(document.project_cards)
-    metrics["product_card_total"] = len(document.product_cards)
-    metrics["sections_under_tech_min"] = len(under_tech)
-    metrics["sections_under_project_min"] = len(under_proj)
-
-    for sid in under_tech:
-        issues.append(QualityIssueSchema(
-            metric="tech_cards_per_section",
-            severity="WARNING",
-            section_id=sid,
-            expected=f">={tech_min}",
-            actual=str(sections_with_tech_cards[sid]),
-        ))
-
-    # 카드 7블록 충족률
-    def tech_card_blocks_score(card) -> float:
-        fields = ("overview", "principle", "components", "performance",
-                  "pros_cons", "differentiation", "references")
-        filled = sum(1 for f in fields if getattr(card, f, "").strip())
-        return filled / len(fields)
-
-    def project_card_blocks_score(card) -> float:
-        fields = ("background", "organization", "methodology", "results",
-                  "implications", "followup", "references")
-        filled = sum(1 for f in fields if getattr(card, f, "").strip())
-        return filled / len(fields)
-
-    tech_fill = [tech_card_blocks_score(c) for c in document.tech_cards]
-    proj_fill = [project_card_blocks_score(c) for c in document.project_cards]
-    metrics["tech_card_block_fill_avg"] = round(sum(tech_fill) / max(1, len(tech_fill)), 3)
-    metrics["project_card_block_fill_avg"] = round(sum(proj_fill) / max(1, len(proj_fill)), 3)
-
-    if metrics["tech_card_block_fill_avg"] < 0.85 and document.tech_cards:
-        issues.append(QualityIssueSchema(
-            metric="tech_card_block_fill",
-            severity="FAIL",
-            expected=">=0.85",
-            actual=str(metrics["tech_card_block_fill_avg"]),
-            action="기술 카드 7블록 보완",
-        ))
-
-    # 카드 최소 길이
-    def tech_card_len(c) -> int:
-        return sum(len(strip_html(getattr(c, f, ""))) for f in
-                   ("overview", "principle", "components", "performance", "pros_cons", "differentiation"))
-
-    def project_card_len(c) -> int:
-        return sum(len(strip_html(getattr(c, f, ""))) for f in
-                   ("background", "organization", "methodology", "results", "implications", "followup"))
-
-    undersized_tech = sum(1 for c in document.tech_cards if tech_card_len(c) < CARD_LENGTH_RULES["tech"]["min"])
-    undersized_project = sum(1 for c in document.project_cards if project_card_len(c) < CARD_LENGTH_RULES["project"]["min"])
-    metrics["undersized_tech_cards"] = undersized_tech
-    metrics["undersized_project_cards"] = undersized_project
-
-    if undersized_tech > 0:
-        issues.append(QualityIssueSchema(
-            metric="undersized_tech_cards",
-            severity="FAIL",
-            expected="0",
-            actual=str(undersized_tech),
-            action=f"기술 카드 {undersized_tech}개 분량 확대 (최소 {CARD_LENGTH_RULES['tech']['min']}자)",
-        ))
-
-    # 종합 분석 블록 존재 여부
-    sections_without_analysis = sum(
-        1 for s in document.sections
-        if s.html_content and "section-summary" not in s.html_content
-        and "종합 분석" not in s.html_content and "종합분석" not in s.html_content
-    )
-    metrics["sections_without_analysis_block"] = sections_without_analysis
-
-    # 캡션 정합(F42) — 태그 제거 후 best-effort(self_model 대비 줄구조 약함).
-    caption_issues = check_captions(strip_html(all_content))
-    metrics["caption_issues"] = caption_issues
-    for cap in caption_issues["duplicate"]:
-        issues.append(QualityIssueSchema(
-            metric="caption_duplicate", severity="WARNING",
-            expected="유일", actual=cap, action="중복 캡션 번호 정리",
-        ))
-    for cap in caption_issues["dangling_ref"]:
-        issues.append(QualityIssueSchema(
-            metric="caption_dangling_ref", severity="WARNING",
-            expected="정의 존재", actual=cap, action="참조 대상 캡션 정의 또는 참조 수정",
-        ))
-
-    # 종합
-    total_fail = sum(1 for i in issues if i.severity == "FAIL")
-    total_warning = sum(1 for i in issues if i.severity == "WARNING")
-    overall = 5.0 - min(5.0, total_fail * 0.5 + total_warning * 0.1)
-
-    return {
-        "schema_version": "0.1.0",
-        "phase_a": metrics,
-        "issues": [i.model_dump() for i in issues],
-        "total_fail": total_fail,
-        "total_warning": total_warning,
-        "overall": round(overall, 2),
-    }
-
-
-# ── Self-model 모드 지원 (F5, v1.1.3+) ─────────────────────────────────────
-#
-# 기존 measure_document는 standard 모드(document_final.json) 전용.
-# Self-model 카드(`output/cards/<id>_card.json`)는 schema가 달라 처리 불가했음.
-# 아래 entry point는 openfieldtech scripts/verify_cards.py 패턴을 흡수해
-# self-model 카드 디렉토리도 23지표 framework 일부로 자동 검사한다.
-
-# F1 변형 본문 키 (재귀 합산 시 사용 — body·narrative·content)
-BODY_KEYS = {"body", "narrative", "content", "text", "summary"}
-
-# 사이즈별 본문 글자 임계 (verify_cards.py에서 흡수)
-# P0 = front-matter(발간사·목적범위·구조·용어·일러두기): 설계상 간결 → 하향 임계 (F45)
-SIZE_THRESHOLDS = {"S": 14000, "L1": 7000, "L2": 10000, "L3": 5000, "P0": 5000, "?": 8000}
-
-def _parse_call_id(stem: str) -> str:
-    """파일명에서 사이즈 grade 추출 — 공용 파서 `techdoc_core.card_id` 사용 (v1.10.2).
-
-    예: '1.1' → S, '1.1.L2' → L2, '0.1' → P0(front-matter, F45),
-        'A-14.1' → S(별첨), 'I-1.1' → S, 'A-14.1.L2' → L2 (F47), '2.A.7' → S (F81).
-    XL 분할·인식 실패는 지금처럼 S로 본다(SIZE_THRESHOLDS 계약 유지).
-    """
-    cid = parse_card_id_parts(stem)
-    if cid.kind == "front":
-        return "P0"
-    if cid.split and cid.split.startswith("L"):
-        return cid.split
-    return "S"
-
-
-def _collect_body_chars(node) -> int:
-    """node 안의 모든 본문 문자열 길이 합산 (F1 robust)."""
-    if isinstance(node, dict):
-        total = 0
-        for k, v in node.items():
-            if k in BODY_KEYS and isinstance(v, str):
-                total += len(v)
-            else:
-                total += _collect_body_chars(v)
-        return total
-    if isinstance(node, list):
-        return sum(_collect_body_chars(x) for x in node)
-    return 0
-
-
-def _collect_body_text(node) -> str:
-    """section value에서 본문 markdown만 추출 (F1 변형 robust, title 등 비-본문 키 제외).
-
-    - str 직접 → 그대로 (자식 schema: sections[k] == 본문 문자열)
-    - dict → BODY_KEYS(body/narrative/content/...) 문자열만 + dict/list 컨테이너만 재귀
-      (title 같은 비-본문 leaf 문자열은 무시 → 헤딩이 형식 분석에 섞이지 않음)
-    - list → 요소 재귀 연결
-    """
-    if isinstance(node, str):
-        return node
-    if isinstance(node, dict):
-        parts = []
-        for k, v in node.items():
-            if k in BODY_KEYS and isinstance(v, str):
-                parts.append(v)
-            elif isinstance(v, (dict, list)):
-                parts.append(_collect_body_text(v))
-        return "\n".join(p for p in parts if p)
-    if isinstance(node, list):
-        return "\n".join(_collect_body_text(x) for x in node)
-    return ""
-
-
-def _check_self_model_card(card_path: Path, baseline_path=None, strict=False, tolerance=0.15) -> dict:
-    """self-model 카드 1건 검사 (사이즈 임계 + 서식 게이트)."""
-    from scripts import format_gate
-
-    issues: list[dict] = []
+from techdoc_core.qc.legacy.doc_metrics import (
+    _KNOWN_VARIANTS,
+    BODY_KEYS,
+    CAPTION_RE,
+    SIZE_THRESHOLDS,
+    TAG_RE,
+    _check_self_model_card,
+    _collect_body_chars,
+    _collect_body_text,
+    _parse_call_id,
+    caption_re,
+    check_abbreviation_consistency,
+    check_captions,
+    check_institution_number_pattern,
+    check_product_pattern,
+    check_project_pattern,
+    check_terminology_consistency,
+    count_ai_estimates,
+    count_citations,
+    load_glossary,
+    measure_document,
+    self_model_section_text,
+    self_model_size_issues,
+    strip_html,
+)
+
+__all__ = [
+    "BODY_KEYS", "CAPTION_RE", "SIZE_THRESHOLDS", "TAG_RE", "_KNOWN_VARIANTS",
+    "_check_self_model_card", "_collect_body_chars", "_collect_body_text", "_parse_call_id",
+    "caption_re", "check_abbreviation_consistency", "check_captions",
+    "check_institution_number_pattern", "check_product_pattern", "check_project_pattern",
+    "check_terminology_consistency", "count_ai_estimates", "count_citations", "main",
+    "measure_document", "measure_self_model", "run_quality_check", "self_model_section_text",
+    "self_model_size_issues", "strip_html",
+]
+
+_load_glossary = load_glossary  # 옮기기 전 이름
+
+
+def _numbering_style(output_dir: Path) -> str | None:
+    """`<output_dir>/../techdoc.project.yaml`의 `numbering.section` — 없거나 못 읽으면 None(아라비아)."""
+    cfg_file = output_dir.parent / "techdoc.project.yaml"
+    if not cfg_file.is_file():
+        return None
     try:
-        data = json.loads(card_path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as e:
-        return {
-            "path": str(card_path),
-            "status": "FAIL",
-            "size": "?",
-            "chars": 0,
-            "issues": [{"severity": "FAIL", "msg": f"JSON parse 실패: {e}"}],
-            "format": {},
-        }
+        from techdoc_core.qc.config import load_config
 
-    size = _parse_call_id(card_path.stem)
-    chars = _collect_body_chars(data)
-    threshold = SIZE_THRESHOLDS.get(size, 8000)
-
-    if chars < threshold * 0.5:
-        issues.append({
-            "severity": "FAIL",
-            "msg": f"본문 매우 부족: {chars}자 (임계 {threshold} 절반 미만)",
-        })
-    elif chars < threshold:
-        issues.append({
-            "severity": "WARNING",
-            "msg": f"본문 부족: {chars}자 (임계 {threshold})",
-        })
-
-    # 서식 게이트 (format_gate)
-    sections = data.get("sections", {})
-    sec_text = (
-        {k: _collect_body_text(v) for k, v in sections.items()}
-        if isinstance(sections, dict) else {}
-    )
-    base_text = None
-    if baseline_path is not None:
-        bp = Path(baseline_path)
-        if not bp.exists():
-            issues.append({"severity": "WARNING", "metric": "baseline",
-                           "msg": f"baseline 카드 없음: {bp}"})
-        else:
-            try:
-                bdata = json.loads(bp.read_text(encoding="utf-8"))
-                bsec = bdata.get("sections", {})
-                base_text = (
-                    {k: _collect_body_text(v) for k, v in bsec.items()}
-                    if isinstance(bsec, dict) else {}
-                )
-            except (OSError, json.JSONDecodeError):
-                issues.append({"severity": "WARNING", "metric": "baseline",
-                               "msg": f"baseline 파싱 실패: {bp}"})
-    fmt = format_gate.measure_format(sec_text, base_text, strict=strict, tolerance=tolerance)
-    issues.extend(fmt["issues"])
-
-    status = (
-        "FAIL" if any(i["severity"] == "FAIL" for i in issues)
-        else ("WARNING" if issues else "PASS")
-    )
-    return {
-        "path": str(card_path),
-        "status": status,
-        "size": size,
-        "chars": chars,
-        "issues": issues,
-        "format": fmt["metrics"],
-        # 문서 단위 캡션 집계용(F42) — measure_self_model이 pop 후 join, 리포트엔 미포함.
-        "_body_text": "\n".join(sec_text.values()),
-    }
+        return load_config(output_dir.parent, cfg_file).numbering.get("section")
+    except Exception:  # 설정 오류는 qc가 보고한다 — 여기서는 기본 꼴로 측정을 이어간다
+        return None
 
 
-def measure_self_model(output_dir: Path, baseline_dir=None, strict=False, tolerance=0.15) -> dict:
+def measure_self_model(output_dir: Path, baseline_dir=None, strict=False, tolerance=0.15,
+                       numbering_style: str | None = None) -> dict:
     """self-model 모드 — cards/*_card.json 일괄 검사 (사이즈 + 서식 게이트)."""
     output_dir = Path(output_dir)
     cards_dir = output_dir / "cards"
@@ -588,7 +90,7 @@ def measure_self_model(output_dir: Path, baseline_dir=None, strict=False, tolera
 
     # 문서 단위 캡션 정합(F42) — 전 카드 본문 집계. _body_text는 리포트에서 제거.
     all_body = "\n".join(c.pop("_body_text", "") for c in results)
-    caption_issues = check_captions(all_body)
+    caption_issues = check_captions(all_body, numbering_style)
     caption_count = (
         len(caption_issues["duplicate"])
         + len(caption_issues["gap"])
@@ -623,35 +125,22 @@ def measure_self_model(output_dir: Path, baseline_dir=None, strict=False, tolera
     }
 
 
-def _load_glossary(output_dir: Path) -> dict:
-    """draft_outline.json 의 glossary(flat dict) 우선, 없으면 빈 dict.
-
-    glossary 미존재 시 표기 일관성 지표는 0(기존 흐름 무변경).
-    """
-    outline_path = output_dir / "draft_outline.json"
-    if outline_path.exists():
-        try:
-            data = json.loads(outline_path.read_text(encoding="utf-8"))
-            g = data.get("glossary")
-            if isinstance(g, dict):
-                return g
-        except (OSError, json.JSONDecodeError):
-            pass
-    return {}
-
-
-def run_quality_check(output_dir: Path, baseline_dir=None, strict=False, tolerance=0.15) -> dict:
+def run_quality_check(output_dir: Path, baseline_dir=None, strict=False, tolerance=0.15,
+                      numbering_style: str | None = None) -> dict:
     """mode 자동 판별 후 적절한 측정 함수로 라우팅 (v1.1.3+ entry point).
 
     standard 모드는 document_final.json·reference_list.json을 기대;
     self_model 모드는 cards/*_card.json을 기대. baseline/strict/tolerance는 self_model 전용.
+    `numbering_style`이 없으면 프로젝트 설정에서 읽는다(없으면 아라비아 — F82).
     """
     from scripts.card_layout import detect_mode
 
     output_dir = Path(output_dir)
+    if numbering_style is None:
+        numbering_style = _numbering_style(output_dir)
     mode = detect_mode(output_dir)
     if mode == "self_model":
-        return measure_self_model(output_dir, baseline_dir, strict, tolerance)
+        return measure_self_model(output_dir, baseline_dir, strict, tolerance, numbering_style)
     if mode == "standard":
         doc_path = output_dir / "document_final.json"
         if not doc_path.exists():
@@ -671,7 +160,7 @@ def run_quality_check(output_dir: Path, baseline_dir=None, strict=False, toleran
         if refs_path.exists():
             refs = json.loads(refs_path.read_text(encoding="utf-8"))
         glossary = _load_glossary(output_dir)
-        result = measure_document(doc, refs, glossary)
+        result = measure_document(doc, refs, glossary, numbering_style)
         result["mode"] = "standard"
         return result
     return {

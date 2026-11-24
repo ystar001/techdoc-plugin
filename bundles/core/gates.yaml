@@ -430,3 +430,200 @@
   core: [품질]
   level: 경고
   inputs: [tree]
+# ── v1.11-c Task 3: 시각 필드 캡션 번호(F82 ③)·코드 네임스페이스(F75) ──
+- id: V89
+  title: 시각 필드 id에만 번호 — 캡션에 그림·표 번호 없음
+  rules: []   # 신규 게이트(F82 ③)
+  layer: 본체
+  core: [일관성]
+  level: 경고
+  inputs: [cards]
+- id: V90
+  title: 코드 네임스페이스 — 같은 코드를 절마다 다른 뜻으로 정의
+  rules: []   # 신규 게이트(F75) — extra.code_namespace.pattern·allow
+  layer: 본체
+  core: [일관성]
+  level: 경고
+  inputs: [cards, tree]
+# ── v1.11-c Task 3: 기존 품질 도구 흡수(설계 D3.5) — 지표 이름·판정은 도구 그대로 ──
+# 수준: 도구의 FAIL → 막음, WARNING → 경고. 절대 분량 하한(섹션 길이·카드 최소 길이·self-model 사이즈·
+# VC 분량)은 E18에 따라 본체 기본 「경고」 — 문서 종류 프로필이 막음으로 올린다. 기존 CLI 래퍼는 FAIL 그대로.
+# PLG-CQ (check_quality) — standard 모드 문서 지표
+- id: PLG-CQ-section_length
+  title: 섹션 본문 길이 하한 미달 (check_quality)
+  layer: 본체
+  core: [품질]
+  level: 경고   # 도구 FAIL — 절대 분량 하한(E18)
+  inputs: [cards]
+- id: PLG-CQ-section_citations
+  title: 섹션 인용 수 하한 미달 (check_quality)
+  layer: 본체
+  core: [품질]
+  level: 경고
+  inputs: [cards]
+- id: PLG-CQ-ai_estimate_ratio
+  title: AI 추정 표현 비율 초과 (check_quality)
+  layer: 본체
+  core: [품질]
+  level: 막음
+  inputs: [cards]
+- id: PLG-CQ-undefined_abbreviations
+  title: 풀이 없는 약어 3종 초과 (check_quality)
+  layer: 본체
+  core: [쉬운 말, 일관성]
+  level: 경고
+  inputs: [cards]
+- id: PLG-CQ-terminology_inconsistencies
+  title: 외래어 비표준 표기 (check_quality)
+  layer: 본체
+  core: [일관성]
+  level: 경고
+  inputs: [cards]
+- id: PLG-CQ-academic_ratio
+  title: 학술 출처 비율 0.35 미만 (check_quality)
+  layer: 본체
+  core: [품질]
+  level: 막음
+  inputs: [references]
+- id: PLG-CQ-rd_ratio
+  title: 기업 R&D 출처 비율 0.24 미만 (check_quality)
+  layer: 본체
+  core: [품질]
+  level: 막음
+  inputs: [references]
+- id: PLG-CQ-tech_cards_per_section
+  title: 섹션당 기술 카드 수 하한 미달 (check_quality)
+  layer: 본체
+  core: [품질]
+  level: 경고
+  inputs: [cards]
+- id: PLG-CQ-tech_card_block_fill
+  title: 기술 카드 7블록 충족률 0.85 미만 (check_quality)
+  layer: 본체
+  core: [품질]
+  level: 막음
+  inputs: [cards]
+- id: PLG-CQ-undersized_cards
+  title: 최소 길이 미달 기술 카드 (check_quality)
+  layer: 본체
+  core: [품질]
+  level: 경고   # 도구 FAIL — 절대 분량 하한(E18)
+  inputs: [cards]
+# PLG-CQ — 두 모드 공통·self-model
+- id: PLG-CQ-caption_duplicate
+  title: 캡션 번호 중복 (check_quality)
+  layer: 본체
+  core: [일관성]
+  level: 경고
+  inputs: [cards]
+- id: PLG-CQ-caption_gap
+  title: 캡션 번호 결번 — self-model (check_quality)
+  layer: 본체
+  core: [일관성]
+  level: 경고
+  inputs: [cards]
+- id: PLG-CQ-caption_dangling_ref
+  title: 정의 없는 캡션 번호 참조 (check_quality)
+  layer: 본체
+  core: [일관성]
+  level: 경고
+  inputs: [cards]
+- id: PLG-CQ-self_model_length
+  title: self-model 카드 사이즈별 본문 분량 (check_quality)
+  layer: 본체
+  core: [품질]
+  level: 경고   # 도구 절반 미만 FAIL — 절대 분량 하한(E18). extra.check_quality.size_thresholds
+  inputs: [cards]
+# PLG-FG (format_gate) — self-model 카드 서식. --strict 승격·baseline 회귀는 CLI 전용
+- id: PLG-FG-inline_hierarchy
+  title: 인라인 계층번호 (i)(ii)·(a-1) (format_gate)
+  layer: 본체
+  core: [쉬운 말]
+  level: 경고
+  inputs: [cards]
+- id: PLG-FG-top_plain_label
+  title: 상위 평문 라벨 (a)(b)(c) (format_gate)
+  layer: 본체
+  core: [쉬운 말]
+  level: 경고
+  inputs: [cards]
+- id: PLG-FG-nonbullet_indent
+  title: 불릿 아닌 2·3칸 들여쓰기 줄 (format_gate)
+  layer: 본체
+  core: [품질]
+  level: 경고
+  inputs: [cards]
+- id: PLG-FG-flatten_risk_indent
+  title: 4배수 아닌 리스트 들여쓰기 (format_gate)
+  layer: 본체
+  core: [품질]
+  level: 경고
+  inputs: [cards]
+- id: PLG-FG-high_list_ratio
+  title: 섹션 리스트 비율 50% 초과 (format_gate)
+  layer: 본체
+  core: [쉬운 말]
+  level: 경고
+  inputs: [cards]
+- id: PLG-FG-redundant_summary
+  title: 중복 요약 단락 — 종합하면·정리하면 (format_gate)
+  layer: 본체
+  core: [쉬운 말]
+  level: 경고
+  inputs: [cards]
+- id: PLG-FG-control_chars
+  title: 본문 제어문자 (format_gate)
+  layer: 본체
+  core: [품질]
+  level: 경고
+  inputs: [cards]
+- id: PLG-FG-mermaid_label_risk
+  title: mermaid 라벨 미인용 특수문자 (format_gate)
+  layer: 본체
+  core: [품질]
+  level: 경고
+  inputs: [cards]
+- id: PLG-FG-inline_enumeration
+  title: 인라인 병렬 열거 — 첫째·둘째 (format_gate)
+  layer: 본체
+  core: [쉬운 말]
+  level: 경고
+  inputs: [cards]
+- id: PLG-FG-visual_density
+  title: 시각화 밀도 — 4,000자당 표·그림 1개 미만 (format_gate)
+  layer: 본체
+  core: [쉬운 말]
+  level: 경고
+  inputs: [cards]
+# VC (verify_cards A~E) — self-model 카드 완결성
+- id: VC-A
+  title: 카드 JSON 읽기 실패 (verify_cards A)
+  layer: 본체
+  core: [품질]
+  level: 막음
+  inputs: [cards]
+  exemptable: false   # 읽지 못한 카드는 면제 대상 카드가 아니다
+- id: VC-B
+  title: 모르는 schema_version (verify_cards B)
+  layer: 본체
+  core: [일관성]
+  level: 경고
+  inputs: [cards]
+- id: VC-C
+  title: 사이즈별 본문 분량 (verify_cards C)
+  layer: 본체
+  core: [품질]
+  level: 경고   # 도구 절반 미만 FAIL — 절대 분량 하한(E18). extra.verify_cards.thresholds
+  inputs: [cards]
+- id: VC-D
+  title: 본문 종결부 컷오프 의심 (verify_cards D)
+  layer: 본체
+  core: [품질]
+  level: 경고
+  inputs: [cards]
+- id: VC-E
+  title: citation_count 0 (verify_cards E)
+  layer: 본체
+  core: [품질]
+  level: 막음
+  inputs: [cards]

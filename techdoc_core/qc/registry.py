@@ -53,7 +53,8 @@ def sample_model(*, root: Path | None = None, kind: str = "tech_report",
                  references: list[dict] | None = None, reference_md: dict[str, str] | None = None,
                  exempt: dict[str, dict] | None = None, extra: dict | None = None,
                  draft: dict[str, str] | None = None, outline: dict | None = None,
-                 numbering: dict | None = None, image_license: str | None = None) -> DocModel:
+                 numbering: dict | None = None, image_license: str | None = None,
+                 standard: dict | None = None, load_errors: list[str] | None = None) -> DocModel:
     """자기검사·테스트용 작은 모델."""
     return DocModel(
         root=root or Path("."),
@@ -68,4 +69,6 @@ def sample_model(*, root: Path | None = None, kind: str = "tech_report",
         exempt=dict(exempt or {}),
         extra=dict(extra or {}),
         image_license=image_license,
+        standard=standard,
+        load_errors=list(load_errors or []),
     )

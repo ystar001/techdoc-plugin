@@ -28,6 +28,9 @@ class DocModel:
     load_errors: list[str] = field(default_factory=list)
     # 묶음 층 [(층 이름, 디렉토리)] — 게이트 사전(`dicts/`)을 이 순서로 겹쳐 읽는다(config.layer_dirs)
     layers: list[tuple[str, Path | None]] = field(default_factory=list)
+    # standard 모드 원본 {doc, reference_list, glossary} — PLG-CQ 게이트(check_quality 지표)가 읽는다.
+    # None이면 self-model 카드(또는 카드 없음) — PLG-FG·PLG-CQ self-model·VC 게이트가 카드를 본다
+    standard: dict | None = None
 
     def is_empty(self) -> bool:
         return not self.cards and not self.tree and not self.draft

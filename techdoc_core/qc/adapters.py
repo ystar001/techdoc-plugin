@@ -8,11 +8,14 @@ tech/project/product 카드를 읽는다(v1.11-c).
 """
 from __future__ import annotations
 
+import contextlib
 import json
 from pathlib import Path
 
 from techdoc_core.qc.config import ProjectConfig, layer_dirs
 from techdoc_core.qc.model import DocModel, TreeFile
+
+CARD_JSON_ERROR = "카드 JSON을 읽지 못함"  # VC-A가 load_errors에서 이 문구로 카드 읽기 실패를 센다
 
 
 def _load_cards(cards_dir: Path, errors: list[str]) -> dict[str, dict]:
@@ -26,7 +29,7 @@ def _load_cards(cards_dir: Path, errors: list[str]) -> dict[str, dict]:
         try:
             data = json.loads(p.read_text(encoding="utf-8"))
         except (json.JSONDecodeError, UnicodeDecodeError) as e:
-            errors.append(f"{p.name}: 카드 JSON을 읽지 못함 — {e}")
+            errors.append(f"{p.name}: {CARD_JSON_ERROR} — {e}")
             continue
         if isinstance(data, dict):
             cards[p.stem.removesuffix("_card")] = data
@@ -88,10 +91,11 @@ def _read_json(p: Path, errors: list[str]) -> dict | None:
     return data if isinstance(data, dict) else None
 
 
-def _load_standard_cards(out_dir: Path, errors: list[str]) -> dict[str, dict]:
+def _load_standard_cards(out_dir: Path, errors: list[str]) -> tuple[dict[str, dict], dict | None]:
     """document_draft.json → document_final.json → sections/section_*.json 중 처음 있는 것.
 
     draft가 앞서는 까닭: review·rewrite가 draft를 고쳐 쓰고 final은 렌더 직전 승격 사본이다.
+    둘째 값은 읽은 Document 원본(섹션 파일이면 목록을 이어 붙인 것) — PLG-CQ 게이트가 쓴다.
     """
     cards: dict[str, dict] = {}
     for name in ("document_draft.json", "document_final.json"):
@@ -100,12 +104,29 @@ def _load_standard_cards(out_dir: Path, errors: list[str]) -> dict[str, dict]:
             doc = _read_json(p, errors)
             if doc is not None:
                 _std_doc_cards(doc, cards, name, errors)
-                return cards
+                return cards, doc
+    merged: dict | None = None
     for p in sorted((out_dir / "sections").glob("section_*.json")):
         doc = _read_json(p, errors)
         if doc is not None:
             _std_doc_cards(doc, cards, f"sections/{p.name}", errors)
-    return cards
+            merged = merged or {"title": doc.get("title", "")}
+            for key in ("sections", "tech_cards", "project_cards", "product_cards"):
+                if isinstance(doc.get(key), list):
+                    merged.setdefault(key, []).extend(doc[key])
+    return cards, merged
+
+
+def _standard_inputs(out_dir: Path, ref_path: Path, doc: dict) -> dict:
+    """standard 모드 원본 묶음 — 문서·참고문헌 목록 원본·용어집(check_quality가 읽던 것과 같은 파일)."""
+    from techdoc_core.qc.legacy.doc_metrics import load_glossary
+
+    reflist = None
+    if ref_path.is_file():
+        with contextlib.suppress(json.JSONDecodeError, UnicodeDecodeError):
+            data = json.loads(ref_path.read_text(encoding="utf-8"))
+            reflist = data if isinstance(data, dict) else None
+    return {"doc": doc, "reference_list": reflist, "glossary": load_glossary(out_dir)}
 
 
 def _read_md(p: Path, label: str, errors: list[str]) -> str | None:
@@ -192,8 +213,12 @@ def build_model(root: Path, cfg: ProjectConfig) -> DocModel:
     errors: list[str] = []
     tree, ref_md = _load_tree(cfg.paths.render_tree, errors)
     cards = _load_cards(cfg.paths.cards, errors)
+    standard = None
     if not cards:  # self-model 카드가 없으면 standard 모드 산출물(카드 폴더의 부모)에서
-        cards = _load_standard_cards(cfg.paths.cards.parent, errors)
+        out_dir = cfg.paths.cards.parent
+        cards, raw_doc = _load_standard_cards(out_dir, errors)
+        if raw_doc is not None:
+            standard = _standard_inputs(out_dir, cfg.paths.references, raw_doc)
     return DocModel(
         root=Path(root),
         kind=cfg.kind,
@@ -209,4 +234,5 @@ def build_model(root: Path, cfg: ProjectConfig) -> DocModel:
         extra=dict(cfg.extra),
         load_errors=errors,
         layers=layer_dirs(cfg),
+        standard=standard,
     )

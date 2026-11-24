@@ -16,7 +16,21 @@ def test_core_gate_specs_load():
                           "V66", "V73", "V75", "V80",
                           "V22", "V37", "V42", "V46", "V47", "V48", "V49", "V51",  # v1.11-b 표기
                           "V64", "V7", "V14",
-                          "V87", "V88"}  # v1.11-b 신규
+                          "V87", "V88",  # v1.11-b 신규
+                          "V89", "V90",  # v1.11-c 신규(F82 ③·F75)
+                          # v1.11-c 기존 품질 도구 흡수(D3.5)
+                          *(f"PLG-CQ-{m}" for m in (
+                              "section_length", "section_citations", "ai_estimate_ratio",
+                              "undefined_abbreviations", "terminology_inconsistencies",
+                              "academic_ratio", "rd_ratio", "tech_cards_per_section",
+                              "tech_card_block_fill", "undersized_cards", "caption_duplicate",
+                              "caption_gap", "caption_dangling_ref", "self_model_length")),
+                          *(f"PLG-FG-{m}" for m in (
+                              "inline_hierarchy", "top_plain_label", "nonbullet_indent",
+                              "flatten_risk_indent", "high_list_ratio", "redundant_summary",
+                              "control_chars", "mermaid_label_risk", "inline_enumeration",
+                              "visual_density")),
+                          "VC-A", "VC-B", "VC-C", "VC-D", "VC-E"}
     assert specs["V59"].exemptable is False and specs["V78"].level == "시범"
     assert specs["V57"].expects == {"methodology": ">=1"}
     assert specs["V8"].level == "막음"

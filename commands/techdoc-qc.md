@@ -71,7 +71,7 @@ extra:
 
 설정이 부르는 게이트 id가 없는 id면 경고가 나온다(조용히 무시하지 않음). `domain`·`series` 경로가 없거나 `kind`가 모르는 이름이어도 경고한다. `gates.exempt`의 카드 id는 **따옴표로 감싼다**(`"1.10"` — YAML은 따옴표 없는 1.10을 숫자 1.1로 읽는다, 그러면 오류로 멈춘다).
 
-## 게이트 (v1.11 — 59종)
+## 게이트 (v1.11 — 90종)
 
 판정 수준은 **플러그인 기본값**이다. 가독성·문체 게이트는 범용 기본을 「경고」로 두고(E18), 시리즈·문서 종류 설정(`gates.level`)이 「막음」으로 올릴 수 있다. 「시범」은 합계·종료 코드 밖.
 명세의 `kinds`가 있는 게이트는 그 문서 종류에서만 돈다 — 다른 종류면 skip(「문서 종류 밖」), 합계 밖. 게이트 사전(`dicts/` 한계값·띄어쓰기 목록)은 본체 → 문서 종류 → 분야 → 시리즈 → 프로젝트(`.techdoc/dicts/`) 층 순서로 덮어쓰거나 `"extend": true`면 잇는다.
@@ -170,4 +170,50 @@ extra:
 |---|---|---|---|
 | V88 | 같은 틀 되풀이 — 한 장 안 같은 표제 머리 3회 초과 | 본체 | 경고 |
 
-standard 모드 산출물 읽기는 v1.11-c에서 들어왔다. `check_quality`·`format_gate`·`verify_cards` 흡수도 v1.11-c에서 들어온다.
+### 시각 필드·코드 네임스페이스(신규) (2)
+
+| id | 검사 | 층 | 수준 |
+|---|---|---|---|
+| V89 | 시각 필드 id에만 번호 — 캡션에 그림·표 번호 없음 | 본체 | 경고 |
+| V90 | 코드 네임스페이스 — 같은 코드를 절마다 다른 뜻으로 정의 | 본체 | 경고 |
+
+V89(F82): 카드 `diagrams[]`·`figures[]` 항목에 `id`가 있는데 `caption`에 「그림 1-2」·「표 II.8-1」 같은 번호가 없으면 경고 — 렌더에서는 캡션만 실려 번호가 사라진다.
+V90(F75): 코드 토큰(기본 `[A-Z]{1,3}-?\d{1,3}`, `REF-…` 제외)이 **정의**되는 곳은 ① 표의 첫 칸이 토큰 하나뿐인 행(뜻 = 다음 칸) ② 줄 첫머리(목록·표제 기호 허용)의 `토큰:`·`토큰 —`·`토큰(뜻)` 두 가지뿐이다. 한 토큰이 두 절 이상에서 뜻이 다르게 정의되면 토큰마다 경고 하나(같은 뜻·한쪽이 다른 쪽을 품는 줄임은 통과, 분할 카드 `.L1`·`.L2`는 같은 절). 설정 `extra.code_namespace.pattern`(토큰 정규식)·`extra.code_namespace.allow`(토큰 목록).
+
+### 기존 품질 도구 흡수 (29)
+
+`check_quality`·`format_gate`·`verify_cards`의 지표가 게이트가 됐다(지표 이름·판정 그대로, 측정 함수를 CLI와 함께 씀). 기존 CLI는 같은 결과 계약(`total_fail`·`total_warning`·종료 코드 2)을 내는 래퍼로 남는다. 수준은 도구의 FAIL → 막음, WARNING → 경고 — 단 **절대 분량 하한은 본체 기본 경고**(E18, 문서 종류 프로필이 막음으로 올림; CLI는 FAIL 그대로). PLG-CQ 문서 지표는 standard 모드에서, self-model 지표·PLG-FG·VC는 self-model 카드에서만 돈다(다른 모드면 「대상 없음」). `--strict` 승격·baseline 회귀는 CLI 전용. 임계 덮어쓰기: `extra.check_quality.size_thresholds`·`extra.verify_cards.thresholds`(예 `{S: 3000}`). 캡션 번호 꼴은 `numbering.section`을 따른다(F82 — CLI도 프로젝트 설정을 읽는다).
+
+| id | 검사 | 층 | 수준 |
+|---|---|---|---|
+| PLG-CQ-section_length | 섹션 본문 길이 하한 미달 | 본체 | 경고 |
+| PLG-CQ-section_citations | 섹션 인용 수 하한 미달 | 본체 | 경고 |
+| PLG-CQ-ai_estimate_ratio | AI 추정 표현 비율 초과 | 본체 | 막음 |
+| PLG-CQ-undefined_abbreviations | 풀이 없는 약어 3종 초과 | 본체 | 경고 |
+| PLG-CQ-terminology_inconsistencies | 외래어 비표준 표기 | 본체 | 경고 |
+| PLG-CQ-academic_ratio | 학술 출처 비율 0.35 미만 | 본체 | 막음 |
+| PLG-CQ-rd_ratio | 기업 R&D 출처 비율 0.24 미만 | 본체 | 막음 |
+| PLG-CQ-tech_cards_per_section | 섹션당 기술 카드 수 하한 미달 | 본체 | 경고 |
+| PLG-CQ-tech_card_block_fill | 기술 카드 7블록 충족률 0.85 미만 | 본체 | 막음 |
+| PLG-CQ-undersized_cards | 최소 길이 미달 기술 카드 | 본체 | 경고 |
+| PLG-CQ-caption_duplicate | 캡션 번호 중복 | 본체 | 경고 |
+| PLG-CQ-caption_gap | 캡션 번호 결번 (self-model) | 본체 | 경고 |
+| PLG-CQ-caption_dangling_ref | 정의 없는 캡션 번호 참조 | 본체 | 경고 |
+| PLG-CQ-self_model_length | self-model 카드 사이즈별 본문 분량 | 본체 | 경고 |
+| PLG-FG-inline_hierarchy | 인라인 계층번호 (i)(ii)·(a-1) | 본체 | 경고 |
+| PLG-FG-top_plain_label | 상위 평문 라벨 (a)(b)(c) | 본체 | 경고 |
+| PLG-FG-nonbullet_indent | 불릿 아닌 2·3칸 들여쓰기 줄 | 본체 | 경고 |
+| PLG-FG-flatten_risk_indent | 4배수 아닌 리스트 들여쓰기 | 본체 | 경고 |
+| PLG-FG-high_list_ratio | 섹션 리스트 비율 50% 초과 | 본체 | 경고 |
+| PLG-FG-redundant_summary | 중복 요약 단락 — 종합하면·정리하면 | 본체 | 경고 |
+| PLG-FG-control_chars | 본문 제어문자 | 본체 | 경고 |
+| PLG-FG-mermaid_label_risk | mermaid 라벨 미인용 특수문자 | 본체 | 경고 |
+| PLG-FG-inline_enumeration | 인라인 병렬 열거 — 첫째·둘째 | 본체 | 경고 |
+| PLG-FG-visual_density | 시각화 밀도 — 4,000자당 표·그림 1개 미만 | 본체 | 경고 |
+| VC-A | 카드 JSON 읽기 실패 | 본체 | 막음 |
+| VC-B | 모르는 schema_version | 본체 | 경고 |
+| VC-C | 사이즈별 본문 분량 | 본체 | 경고 |
+| VC-D | 본문 종결부 컷오프 의심 | 본체 | 경고 |
+| VC-E | citation_count 0 | 본체 | 막음 |
+
+standard 모드 산출물 읽기와 기존 품질 도구 흡수는 v1.11-c에서 들어왔다.
