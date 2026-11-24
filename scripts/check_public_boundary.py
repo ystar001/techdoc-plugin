@@ -19,9 +19,14 @@ TEXT_SUFFIXES = {".py", ".md", ".yaml", ".yml", ".json", ".css", ".js", ".html",
 SKIP_DIRS = {".git", "__pycache__", ".pytest_cache", ".ruff_cache", "dist", "node_modules"}
 
 
-def scan(root: Path, words: list[str], baseline: set[str]) -> list[str]:
-    """root 아래 텍스트 파일에서 낱말이 든 줄 → "<상대경로>:<줄>: <낱말>" (baseline 제외)."""
-    hits: list[str] = []
+def hit_key(rel: str, word: str, line: str) -> str:
+    """baseline 키 — 줄 번호가 아니라 줄 내용으로(문서에 줄이 끼어도 그대로 맞게)."""
+    return f"{rel}: {word}: {line.strip()[:80]}"
+
+
+def scan(root: Path, words: list[str], baseline: set[str]) -> list[tuple[str, int]]:
+    """root 아래 텍스트 파일에서 낱말이 든 줄 → [(키, 줄 번호)] (baseline 키 제외)."""
+    hits: list[tuple[str, int]] = []
     for p in sorted(root.rglob("*")):
         if not p.is_file() or p.suffix.lower() not in TEXT_SUFFIXES:
             continue
@@ -34,9 +39,9 @@ def scan(root: Path, words: list[str], baseline: set[str]) -> list[str]:
         rel = p.relative_to(root).as_posix()
         for i, line in enumerate(lines, 1):
             for w in words:
-                key = f"{rel}:{i}: {w}"
+                key = hit_key(rel, w, line)
                 if w in line and key not in baseline:
-                    hits.append(key)
+                    hits.append((key, i))
     return hits
 
 
@@ -65,11 +70,12 @@ def main() -> int:
     baseline = set(_read_lines(base_path)) if base_path and base_path.is_file() else set()
     hits = scan(Path(args.root), words, baseline)
     if args.write_baseline and base_path:
-        base_path.write_text("\n".join(sorted(baseline | set(hits))) + "\n", encoding="utf-8")
+        keys = baseline | {k for k, _ in hits}
+        base_path.write_text("\n".join(sorted(keys)) + "\n", encoding="utf-8")
         print(f"baseline 기록: {len(hits)}건 추가 → {base_path}")
         return 0
-    for h in hits:
-        print(f"[BOUNDARY] {h}")
+    for key, line_no in hits:
+        print(f"[BOUNDARY] {key}  (줄 {line_no})")
     print(f"새 검출 {len(hits)}건 (baseline {len(baseline)}건 제외)")
     return 1 if hits else 0
 

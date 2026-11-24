@@ -15,12 +15,12 @@ def _tree(tmp_path):
 
 def test_boundary_scan_new_hit(tmp_path):
     root = _tree(tmp_path)
-    assert scan(root, ["비공개낱말"], set()) == ["a.py:2: 비공개낱말"]
+    assert scan(root, ["비공개낱말"], set()) == [("a.py: 비공개낱말: # 비공개낱말 언급", 2)]
 
 
 def test_boundary_baseline_suppresses_known(tmp_path):
     root = _tree(tmp_path)
-    assert scan(root, ["비공개낱말"], {"a.py:2: 비공개낱말"}) == []
+    assert scan(root, ["비공개낱말"], {"a.py: 비공개낱말: # 비공개낱말 언급"}) == []
 
 
 def test_boundary_main_exit_codes(tmp_path, monkeypatch):
@@ -36,6 +36,15 @@ def test_boundary_main_exit_codes(tmp_path, monkeypatch):
     monkeypatch.setattr(sys, "argv", ["x", "--root", str(root), "--words", str(words),
                                       "--baseline", str(base)])
     assert boundary_main() == 0
+
+
+def test_baseline_survives_line_shift(tmp_path):
+    root = _tree(tmp_path)
+    base = {k for k, _ in scan(root, ["비공개낱말"], set())}
+    (root / "a.py").write_text("새 줄\n새 줄\nx = 1\n# 비공개낱말 언급\n", encoding="utf-8")
+    assert scan(root, ["비공개낱말"], base) == []
+    (root / "a.py").write_text("x = 1\n# 비공개낱말 언급\n# 비공개낱말 새 언급\n", encoding="utf-8")
+    assert len(scan(root, ["비공개낱말"], base)) == 1
 
 
 def test_boundary_missing_word_list_exit_2(tmp_path, monkeypatch):

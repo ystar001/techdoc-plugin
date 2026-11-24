@@ -39,7 +39,7 @@
   - [21. 자주 하는 작업 패턴 6종](#21-자주-하는-작업-패턴-6종)
   - [22. 핵심 파일 예시](#22-핵심-파일-예시)
 - [PART Ⅴ. 명령·옵션 레퍼런스](#part-ⅴ-명령옵션-레퍼런스)
-  - [23. 슬래시 명령 전체 (19종)](#23-슬래시-명령-전체-19종)
+  - [23. 슬래시 명령 전체 (20종)](#23-슬래시-명령-전체-20종)
   - [24. 주요 옵션 상세](#24-주요-옵션-상세)
 - [PART Ⅵ. 운영·배포](#part-ⅵ-운영배포)
   - [25. 설치 경로 4종](#25-설치-경로-4종)
@@ -67,7 +67,7 @@ TechDoc은 **AI 기술보고서 자동 생성 + LLM Wiki 누적을 지원하는 
 - ⭐ **LLM Wiki 누적** (D 하이브리드: 옵시디언·MkDocs·표준 마크다운 호환)
 - ⭐ **자체 업데이트** (`/techdoc-update`로 새 버전 자동 갱신)
 
-하도록 설계된 **19종 슬래시 명령 + 3종 Subagent + 26종 프롬프트(+공통 6종) + 18+ Python 모듈**의 종합 도구입니다.
+하도록 설계된 **20종 슬래시 명령 + 3종 Subagent + 26종 프롬프트(+공통 6종) + 60+ Python 모듈**의 종합 도구입니다.
 
 ## 2. 대상 사용자
 
@@ -167,13 +167,14 @@ techdoc-plugin/                                  # 플러그인 루트 (v1.1.0)
 │   ├── plugin.json                              # 이름·버전·설명
 │   └── marketplace.json                         # 자체 마켓플레이스
 │
-├── commands/                                    # 19종 슬래시 명령
+├── commands/                                    # 20종 슬래시 명령
 │   ├── techdoc.md            techdoc-outline.md
 │   ├── techdoc-research.md   techdoc-write.md
 │   ├── techdoc-review.md     techdoc-render.md
 │   ├── techdoc-resume.md     techdoc-rewrite.md
 │   ├── techdoc-deepdive.md   techdoc-doctor.md
 │   ├── techdoc-enrich.md                                 # ⭐ v1.9.x (서식 소급 개선, F25)
+│   ├── techdoc-qc.md                                 # v1.11 품질 게이트 (F85·F86·F104)
 │   ├── techdoc-demo.md       techdoc-update.md          # ⭐ v1.1.0
 │   ├── techdoc-export-wiki.md                           # ⭐ v1.1.0
 │   ├── techdoc-export-notion.md                         # ⭐ v1.2.0
@@ -198,6 +199,7 @@ techdoc-plugin/                                  # 플러그인 루트 (v1.1.0)
 │   ├── parse_toc.py       select_design.py
 │   ├── build_reflist.py   merge_research.py
 │   ├── dedupe_keyref.py   verify_cards.py            # v1.10.2 (F63·F72·F101)
+│   ├── qc.py   bundle_split.py   check_public_boundary.py   # v1.11 (F85)
 │   ├── migrate.py         generate_chart.py
 │   ├── check_quality.py   format_gate.py             # 서식 게이트(self_model)
 │   ├── render.py          monitor.py     doctor.py
@@ -215,10 +217,13 @@ techdoc-plugin/                                  # 플러그인 루트 (v1.1.0)
 │           ├── report.py   index.py
 │           └── log.py
 │
+├── bundles/core/gates.yaml                       # v1.11 본체 게이트 명세(규칙 id·층·수준)
 ├── techdoc_core/                                # 데이터 모델·렌더러
 │   ├── __init__.py  constants.py  models.py  schemas.py
 │   ├── routing_config.py  formal_blocks.py  localize.py   # F21·F32·F29
 │   ├── card_id.py  keyref_normalize.py                    # v1.10.2 (F101·F78)
+│   ├── qc/       config · model · adapters · card_text · registry · engine · gates/   # v1.11 게이트 엔진
+│   ├── bundles/  schema · loader                          # v1.11 묶음 명세·층 겹침 로더
 │   ├── renderers/                               # 출력 렌더러
 │   │   ├── html_renderer.py  card_renderer.py
 │   │   ├── pdf_export.py     docx_export.py     md_export.py
@@ -308,6 +313,7 @@ Python 구현은 4개 계층으로 구성됩니다.
 │ Layer 3  품질·진단·마이그레이션                          │
 │   check_quality.py (Phase A 23지표)                      │
 │   verify_cards.py (카드 분량·종결부, v1.10.2)            │
+│   qc.py + techdoc_core.qc (게이트 엔진, v1.11)           │
 │   doctor.py (환경 진단 15항목)                           │
 │   migrate.py (schema_version 변환)                       │
 │   monitor.py (writer_state 실시간 폴링)                  │
@@ -903,7 +909,7 @@ techdoc_auto: true
 
 # PART Ⅴ. 명령·옵션 레퍼런스
 
-## 23. 슬래시 명령 전체 (19종)
+## 23. 슬래시 명령 전체 (20종)
 
 | 그룹 | 명령 | 핵심 역할 | 소요 |
 |---|---|---|---|
@@ -918,6 +924,7 @@ techdoc_auto: true
 | **재실행** | `/techdoc-resume` | 단계 단위 | 가변 |
 | | `/techdoc-rewrite` | **카드 단위** ⭐ | 2~3분 |
 | | `/techdoc-enrich` | **서식 소급 개선** (내용 보존, F25) ⭐ | 1~2분 |
+| 품질 | `/techdoc-qc` | **품질 게이트** — 경로만 받아 게이트 실행, 결과마다 규칙 번호·대상 수·판정·집행 수준 (v1.11) | 수 초~1분 |
 | | `/techdoc-deepdive` | **별첨 개별** ⭐ | 10~15분 |
 | **Wiki** ⭐ | `/techdoc-export-wiki` | LLM Wiki 변환·누적 | 1~2분 |
 | **Notion** ⭐ | `/techdoc-export-notion` (v1.2.0) | TechDoc 보고서 → Notion publish (페이지 계층 + KeyRef DB) | 30초~3분 |

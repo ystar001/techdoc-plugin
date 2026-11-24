@@ -4,6 +4,22 @@ All notable changes to TechDoc Plugin.
 
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — v1.11-a (판 번호는 v1.11-c에서 1.11.0으로 확정)
+
+### Added (품질 게이트 엔진 — `/techdoc-qc`)
+
+- 신규 명령 `/techdoc-qc` + `scripts/qc.py` — 프로젝트 경로만 받아 게이트를 돌리고, 결과마다 규칙 번호·층·핵심 규칙·대상 수·판정·집행 수준을 단 `qc_report.json`과 표를 낸다. 종료 코드 0·1(막음 실패)·2(입력 없음)·3(자기검사 실패). (findings F85)
+- 신규 `techdoc_core/qc/` — 설정 `techdoc.project.yaml`(층·번호 꼴·경로·끄기/면제/수준·extra), 문서 모델과 어댑터(카드·렌더 트리·draft·참고문헌), 게이트 등록(`@gate` + 자기검사 표본), 엔진.
+- **판정 4값과 집행 수준 5종을 나눔**: pass·fail·no-target·skip × 막음·경고·기록만·시범·구조. 검사 대상이 0이면 통과가 아니라 「대상 없음」이고, 문서 종류상 있어야 할 대상이 0이면 실패다. 입력이 아예 없으면 게이트를 돌리지 않고 종료 코드 2. 시범 수준은 합계와 종료 코드 밖. (findings F86, F104)
+- 신규 `techdoc_core/bundles/`·`bundles/core/gates.yaml` — 규칙·게이트 명세 스키마와 층 겹침 로더(본체 → 문서 종류 → 분야 → 시리즈 → 프로젝트, `override` 없이는 덮어쓰기 금지).
+- 첫 게이트 묶음(인용·서지) **V8·V13·V45·V68**을 시리즈 게이트에서 이식. 시리즈 고유 값은 설정(`extra.citation`)으로 뺐고, V68은 영문 단체 지은이 「… Team」 자리표시를 잡도록 보완.
+- 신규 `scripts/bundle_split.py` — 규칙 대장을 층별 묶음으로 나누고 규칙↔게이트 연결(규칙 쪽 `enforce.gate`가 정본)을 점검. 신규 `scripts/check_public_boundary.py` — public 미러에 비공개 낱말이 새지 않게 검사(낱말 목록이 없으면 종료 코드 2).
+- `build_release`가 `bundles/`를 배포 ZIP에 넣음.
+
+### Note
+
+- 회귀는 원본 게이트와 **같은 입력에 나란히 돌려 게이트별 건수를 비교**하는 차분 방식이다(레포 밖 실데이터, private). 이식한 4종은 원본과 건수가 같고, 의도한 차이는 V68 「Team」 보완뿐이다.
+
 ## [1.10.2] — 2026-11-24
 
 ### Added (도구 승격 — 묶음 0)
