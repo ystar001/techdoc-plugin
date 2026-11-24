@@ -16,6 +16,8 @@ from techdoc_core.bundles.schema import Level
 
 CONFIG_NAME = "techdoc.project.yaml"
 SECTION_STYLES = ("arabic", "roman", "letter_middle")
+# 문서 종류 이름(설계 D7). 묶음이 아직 없는 종류도 이름은 정해져 있다 — 오타를 잡으려는 목록
+KNOWN_KINDS = ("tech_report", "methodology", "tech_encyclopedia", "adoption_guide", "policy_report")
 _LEVELS = get_args(Level)
 
 
@@ -85,13 +87,24 @@ def load_config(root: Path, path: Path | None = None) -> ProjectConfig:
     # YAML 1.1(PyYAML)은 키 `off`를 불리언 False로 읽는다 — 두 꼴 모두 받는다
     off = gates.get("off", gates.get(False))
     cfg.gates_off = [str(g) for g in off or []]
-    cfg.exempt = {str(k): [str(g) for g in v] for k, v in (gates.get("exempt") or {}).items()}
+    exempt = gates.get("exempt") or {}
+    bad_keys = [k for k in exempt if not isinstance(k, str)]
+    if bad_keys:
+        # YAML은 1.10·1.1을 숫자 1.1 하나로 접는다 — 카드 id는 따옴표로 감싸야 한다
+        raise ValueError(f"gates.exempt의 카드 id는 따옴표로 감싸야 함(\"1.10\"): {bad_keys}")
+    cfg.exempt = {k: [str(g) for g in v] for k, v in exempt.items()}
     levels = {str(k): str(v) for k, v in (gates.get("level") or {}).items()}
     bad = {k: v for k, v in levels.items() if v not in _LEVELS}
     if bad:
         raise ValueError(f"gates.level 값은 {_LEVELS} 중 하나: {bad}")
     cfg.level_overrides = levels
     cfg.extra = data.get("extra") or {}
+    if cfg.kind not in KNOWN_KINDS:
+        cfg.warnings.append(f"모르는 문서 종류 kind: {cfg.kind} (알려진 것: {', '.join(KNOWN_KINDS)})")
+    for name in ("domain", "series"):
+        p = getattr(cfg, name)
+        if p is not None and not p.is_dir():
+            cfg.warnings.append(f"{name} 묶음 경로가 없음 — 그 층 게이트가 빠짐: {p}")
     return cfg
 
 

@@ -51,3 +51,25 @@ def test_cli_cp949_stderr_and_stdout(tmp_path, monkeypatch):
     monkeypatch.setattr(sys, "stdout", io.TextIOWrapper(io.BytesIO(), encoding="cp949"))
     monkeypatch.setattr(sys, "stderr", io.TextIOWrapper(io.BytesIO(), encoding="cp949"))
     assert qc_main([str(root)]) == 1
+
+
+# ── 최종 리뷰 반영 (Important 1·3·4) ──
+
+def test_cli_gates_filter_all_unknown_exit_2(tmp_path):
+    root = _project(tmp_path)
+    assert qc_main([str(root), "--gates", "v8"]) == 2
+
+
+def test_cli_v8_missing_reference_list_fails(tmp_path):
+    cards = tmp_path / "output" / "cards"
+    cards.mkdir(parents=True)
+    (cards / "1.1_card.json").write_text(
+        json.dumps({"sections": {"s": {"body": "[REF-001] [REF-002]"}}}), encoding="utf-8")
+    assert qc_main([str(tmp_path)]) == 1
+
+
+def test_cli_standard_layout_explains(tmp_path, capsys):
+    (tmp_path / "output").mkdir()
+    (tmp_path / "output" / "writer_state.json").write_text("{}", encoding="utf-8")
+    assert qc_main([str(tmp_path)]) == 2
+    assert "standard 모드" in capsys.readouterr().out

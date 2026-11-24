@@ -64,3 +64,20 @@ def test_layer_dirs_order(tmp_path):
     names = [n for n, _ in layer_dirs(cfg)]
     assert names == ["core", "kind", "domain", "series", "project"]
     assert layer_dirs(cfg)[0][1] == core_bundle_dir()
+
+
+# ── 최종 리뷰 반영 (Important 2·3) ──
+
+def test_numeric_exempt_key_rejected(tmp_path):
+    (tmp_path / "techdoc.project.yaml").write_text(
+        "gates: {exempt: {1.10: [V13], 1.1: [V13]}}\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="따옴표"):
+        load_config(tmp_path)
+
+
+def test_missing_layer_paths_and_unknown_kind_warn(tmp_path):
+    (tmp_path / "techdoc.project.yaml").write_text(
+        "kind: tech_reprot\nseries: ../없는/rules\ndomain: ./없음\n", encoding="utf-8")
+    cfg = load_config(tmp_path)
+    joined = " | ".join(cfg.warnings)
+    assert "tech_reprot" in joined and "series" in joined and "domain" in joined

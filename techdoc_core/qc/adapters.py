@@ -31,7 +31,16 @@ def _load_cards(cards_dir: Path, errors: list[str]) -> dict[str, dict]:
     return cards
 
 
-def _load_tree(tree_dir: Path) -> tuple[list[TreeFile], list[TreeFile]]:
+def _read_md(p: Path, label: str, errors: list[str]) -> str | None:
+    """UTF-8이 아닌 md는 건너뛰고 보고한다(실행 전체가 죽지 않게)."""
+    try:
+        return p.read_text(encoding="utf-8")
+    except UnicodeDecodeError as e:
+        errors.append(f"{label}: UTF-8이 아니라 건너뜀 — {e.reason}")
+        return None
+
+
+def _load_tree(tree_dir: Path, errors: list[str]) -> tuple[list[TreeFile], list[TreeFile]]:
     tree: list[TreeFile] = []
     refs: list[TreeFile] = []
     if not tree_dir.is_dir():
@@ -41,11 +50,14 @@ def _load_tree(tree_dir: Path) -> tuple[list[TreeFile], list[TreeFile]]:
         name = p.name
         if name.startswith("_"):
             continue
-        tf = TreeFile(rel=rel, text=p.read_text(encoding="utf-8"))
+        text = _read_md(p, rel, errors)
+        if text is None:
+            continue
+        tf = TreeFile(rel=rel, text=text)
         (refs if "참고문헌" in name else tree).append(tf)
     if not refs:
         for full in sorted(tree_dir.parent.glob("*_full.md")):
-            text = full.read_text(encoding="utf-8")
+            text = _read_md(full, full.name, errors) or ""
             k = text.find("\n# 참고문헌")
             if k >= 0:
                 refs.append(TreeFile(rel=f"{full.name} 참고문헌", text=text[k:]))
@@ -55,11 +67,17 @@ def _load_tree(tree_dir: Path) -> tuple[list[TreeFile], list[TreeFile]]:
 _DRAFT_SKIP = ("_superseded", "_merged", "_archive")
 
 
-def _load_draft(draft_dir: Path) -> list[TreeFile]:
+def _load_draft(draft_dir: Path, errors: list[str]) -> list[TreeFile]:
     if not draft_dir.is_dir():
         return []
-    return [TreeFile(rel=p.name, text=p.read_text(encoding="utf-8"))
-            for p in sorted(draft_dir.glob("*.md")) if not p.name.startswith(_DRAFT_SKIP)]
+    out: list[TreeFile] = []
+    for p in sorted(draft_dir.glob("*.md")):
+        if p.name.startswith(_DRAFT_SKIP):
+            continue
+        text = _read_md(p, f"draft/{p.name}", errors)
+        if text is not None:
+            out.append(TreeFile(rel=p.name, text=text))
+    return out
 
 
 def _load_references(path: Path, errors: list[str]) -> list[dict]:
@@ -76,13 +94,13 @@ def _load_references(path: Path, errors: list[str]) -> list[dict]:
 
 def build_model(root: Path, cfg: ProjectConfig) -> DocModel:
     errors: list[str] = []
-    tree, ref_md = _load_tree(cfg.paths.render_tree)
+    tree, ref_md = _load_tree(cfg.paths.render_tree, errors)
     return DocModel(
         root=Path(root),
         kind=cfg.kind,
         cards=_load_cards(cfg.paths.cards, errors),
         tree=tree,
-        draft=_load_draft(cfg.paths.draft),
+        draft=_load_draft(cfg.paths.draft, errors),
         references=_load_references(cfg.paths.references, errors),
         reference_md=ref_md,
         numbering=dict(cfg.numbering),

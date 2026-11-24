@@ -61,11 +61,16 @@ def run_qc(model: DocModel, specs: dict[str, GateSpec], funcs: dict[str, Callabl
     report = {"schema": "techdoc-qc/1", "plugin": __version__, "root": str(model.root),
               "kind": model.kind, "config_hash": _config_hash(cfg),
               "warnings": list(cfg.warnings) + list(model.load_errors),
-              "selftest_errors": [], "input_empty": False, "summary": summary, "results": []}
+              "selftest_errors": [], "gate_errors": [], "input_empty": False,
+              "summary": summary, "results": []}
     if model.is_empty():
         report["input_empty"] = True
         report["warnings"].insert(0, "입력 없음 — 카드·렌더 트리를 찾지 못함: "
                                      f"{cfg.paths.cards} · {cfg.paths.render_tree}")
+        if (cfg.paths.cards.parent / "writer_state.json").exists():
+            report["warnings"].insert(1, "이 폴더는 standard 모드 산출물(writer_state.json)이다 — "
+                                         "v1.11-a qc는 self-model 카드(cards/*_card.json)·렌더 트리만 "
+                                         "읽는다. standard 모드 어댑터는 v1.11-c에서 들어온다")
         return report
 
     for gid in sorted(specs, key=_natural):
@@ -80,7 +85,15 @@ def run_qc(model: DocModel, specs: dict[str, GateSpec], funcs: dict[str, Callabl
         elif fn is None:
             row.update(verdict="skip", reason="구현 없음")
         else:
-            out = fn(model)
+            try:
+                out = fn(model)
+            except Exception as e:  # 게이트 하나의 결함이 실행 전체를 죽이지 않게
+                msg = f"{gid}: {type(e).__name__}: {e}"
+                report["gate_errors"].append(msg)
+                row.update(verdict="skip", reason=f"게이트 오류 — {type(e).__name__}")
+                summary["skip"] += 1
+                report["results"].append(row)
+                continue
             items = [f for f in out.findings if not _exempted(gid, f.loc, model.exempt)]
             row["targets_read"] = out.targets_read
             row["count"] = len(items)
@@ -101,8 +114,8 @@ def run_qc(model: DocModel, specs: dict[str, GateSpec], funcs: dict[str, Callabl
 
 
 def exit_code(report: dict) -> int:
-    """0 통과 · 1 막음 수준 fail · 2 입력 없음 · 3 자기검사 실패."""
-    if report.get("selftest_errors"):
+    """0 통과 · 1 막음 수준 fail · 2 입력 없음 · 3 자기검사 실패·게이트 오류."""
+    if report.get("selftest_errors") or report.get("gate_errors"):
         return 3
     if report.get("input_empty"):
         return 2
@@ -114,6 +127,7 @@ def format_report(report: dict, top: int = 8) -> str:
     lines = [f"[qc] {report['root']} · kind={report['kind']} · plugin {report['plugin']}"]
     lines += [f"  [WARN] {w}" for w in report["warnings"]]
     lines += [f"  [SELFTEST] {e}" for e in report.get("selftest_errors", [])]
+    lines += [f"  [GATE ERROR] {e}" for e in report.get("gate_errors", [])]
     lines.append(f"{'ID':<8}{'검사':<34}{'대상':>6}{'건수':>7}  상태")
     for r in report["results"]:
         mark = _FAIL_MARK[r["level"]] if r["verdict"] == "fail" else _MARK[r["verdict"]]

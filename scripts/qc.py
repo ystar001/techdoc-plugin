@@ -7,7 +7,7 @@
     python -m scripts.qc <project_root> [--config <yaml>] [--json <out.json>]
                          [--gates V8,V13] [--selftest] [--all]
 
-종료 코드: 0 통과 · 1 막음 수준 실패 · 2 입력 없음 · 3 자기검사 실패.
+종료 코드: 0 통과 · 1 막음 수준 실패 · 2 입력 없음(--gates로 남은 게이트 0 포함) · 3 자기검사 실패·게이트 오류.
 """
 from __future__ import annotations
 
@@ -55,6 +55,9 @@ def main(argv: list[str] | None = None) -> int:
         unknown = [g for g in wanted if g not in specs]
         cfg.warnings += [f"모르는 게이트 id: {g}" for g in unknown]
         specs = {g: specs[g] for g in wanted if g in specs}
+        if not specs:
+            print(f"[WARN] --gates로 남은 게이트가 없음: {', '.join(unknown)} — 종료 코드 2")
+            return 2
     report = run_qc(build_model(root, cfg), specs, funcs, cfg)
     report["selftest_errors"] = errors
 

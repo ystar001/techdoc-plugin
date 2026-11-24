@@ -135,3 +135,16 @@ def test_format_report_marks(reg):
     _const("G2", 0, 0)
     text = format_report(_run(sample_model(tree={"a.md": "x"}), [_spec("G1"), _spec("G2")]))
     assert "✗ 막음" in text and "— 대상 없음" in text
+
+
+# ── 최종 리뷰 반영 (Minor 3 → Important): 게이트 예외 격리 ──
+
+def test_gate_exception_isolated(reg):
+    @gate("G1")
+    def _boom(model):
+        raise TypeError("int has no len")
+    _const("G2", 3, 1)
+    rep = _run(sample_model(tree={"a.md": "x"}), [_spec("G1"), _spec("G2")])
+    assert _res(rep, "G1")["verdict"] == "skip" and "게이트 오류" in _res(rep, "G1")["reason"]
+    assert _res(rep, "G2")["count"] == 1
+    assert rep["gate_errors"] and exit_code(rep) == 3

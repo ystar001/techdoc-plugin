@@ -71,3 +71,11 @@ def test_reference_md_by_name_contains_and_full_md_fallback(tmp_path):
     m2 = build_model(t2, default_config(t2))
     assert m2.reference_md[0].rel == "doc_full.md 참고문헌"
     assert m2.reference_md[0].text.startswith("\n# 참고문헌")
+
+
+def test_non_utf8_md_is_reported_not_crash(tmp_path):
+    p = tmp_path / "output" / "render" / "tree" / "a.md"
+    p.parent.mkdir(parents=True)
+    p.write_bytes("가나다".encode("cp949"))
+    m = build_model(tmp_path, default_config(tmp_path))
+    assert m.tree == [] and any("a.md" in e for e in m.load_errors)
