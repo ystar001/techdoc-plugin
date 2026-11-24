@@ -10,6 +10,7 @@ researcher subagent가 KeyRef/001_출처.md 형태로 저장한 YAML frontmatter
 from __future__ import annotations
 
 import argparse
+import contextlib
 import json
 import re
 import sys
@@ -20,6 +21,7 @@ import yaml
 from pydantic import ValidationError
 
 from techdoc_core.constants import get_ref_targets
+from techdoc_core.keyref_normalize import normalize_keyref
 from techdoc_core.schemas import KeyRefSchema, format_error
 
 
@@ -79,17 +81,28 @@ def build_reflist(keyref_dir: Path, document_type: str = "기술보고서") -> d
         raise ValueError(format_error("TECHDOC-E020", "No KeyRef files found"))
 
     refs: list[KeyRefSchema] = []
-    skipped = 0
+    skipped_files: list[str] = []
+    normalize_notes: list[str] = []
+    normalized = 0
     for mp in md_files:
         fm = extract_frontmatter(mp)
-        if fm is None:
-            skipped += 1
+        if not isinstance(fm, dict):
+            print(f"  [WARN] {mp.name}: frontmatter 없음·깨짐 — skip", file=sys.stderr)
+            skipped_files.append(mp.name)
             continue
+        # F61·F78: 버리기 전에 정규화(key_numbers dict·reliability 별칭/강등)
+        fm, notes = normalize_keyref(fm)
+        if notes:
+            normalized += 1
+            for n in notes:
+                normalize_notes.append(f"{mp.name}: {n}")
+                print(f"  [NORM] {mp.name}: {n}", file=sys.stderr)
         ref = validate_ref(fm, mp)
         if ref is None:
-            skipped += 1
+            skipped_files.append(mp.name)
             continue
         refs.append(ref)
+    skipped = len(skipped_files)
 
     if not refs:
         raise ValueError(format_error("TECHDOC-E022", "No valid KeyRef entries after validation"))
@@ -139,6 +152,9 @@ def build_reflist(keyref_dir: Path, document_type: str = "기술보고서") -> d
         "_meta": {
             "source_files": len(md_files),
             "skipped": skipped,
+            "skipped_files": skipped_files,
+            "normalized": normalized,
+            "normalize_notes": normalize_notes,
             "targets": {
                 "min_total": targets.get("min_total"),
                 "per_section": targets.get("per_section"),
@@ -151,10 +167,15 @@ def build_reflist(keyref_dir: Path, document_type: str = "기술보고서") -> d
 
 
 def main() -> int:
+    """종료 코드: 0 · 1 입력 없음 · 2 KeyRef가 빠짐(F78, --allow-skip이면 0)."""
+    with contextlib.suppress(Exception):
+        sys.stdout.reconfigure(encoding="utf-8")
     ap = argparse.ArgumentParser(description="Build reference_list.json from KeyRef/")
     ap.add_argument("--keyref", default="./output/KeyRef", help="KeyRef 디렉토리")
     ap.add_argument("--type", dest="document_type", default="기술보고서", help="문서 유형")
     ap.add_argument("-o", "--output", default="./output", help="출력 디렉토리")
+    ap.add_argument("--allow-skip", action="store_true",
+                    help="검증 실패로 빠진 KeyRef가 있어도 종료 코드 0 (기본은 2)")
     args = ap.parse_args()
 
     try:
@@ -171,6 +192,14 @@ def main() -> int:
     print(f"OK: {out_path}")
     print(f"  refs: {result['total_refs']} (usable={result['usable_refs']}, skipped={result['_meta']['skipped']})")
     print(f"  en_ratio: {result['en_ratio']}, intl={result['intl_org_count']}, academic={result['academic_count']}")
+    meta = result["_meta"]
+    if meta["normalized"]:
+        print(f"  normalized: {meta['normalized']}건 (내용은 stderr [NORM])")
+    if meta["skipped"] and not args.allow_skip:
+        print(f"  [FAIL] KeyRef {meta['skipped']}건이 참고문헌에서 빠짐: "
+              f"{', '.join(meta['skipped_files'][:10])} → 종료 코드 2 (--allow-skip로 무시 가능)",
+              file=sys.stderr)
+        return 2
     return 0
 
 
