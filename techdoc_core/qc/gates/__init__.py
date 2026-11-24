@@ -4,6 +4,7 @@ from techdoc_core.qc.gates import (  # noqa: F401
     citation,
     leak,
     notation,
+    repeat,
     sentences,
     structure,
 )

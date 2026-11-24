@@ -421,3 +421,10 @@
   core: [품질]
   level: 경고   # 범용 기본, 문서 종류·시리즈 설정이 막음으로 올림
   inputs: [tree, cards]
+- id: V88
+  title: 같은 틀 되풀이 — 한 장 안 같은 표제 머리 3회 초과
+  rules: []   # 신규 게이트(F88, 원칙 「중복성 배제」) — 시리즈 규칙 대장에 대응 규칙이 아직 없음
+  layer: 본체
+  core: [품질]
+  level: 경고
+  inputs: [tree]
