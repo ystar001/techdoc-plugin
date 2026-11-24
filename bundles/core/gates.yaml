@@ -42,8 +42,7 @@
   inputs: [cards]
 - id: V21
   title: 핵심요약 규약
-  rules: [Q6-004]
-  lower_rules: [Q6-049, W-027]
+  lower_rules: [Q6-004, Q6-049, W-027]
   layer: 문서종류
   core: [쉬운 말, 일관성, 품질]
   level: 막음
@@ -94,8 +93,8 @@
   inputs: [tree]
 - id: V57
   title: 절 끝 결론
-  rules: [Q1-002, Q5-050, Q6-050]
-  lower_rules: [Q6-024]
+  rules: [Q1-002, Q5-050]
+  lower_rules: [Q6-024, Q6-050]
   layer: 문서종류
   core: [쉬운 말, 품질]
   level: 막음

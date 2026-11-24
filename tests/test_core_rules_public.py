@@ -29,7 +29,7 @@ def rules():
 
 
 def test_public_core_rules_load_and_validate(rules):
-    assert len(rules) > 300
+    assert len(rules) > 200
     assert {r.layer for r in rules.values()} == {"본체"}
 
 
@@ -47,6 +47,26 @@ def test_public_core_rules_have_no_domain_words(rules):
     hits = [(r.id, m.group(0)) for r in rules.values()
             for m in DOMAIN_SAMPLE.finditer(f"{r.title}\n{r.rule}")]
     assert hits == []
+
+
+# 시리즈·책·발표자료 관례 낱말 — 공개 본체에 다시 들어오면 안 된다(Task 6 2차 재판정).
+# 「편·권」은 낱말 머리일 때만(편의·편집·권장·권한은 뺌). 「표지」 홀로는 「표식」 뜻이 있어 앞·뒷표지만
+SERIES_WORDS = re.compile(
+    r"(?<![가-힣])(?:편|권)(?=[\s·,.)」]|마다|별|을|이|은|에|과|도|만|째|$)"
+    r"|덱|포털|시리즈|총서|슬라이드|판권|간지|인쇄본|발표자료|발표자|앞표지|뒷표지|PowerPoint|PPTX")
+# 층 이름 자체를 설명하는 규칙만 허용
+SERIES_WORDS_ALLOWED = {"P-019", "P-020"}
+
+
+def test_public_core_rules_have_no_series_book_deck_words(rules):
+    hits = {r.id: sorted(set(SERIES_WORDS.findall(f"{r.title}\n{r.rule}")))
+            for r in rules.values() if r.id not in SERIES_WORDS_ALLOWED}
+    assert {k: v for k, v in hits.items() if v} == {}
+
+
+def test_series_word_pattern_skips_lookalikes():
+    assert not SERIES_WORDS.search("계통오차(편의)는 줄지 않는다. 편집·권장·권한·표지 없이")
+    assert SERIES_WORDS.search("다른 편 안내") and SERIES_WORDS.search("덱 한 장")
 
 
 def test_public_core_rules_have_no_private_fields():
