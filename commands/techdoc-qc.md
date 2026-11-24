@@ -16,7 +16,7 @@ python -m scripts.qc "$PROJECT_ROOT" --selftest          # 게이트 자기검�
 
 결과는 `<카드 폴더의 부모>/qc_report.json`(기본 `output/qc_report.json`)과 화면 표로 나온다.
 
-> **v1.11-a 입력 범위**: self-model 카드(`cards/*_card.json`)와 렌더 트리 md만 읽는다. 플러그인 기본 standard 모드 산출물(`writer_state.json` + `document_draft.json`)은 아직 읽지 못하며, 그때는 종료 코드 2와 함께 그 사실을 알려 준다(standard 모드 어댑터는 v1.11-c). 렌더 트리 위치가 기본값과 다르면 `paths.render_tree`로 알려 준다.
+> **입력 범위**: self-model 카드(`cards/*_card.json`)·렌더 트리 md·md 직접 저작 원고(`draft/`)를 읽는다. self-model 카드가 없으면 플러그인 기본 **standard 모드 산출물**(카드 폴더의 부모, 기본 `output/`)에서 카드를 읽는다 — `document_draft.json`, 없으면 `document_final.json`, 그것도 없으면 `sections/section_*.json`의 `tech_cards`·`project_cards`·`product_cards`(본문 blocks 7/7/6)와 절 `html_content`(카드 id = 절 id). 카드 id는 카드의 `id`(예: `1.1.1`)이고, 종류가 다른 카드와 번호가 겹치면 `1.1.1~project`처럼 종류를 붙인다. 카드의 `ref_ids`는 작성기가 선언한 목록이라 인용으로 세지 않는다(V8은 본문 블록의 `[REF-…]`만 본다). 산문 게이트는 렌더 트리를 보므로, standard 모드에서 카드만 있으면 산문 게이트 다수가 「대상 없음」으로 나온다(통과가 아니다). 렌더 트리 위치가 기본값과 다르면 `paths.render_tree`로 알려 준다.
 
 ## 판정과 집행 수준 — 서로 다른 두 축
 
@@ -41,7 +41,7 @@ python -m scripts.qc "$PROJECT_ROOT" --selftest          # 게이트 자기검�
 |---|---|
 | 0 | 막음 수준 실패 없음 |
 | 1 | 막음 수준 실패 있음 |
-| 2 | 입력 없음 — 카드도 렌더 트리도 못 찾음(경로 설정 확인), 또는 `--gates`로 남은 게이트가 없음 |
+| 2 | 입력 없음 — self-model 카드·standard 모드 카드(`document_draft.json` 등)·렌더 트리를 모두 못 찾음(경로 설정 확인), 또는 `--gates`로 남은 게이트가 없음 |
 | 3 | 게이트 자기검사 실패, 또는 실행 중 게이트 오류(그 게이트만 건너뛰고 나머지는 끝까지 돈다) |
 
 ## 프로젝트 설정 `techdoc.project.yaml` (선택)
@@ -170,4 +170,4 @@ extra:
 |---|---|---|---|
 | V88 | 같은 틀 되풀이 — 한 장 안 같은 표제 머리 3회 초과 | 본체 | 경고 |
 
-`check_quality`·`format_gate`·`verify_cards` 흡수와 standard 모드 산출물 읽기는 v1.11-c에서 들어온다.
+standard 모드 산출물 읽기는 v1.11-c에서 들어왔다. `check_quality`·`format_gate`·`verify_cards` 흡수도 v1.11-c에서 들어온다.

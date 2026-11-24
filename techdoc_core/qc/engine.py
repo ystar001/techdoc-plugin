@@ -74,12 +74,14 @@ def run_qc(model: DocModel, specs: dict[str, GateSpec], funcs: dict[str, Callabl
               "summary": summary, "results": []}
     if model.is_empty():
         report["input_empty"] = True
+        out_dir = cfg.paths.cards.parent
         report["warnings"].insert(0, "입력 없음 — 카드·렌더 트리를 찾지 못함: "
-                                     f"{cfg.paths.cards} · {cfg.paths.render_tree}")
-        if (cfg.paths.cards.parent / "writer_state.json").exists():
-            report["warnings"].insert(1, "이 폴더는 standard 모드 산출물(writer_state.json)이다 — "
-                                         "v1.11-a qc는 self-model 카드(cards/*_card.json)·렌더 트리만 "
-                                         "읽는다. standard 모드 어댑터는 v1.11-c에서 들어온다")
+                                     f"{cfg.paths.cards} · {out_dir / 'document_draft.json'} · "
+                                     f"{cfg.paths.render_tree}")
+        if (out_dir / "writer_state.json").exists():
+            report["warnings"].insert(1, "standard 모드 산출물(writer_state.json)이지만 카드가 "
+                                         "없다 — document_draft.json·document_final.json·"
+                                         "sections/section_*.json 중 카드가 든 파일이 없음")
         return report
 
     for gid in sorted(specs, key=_natural):

@@ -3,6 +3,8 @@
 경로는 설정(paths)에서 온다. 시리즈 규칙: `_`로 시작하는 폴더의 카드는 빼고,
 렌더 트리에서 이름에 「참고문헌」이 든 md는 reference_md로 따로, `_`로 시작하는 파일은 뺀다.
 참고문헌 md가 없으면 `render/*_full.md`의 「# 참고문헌」 절을 쓴다. draft는 따로 읽는다.
+self-model 카드(`cards/*_card.json`)가 없으면 standard 모드 산출물(document_draft.json 등)의
+tech/project/product 카드를 읽는다(v1.11-c).
 """
 from __future__ import annotations
 
@@ -28,6 +30,81 @@ def _load_cards(cards_dir: Path, errors: list[str]) -> dict[str, dict]:
             continue
         if isinstance(data, dict):
             cards[p.stem.removesuffix("_card")] = data
+    return cards
+
+
+# ── standard 모드 (v1.11-c) ──
+# 플러그인 기본 산출물: writer_state.json + document_draft.json(또는 document_final.json,
+# sections/section_*.json). 카드는 tech/project/product 목록, 본문은 blocks dict(7/7/6).
+_STD_CARD_LISTS = (("tech_cards", "tech"), ("project_cards", "project"),
+                   ("product_cards", "product"))
+# blocks dict가 없고 블록이 카드 최상위에 펼쳐진 꼴(옛 산출물)에서 모을 키 — models.py의 7/7/6
+_STD_BLOCK_KEYS = {
+    "tech": ("overview", "principle", "components", "performance", "pros_cons",
+             "differentiation", "references"),
+    "project": ("background", "organization", "methodology", "results", "implications",
+                "followup", "references"),
+    "product": ("background", "features", "specifications", "deployment", "market",
+                "references"),
+}
+# 작성기가 선언한 인용 대상 목록 — 본문 인용이 아니므로 V8의 「쓰인 REF」에 넣지 않는다
+_STD_DROP = ("ref_ids",)
+
+
+def _std_card(raw: dict, kind: str) -> dict:
+    card = {k: v for k, v in raw.items() if k not in _STD_DROP}
+    if not isinstance(card.get("blocks"), dict):
+        keys = _STD_BLOCK_KEYS[kind]
+        card["blocks"] = {k: card.pop(k) for k in keys if k in card}
+    return card
+
+
+def _std_doc_cards(doc: dict, cards: dict[str, dict], label: str, errors: list[str]) -> None:
+    """Document dict(또는 섹션 파일) 하나에서 카드·절 글을 cards에 더한다."""
+    for sec in doc.get("sections") or []:
+        # 절 개요·종합분석(html_content)도 렌더에 실리는 글 — 카드 수준 필드(section_overview)로
+        if not isinstance(sec, dict) or not str(sec.get("html_content", "")).strip():
+            continue
+        sid = str(sec.get("section_id") or sec.get("id") or f"section-{len(cards) + 1}")
+        cards.setdefault(sid, {"title": sec.get("title", ""),
+                               "section_overview": sec["html_content"]})
+    for list_key, kind in _STD_CARD_LISTS:
+        for i, raw in enumerate(doc.get(list_key) or [], 1):
+            if not isinstance(raw, dict):
+                errors.append(f"{label}: {list_key}[{i}]가 카드(dict)가 아님 — 건너뜀")
+                continue
+            cid = str(raw.get("id") or f"{kind}-{i}")
+            if cid in cards:  # 다른 종류 카드와 번호가 겹치면 종류를 붙여 둘 다 남긴다
+                cid = f"{cid}~{kind}"
+            cards[cid] = _std_card(raw, kind)
+
+
+def _read_json(p: Path, errors: list[str]) -> dict | None:
+    try:
+        data = json.loads(p.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, UnicodeDecodeError) as e:
+        errors.append(f"{p.name}: JSON을 읽지 못함 — {e}")
+        return None
+    return data if isinstance(data, dict) else None
+
+
+def _load_standard_cards(out_dir: Path, errors: list[str]) -> dict[str, dict]:
+    """document_draft.json → document_final.json → sections/section_*.json 중 처음 있는 것.
+
+    draft가 앞서는 까닭: review·rewrite가 draft를 고쳐 쓰고 final은 렌더 직전 승격 사본이다.
+    """
+    cards: dict[str, dict] = {}
+    for name in ("document_draft.json", "document_final.json"):
+        p = out_dir / name
+        if p.is_file():
+            doc = _read_json(p, errors)
+            if doc is not None:
+                _std_doc_cards(doc, cards, name, errors)
+                return cards
+    for p in sorted((out_dir / "sections").glob("section_*.json")):
+        doc = _read_json(p, errors)
+        if doc is not None:
+            _std_doc_cards(doc, cards, f"sections/{p.name}", errors)
     return cards
 
 
@@ -114,10 +191,13 @@ def _load_license(path: Path, errors: list[str]) -> str | None:
 def build_model(root: Path, cfg: ProjectConfig) -> DocModel:
     errors: list[str] = []
     tree, ref_md = _load_tree(cfg.paths.render_tree, errors)
+    cards = _load_cards(cfg.paths.cards, errors)
+    if not cards:  # self-model 카드가 없으면 standard 모드 산출물(카드 폴더의 부모)에서
+        cards = _load_standard_cards(cfg.paths.cards.parent, errors)
     return DocModel(
         root=Path(root),
         kind=cfg.kind,
-        cards=_load_cards(cfg.paths.cards, errors),
+        cards=cards,
         tree=tree,
         draft=_load_draft(cfg.paths.draft, errors),
         references=_load_references(cfg.paths.references, errors),

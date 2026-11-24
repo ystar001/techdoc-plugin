@@ -78,4 +78,6 @@ def test_cli_standard_layout_explains(tmp_path, capsys):
     (tmp_path / "output").mkdir()
     (tmp_path / "output" / "writer_state.json").write_text("{}", encoding="utf-8")
     assert qc_main([str(tmp_path)]) == 2
-    assert "standard 모드" in capsys.readouterr().out
+    out = capsys.readouterr().out
+    assert "standard 모드" in out and "document_draft.json" in out
+    assert "v1.11-c" not in out  # 「미지원」 안내는 v1.11-c에서 사라졌다
