@@ -92,6 +92,12 @@ python -m scripts.merge_research -i "$OUTPUT_DIR" -o "$OUTPUT_DIR/merged_researc
 
 종료 코드 3 = 경고(빈 라운드 파일·refs 꼴 불명·KeyRef에 있는데 병합에 빠진 REF). 결과 파일은 쓰여 있으니 `[WARN]` 줄을 보고 해당 그룹을 다시 확인한다. 조용히 건수가 줄어든 채 다음 단계로 넘어가지 않게 하려는 것이다.
 
+### 4-1. (선택) KeyRef 중복 정리
+```bash
+python -m scripts.dedupe_keyref "$OUTPUT_DIR/KeyRef" --report
+```
+병렬 researcher가 같은 출처를 다른 REF로 만든 **후보만** 표로 낸다. URL이 같아도 다른 문헌(기관 랜딩 페이지)일 수 있으므로 자동 병합하지 않는다. 확인한 쌍을 `pairs.json`(`[{"canonical": "REF-012", "alias": "REF-207"}]`)으로 적어 `--apply --pairs pairs.json --cards "$OUTPUT_DIR/cards"`로 병합한다. `key_numbers`는 합집합으로 이월되고 정본별 이월 건수가 출력된다. 범위 꼴 인용(`REF-205~208`)에 걸린 별칭은 `[MANUAL]`로 보고되니 손으로 고친다. 병합 뒤 `--check`로 고아 수치가 없는지 확인한다.
+
 ### 5. Reference List 생성
 ```bash
 python -m scripts.build_reflist \
