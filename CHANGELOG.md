@@ -8,7 +8,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed (웹북 디자인 대개편 — 테마 선택 + 표지 브랜딩)
 
-- **F52** `WebbookExporter` 프레젠테이션 레이어 풀 재작성(export 로직 무변경). **좌측 트리 사이드바**(Part 접기·현재 강조·모바일 토글) + **정식 표지**(로고·eyebrow·세리프 타이틀·통계 타일·"처음부터 읽기" CTA·넘버링 목차) + **전문 검색**(`search-index.js`+`webbook.js`) + 이전/다음 pager + sticky 상단바. 두 export(카드·md왕복) 공통 `_write_book` 통합.
+- **웹북 레이아웃 재작성** (F52 후속 — F52는 v1.9.0에서 닫힘) `WebbookExporter` 프레젠테이션 레이어 풀 재작성(export 로직 무변경). **좌측 트리 사이드바**(Part 접기·현재 강조·모바일 토글) + **정식 표지**(로고·eyebrow·세리프 타이틀·통계 타일·"처음부터 읽기" CTA·넘버링 목차) + **전문 검색**(`search-index.js`+`webbook.js`) + 이전/다음 pager + sticky 상단바. 두 export(카드·md왕복) 공통 `_write_book` 통합.
 - **`--theme` 디자인 테마 4종** (팔레트 :root만 교체, 구조 공유): **classic(기본 — 의성 CI 그린 리포트 재현)**·premium(다크 에디토리얼)·light(정갈 라이트)·slate(뉴트럴 다크).
 - **표지 브랜딩 config** `--logo`(로고 이미지)·`--subtitle`(영문 부제)·`--institutions`(기관 배지, 콤마구분) — 전 테마 공통, 하드코딩 없이 재사용.
 - 신규 자산 `webbook.js`·`search-index.js`. 실측 스크린샷 검증(4테마 + 브랜딩). 테스트 +7.
