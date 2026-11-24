@@ -80,7 +80,16 @@ def v8_ref_integrity(model: DocModel) -> GateOutput:
 # ── V13 ──
 
 _NON_PRIMARY = re.compile(r"wikipedia\.org|bionity\.com|namu\.wiki|\bwikipedia\b", re.I)
-_CITED_LIST = re.compile(r"인용 참고문헌 \((\d+)건\)\.\*\*(.{0,1200})", re.S)
+
+
+def _card_ref_list_re(model: DocModel) -> re.Pattern | None:
+    """카드 말미 「인용 목록」 꼴 — 문서(시리즈)의 작성 관례라 설정으로만 받는다.
+
+    정규식의 둘째 묶음이 목록 본문이어야 한다. 예(시리즈 관례):
+    `인용 참고문헌 \\((\\d+)건\\)\\.\\*\\*(.{0,1200})`
+    """
+    pat = _citation_cfg(model).get("card_ref_list_pattern")
+    return re.compile(pat, re.S) if pat else None
 
 
 @gate("V13", samples=[
@@ -113,9 +122,10 @@ def v13_ref_registry(model: DocModel) -> GateOutput:
         n = len(re.findall(re.escape(rid), cards_dump))
         out.append(Finding(rid, f"비원전 출처(백과사전 등): {rid} — 본문 인용 {n}회  "
                                 f"{str(r.get('title', ''))[:40]}"))
-    for cid, card in model.cards.items():
+    tail_re = _card_ref_list_re(model)
+    for cid, card in model.cards.items() if tail_re else ():
         whole = "\n".join(b for _, _, b in card_texts(card))
-        m = _CITED_LIST.search(whole)
+        m = tail_re.search(whole)
         if not m:
             continue
         listed = set(re.findall(r"REF-\d{3,4}", m.group(2)))

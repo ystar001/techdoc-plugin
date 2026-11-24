@@ -82,9 +82,19 @@ def test_v13_nonprimary_and_config_exemption():
     assert _n("V13", m2) == 0
 
 
-def test_v13_card_tail_list_mismatch():
+_TAIL_LIST_CFG = {"citation": {"card_ref_list_pattern": r"인용 참고문헌 \((\d+)건\)\.\*\*(.{0,1200})"}}
+
+
+def test_v13_card_tail_list_mismatch_when_configured():
     body = "근거[REF-001]. 또[REF-002].\n\n**인용 참고문헌 (2건).** REF-001 · REF-003"
-    assert _n("V13", sample_model(cards={"1.1": _card(body)}, references=[])) == 2
+    m = sample_model(cards={"1.1": _card(body)}, references=[], extra=_TAIL_LIST_CFG)
+    assert _n("V13", m) == 2
+
+
+def test_v13_card_tail_list_not_builtin():
+    # 카드 말미 인용 목록 문구는 시리즈 작성 관례 — 플러그인 기본으로 내장하지 않는다
+    body = "근거[REF-001]. 또[REF-002].\n\n**인용 참고문헌 (2건).** REF-001 · REF-003"
+    assert _n("V13", sample_model(cards={"1.1": _card(body)}, references=[])) == 0
 
 
 # ── V45 [REF-n](…) 가짜 링크 ──
