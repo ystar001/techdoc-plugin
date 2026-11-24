@@ -3,7 +3,7 @@
 > **AI 기술보고서 자동 생성 Claude Code 플러그인** — v1.3.0 (2026-05-13)
 > 레퍼런스 100% 기반 · 카드 중첩식 섹션 · 별첨 논문 수준 심층분석 · LLM Wiki 통합 · Claude Code 네이티브
 
-[![Version](https://img.shields.io/badge/version-1.10.1-green)]()
+[![Version](https://img.shields.io/badge/version-1.10.2-green)]()
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue)]()
 [![License](https://img.shields.io/badge/license-MIT-green)]()
 [![Plugin](https://img.shields.io/badge/claude--code-plugin-purple)]()
@@ -67,7 +67,7 @@ TechDoc은 **AI 기술보고서 자동 생성 + LLM Wiki 누적을 지원하는 
 - ⭐ **LLM Wiki 누적** (D 하이브리드: 옵시디언·MkDocs·표준 마크다운 호환)
 - ⭐ **자체 업데이트** (`/techdoc-update`로 새 버전 자동 갱신)
 
-하도록 설계된 **19종 슬래시 명령 + 3종 Subagent + 26종 프롬프트(+공통 6종) + 14+ Python 모듈**의 종합 도구입니다.
+하도록 설계된 **19종 슬래시 명령 + 3종 Subagent + 26종 프롬프트(+공통 6종) + 18+ Python 모듈**의 종합 도구입니다.
 
 ## 2. 대상 사용자
 
@@ -118,7 +118,7 @@ TechDoc은 다음 8개 원칙 위에 구현되었습니다.
 # https://github.com/ystar001/techdoc-plugin/releases/tag/v1.1.0
 
 # 2. 압축 해제
-unzip techdoc-plugin-v1.1.0.zip -d ~/.claude/plugins/techdoc-plugin
+unzip techdoc-plugin-v1.10.2.zip -d ~/.claude/plugins/techdoc-plugin
 
 # 3. Python 의존성
 cd ~/.claude/plugins/techdoc-plugin && pip install -e ".[pdf,docx]"
@@ -197,6 +197,7 @@ techdoc-plugin/                                  # 플러그인 루트 (v1.1.0)
 ├── scripts/                                     # Python 유틸
 │   ├── parse_toc.py       select_design.py
 │   ├── build_reflist.py   merge_research.py
+│   ├── dedupe_keyref.py   verify_cards.py            # v1.10.2 (F63·F72·F101)
 │   ├── migrate.py         generate_chart.py
 │   ├── check_quality.py   format_gate.py             # 서식 게이트(self_model)
 │   ├── render.py          monitor.py     doctor.py
@@ -217,6 +218,7 @@ techdoc-plugin/                                  # 플러그인 루트 (v1.1.0)
 ├── techdoc_core/                                # 데이터 모델·렌더러
 │   ├── __init__.py  constants.py  models.py  schemas.py
 │   ├── routing_config.py  formal_blocks.py  localize.py   # F21·F32·F29
+│   ├── card_id.py  keyref_normalize.py                    # v1.10.2 (F101·F78)
 │   ├── renderers/                               # 출력 렌더러
 │   │   ├── html_renderer.py  card_renderer.py
 │   │   ├── pdf_export.py     docx_export.py     md_export.py
@@ -305,6 +307,7 @@ Python 구현은 4개 계층으로 구성됩니다.
 ├─────────────────────────────────────────────────────────┤
 │ Layer 3  품질·진단·마이그레이션                          │
 │   check_quality.py (Phase A 23지표)                      │
+│   verify_cards.py (카드 분량·종결부, v1.10.2)            │
 │   doctor.py (환경 진단 15항목)                           │
 │   migrate.py (schema_version 변환)                       │
 │   monitor.py (writer_state 실시간 폴링)                  │
@@ -312,6 +315,7 @@ Python 구현은 4개 계층으로 구성됩니다.
 │ Layer 2  데이터 가공                                     │
 │   merge_research.py (3 researcher 출력 dedup·병합)       │
 │   build_reflist.py (KeyRef → reference_list 분류)        │
+│   dedupe_keyref.py (KeyRef 중복 후보·병합, v1.10.2)      │
 │   generate_chart.py (차트 5종)                           │
 │   wiki/builders/* (vault 페이지 빌더 7종, v1.1.0)        │
 │   wiki/conflict.py (충돌 감지, v1.1.0)                   │
@@ -319,6 +323,7 @@ Python 구현은 4개 계층으로 구성됩니다.
 │ Layer 1  기반                                            │
 │   parse_toc.py · select_design.py                        │
 │   techdoc_core (models · schemas · constants · renderers)│
+│   techdoc_core.card_id · keyref_normalize (v1.10.2)      │
 │   wiki/markers.py · frontmatter.py · filename.py · assets.py · lint.py · mkdocs_setup.py (v1.1.0) │
 └─────────────────────────────────────────────────────────┘
 ```
@@ -999,7 +1004,7 @@ techdoc_auto: true
 ```bash
 # 1. Release 다운로드
 # https://github.com/ystar001/techdoc-plugin/releases/tag/v1.1.0
-unzip techdoc-plugin-v1.1.0.zip -d ~/.claude/plugins/techdoc-plugin
+unzip techdoc-plugin-v1.10.2.zip -d ~/.claude/plugins/techdoc-plugin
 
 # 2. Python 의존성
 cd ~/.claude/plugins/techdoc-plugin && pip install -e ".[pdf,docx]"
@@ -1032,7 +1037,7 @@ claude --plugin-dir .
 
 ```bash
 # 래퍼 폴더 포함 ZIP — 아무 곳에 해제해도 techdoc-plugin/ 폴더 자동 생성
-unzip techdoc-plugin-v1.1.0-wrapped.zip -d ~/.claude/plugins/
+unzip techdoc-plugin-v1.10.2-wrapped.zip -d ~/.claude/plugins/
 ```
 
 ### 검증
@@ -1078,6 +1083,7 @@ unzip techdoc-plugin-v1.1.0-wrapped.zip -d ~/.claude/plugins/
 
 | 버전 | 주요 변경 | 파일 수 | 코드 |
 |---|---|---|---|
+| **v1.10.2** (2026-11-24) | 묶음 0 버그 수정·도구 승격: `verify_cards` 플러그인 승격 + 카드 ID 파서 일원화(`techdoc_core/card_id`, `2.A.7`·`G-`·`D-N`·`C3` 인식, F101·F58·F64·F69·F70·F73·F79·F81) · KeyRef 정규화(`techdoc_core/keyref_normalize` — key_numbers dict·reliability·category 별칭, 모르는 값은 강등해 보존, F55·F61·F78) · `merge_research` 라운드 꼴 정규화·KeyRef 대조·경고 종료 코드 3(F54·F57·F60·F77) · `build_reflist` skip 시 종료 코드 2(`--allow-skip`) · 신규 `dedupe_keyref`(중복 후보·필드 단위 병합·이월 보고, F63·F72) · TOC HTML 주석 무시(F56·F59) · 차트 SVG 바이트 결정성(F67) | +4 모듈 | 493 tests |
 | **v1.10.1** (2026-07-13) | 웹북 디자인 대개편: **테마 4종**(`--theme` classic 기본=의성 CI 그린 리포트·premium·light·slate) + 좌측 트리 사이드바·정식 표지(로고·통계 타일·CTA)·전문 검색·pager + **표지 브랜딩**(`--logo`·`--subtitle`·`--institutions` 전 테마 공통). export 로직 무변경 (F52). SCHEMA 유지. | (변동 없음) | 약 23.5k줄 |
 | **v1.10.0** (2026-07-13) | 정형 카드·한글화·소급 서식: `/techdoc-enrich`(서식 소급 개선, 내용 보존, F25), `formal_blocks`(함수명세·상태벡터·파라미터표 구조화+CSV/JSON 추출, F32), `localize`(용어 한글화 토큰맵 `--term-map`, F29). 명령 19종·프롬프트 26종 (findings F25·F32·F29). SCHEMA 유지. | (변동 없음) | 약 23k줄 |
 | **v1.9.1** (2026-07-13) | 웹북 폴리시: 판본(`--variant general`, formal_section 제외)+버전·판본 배지(F43·F36), **md 왕복 편집**(`--webbook --from-md`, `--tree` md 편집→웹북 재렌더, F51) (findings F43·F36·F51). SCHEMA 유지. | (변동 없음) | 약 22.6k줄 |
