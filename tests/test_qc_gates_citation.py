@@ -130,6 +130,39 @@ def test_v68_team_author_is_caught():
     assert _n("V68", sample_model(reference_md={"참고문헌.md": md})) == 1
 
 
+def test_v68_team_author_allow_list():
+    """정당한 단체 지은이(R Core Team 등)는 extra.citation.group_authors_ok로 허용(E18 13)."""
+    md = ("## 영문\n- AI Research Team. (2023). Report. [REF-002]\n"
+          "- R Core Team. (2024). R: A language. [REF-003]\n")
+    assert _n("V68", sample_model(reference_md={"참고문헌.md": md})) == 2
+    cfg = {"citation": {"group_authors_ok": ["R Core Team"]}}
+    m = sample_model(reference_md={"참고문헌.md": md}, extra=cfg)
+    msgs = [f.msg for f in REGISTRY["V68"](m).findings]
+    assert len(msgs) == 1 and "AI Research Team" in msgs[0]
+    # 대소문자·끝 마침표 무시
+    cfg2 = {"citation": {"group_authors_ok": ["r core team."]}}
+    assert _n("V68", sample_model(reference_md={"참고문헌.md": md}, extra=cfg2)) == 1
+
+
+def test_v68_core_level_is_warning():
+    """V68 본체 수준은 경고 — 막음은 시리즈·문서 종류 층이 올린다(E18 13)."""
+    from techdoc_core.bundles.loader import core_bundle_dir, load_gate_specs
+    specs = load_gate_specs([("core", core_bundle_dir())])
+    assert specs["V68"].level == "경고"
+
+
+def test_v68_group_authors_ok_shape_checked(tmp_path):
+    """group_authors_ok는 문자열 목록만 — 형식이 틀리면 설정 읽기에서 거절."""
+    import pytest
+
+    from techdoc_core.qc.config import load_config
+    (tmp_path / "techdoc.project.yaml").write_text(
+        "schema: techdoc-project/1\nextra:\n  citation:\n    group_authors_ok: R Core Team\n",
+        encoding="utf-8")
+    with pytest.raises(ValueError, match="group_authors_ok"):
+        load_config(tmp_path)
+
+
 def test_v68_internal_file_builtin_and_from_config():
     md = "## 영문\n- Smith, J. (2020). See MASTERPLAN.md. [REF-001]\n"
     assert _n("V68", sample_model(reference_md={"참고문헌.md": md})) == 0

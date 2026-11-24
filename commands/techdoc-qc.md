@@ -65,12 +65,13 @@ gates:
   exempt:
     "1.1|sec2": {gates: [V13], why: "개정 이력 표가 옛 이름을 인용"}   # 그 카드의 그 섹션만
     "1.4": {gates: [V27], why: "법령 원문 인용 카드"}                    # 그 카드의 지적 전부
-  level: {V68: 경고}             # 집행 수준 덮어쓰기
+  level: {V68: 막음}             # 집행 수준 덮어쓰기 (V68 본체 기본은 경고)
 expects: {V57: ">=1"}            # 이 문서에 있어야 할 대상(없으면 fail) — 보통 문서 종류 묶음이 싣는다
 extra:
   citation:
     internal_files: [PLAN.md]    # 참고문헌에 나오면 안 되는 내부 작업 파일 이름
     nonprimary_ok: {REF-012: "1차 문헌이 없는 사실"}   # 백과사전 출처 면제(사유 필수)
+    group_authors_ok: [R Core Team]   # 정당한 단체 지은이 — V68 「… Team」 자리표시로 안 잡음
 ```
 
 설정이 부르는 게이트 id가 없는 id면 경고가 나온다(조용히 무시하지 않음). `domain`·`series` 경로가 없거나 `kind`가 모르는 이름이어도 경고한다. `gates.exempt`의 카드 id는 **따옴표로 감싼다**(`"1.10"` — YAML은 따옴표 없는 1.10을 숫자 1.1로 읽는다, 그러면 오류로 멈춘다).
@@ -81,7 +82,8 @@ extra:
 - 표(dict) — `extra`·`gates.level`·`expects` — 는 키마다 재귀로 겹친다. 이 파일이 적은 키만 바뀐다.
 - 값·목록 — `gates.off`, `extra.*`의 목록 — 은 **통째로 교체**한다(이어 붙이지 않음). 예: 이 파일에 `gates.off`를 적으면 문서 종류 묶음의 `off`는 버려진다.
 - 문서 종류 묶음 꼴: `schema: techdoc-kind/1`, `gates: {level, off}`, `extra`, `expects`. 플러그인은 `tech_report`(분량 하한 800자 경고·V88 카드 블록 표제 `extra.repeat.block_heads`)와 `methodology`(분량 하한 경고)를 싣는다. 묶음이 없는 종류(`policy_report` 등)는 본체 기본으로 돌고 경고 한 줄을 남긴다.
-- 분량 하한은 경고뿐이다(E18). 시리즈 고유 분량(예: 절 1만 자대)은 시리즈 설정 `extra.check_quality.size_thresholds`·`extra.verify_cards.thresholds`에 둔다.
+- 분량 하한은 경고뿐이다(E18). 시리즈 고유 분량(예: 절 1만 자대)은 시리즈 설정 `extra.check_quality.size_thresholds`·`extra.verify_cards.thresholds`에 둔다. 아무 층도 표를 싣지 않으면(묶음 없는 종류) qc는 범용 바닥 800자(카드 규칙의 가장 낮은 하한)로 본다 — 기존 CLI(`check_quality`·`verify_cards`)의 기본표는 그대로다.
+- 상한은 없다. 지시문의 상한은 안내값이고, 넘치면 별첨으로 옮긴다(내용 보존, 줄이거나 압축하지 않음).
 
 **`extra.*` 형식 검사**: 게이트가 읽는 키는 형을 본다 — 목록 자리에 문자열(`allow_heads: "결론"`), 정수 자리에 글자(`max_repeats: "abc"`), `max_repeats: 0`(1 이상이어야 함)은 키 이름을 담은 오류로 멈춘다.
 
@@ -97,7 +99,7 @@ extra:
 | V8 | 인용 REF가 참고문헌 목록에 있나·고아 REF | 본체 | 막음 |
 | V13 | 참고문헌 중복 등록·백과사전·말미 목록 | 본체 | 막음 |
 | V45 | [REF-n](…) 가짜 링크 | 본체 | 막음 |
-| V68 | 참고문헌 내부 파일·지은이 빈칸·정렬 | 문서종류 | 막음 |
+| V68 | 참고문헌 내부 파일·지은이 빈칸·정렬 (단체 지은이 허용 `extra.citation.group_authors_ok`) | 문서종류 | 경고 |
 
 ### 구조·상호참조 (12)
 

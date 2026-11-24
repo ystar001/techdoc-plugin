@@ -68,24 +68,53 @@ def test_theme_selection_changes_palette(tmp_path):
     assert "#2f5fe0" in css_l  # light 네이비
 
 
-def test_theme_default_is_classic(tmp_path):
-    """기본 테마 = classic(의성 그린 리포트)."""
+def test_theme_default_is_neutral_light(tmp_path):
+    """기본 테마 = light(중립) — 한 기관의 색이 모든 문서의 기본이 되지 않게(E18 6)."""
     cards = tmp_path / "cards"
     cards.mkdir()
     _write_card(cards, "1.1", "제목", "본문.")
-    stats = WebbookExporter().export(cards, tmp_path / "d")
-    assert stats["theme"] == "classic"
-    css = (tmp_path / "d" / "assets" / "webbook.css").read_text(encoding="utf-8")
-    assert "#147646" in css and "#009e4d" in css  # 그린
+    out = tmp_path / "d"
+    stats = WebbookExporter().export(cards, out)
+    assert stats["theme"] == "light"
+    css = (out / "assets" / "webbook.css").read_text(encoding="utf-8")
+    assert "#2f5fe0" in css and "#147646" not in css
+    assert (out / "index.html").is_file()  # 기본값으로도 렌더된다
+    assert "본문." in "".join(p.read_text(encoding="utf-8") for p in out.rglob("*.html"))
+
+
+def test_theme_green_and_classic_alias(tmp_path):
+    """그린 테마는 green — 옛 이름 classic은 별칭으로 받아 green으로(하위 호환)."""
+    cards = tmp_path / "cards"
+    cards.mkdir()
+    _write_card(cards, "1.1", "제목", "본문.")
+    g = WebbookExporter().export(cards, tmp_path / "g", theme="green")
+    c = WebbookExporter().export(cards, tmp_path / "c", theme="classic")
+    assert g["theme"] == "green" and c["theme"] == "green"
+    css_g = (tmp_path / "g" / "assets" / "webbook.css").read_text(encoding="utf-8")
+    css_c = (tmp_path / "c" / "assets" / "webbook.css").read_text(encoding="utf-8")
+    assert css_g == css_c and "#147646" in css_g and "#009e4d" in css_g
 
 
 def test_theme_invalid_falls_back_to_default(tmp_path):
     cards = tmp_path / "cards"
     cards.mkdir()
     _write_card(cards, "1.1", "제목", "본문.")
-    WebbookExporter().export(cards, tmp_path / "o", theme="없는테마")
+    stats = WebbookExporter().export(cards, tmp_path / "o", theme="없는테마")
     css = (tmp_path / "o" / "assets" / "webbook.css").read_text(encoding="utf-8")
-    assert "#147646" in css  # classic 폴백
+    assert stats["theme"] == "light" and "#2f5fe0" in css  # light 폴백
+
+
+def test_render_cli_theme_choices_accept_classic_alias():
+    """CLI --theme: 기본 light, green 선택지, classic은 별칭으로 계속 받는다."""
+    import os
+    import subprocess
+    from pathlib import Path
+    env = {**os.environ, "PYTHONIOENCODING": "utf-8"}
+    r = subprocess.run([sys.executable, "-m", "scripts.render", "--help"],
+                       capture_output=True, text=True, encoding="utf-8", env=env,
+                       cwd=Path(__file__).resolve().parent.parent)
+    assert r.returncode == 0
+    assert "green" in r.stdout and "classic" in r.stdout and "light" in r.stdout
 
 
 def test_cover_branding_institutions_subtitle(tmp_path):
@@ -95,10 +124,10 @@ def test_cover_branding_institutions_subtitle(tmp_path):
     _write_card(cards, "1.1", "제목", "본문.")
     out = tmp_path / "wb"
     WebbookExporter().export(cards, out, subtitle="How to Monitor Crop Growth",
-                             institutions=["의성군", "의성농업기술센터", "의성스마트농업사업단"])
+                             institutions=["가나시청", "가나기술센터", "가나산업사업단"])
     idx = (out / "index.html").read_text(encoding="utf-8")
     assert "How to Monitor Crop Growth" in idx
-    assert "의성군" in idx and "의성농업기술센터" in idx and "의성스마트농업사업단" in idx
+    assert "가나시청" in idx and "가나기술센터" in idx and "가나산업사업단" in idx
 
 
 def test_cover_logo_copied_and_referenced(tmp_path):

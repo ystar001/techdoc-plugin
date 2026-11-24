@@ -22,6 +22,19 @@ def _model(root: Path):
     return build_model(root, default_config(root))
 
 
+def _cli_table_model(root: Path):
+    """CLI 기본표(시리즈 값 14,000 등)를 extra로 실은 모델 — 같은 임계에서 측정 동치를 본다.
+
+    qc 기본은 범용 바닥(800자, v1.11-c Task 5)이라 기본끼리는 분량 지적 수가 일부러 다르다.
+    """
+    from techdoc_core.qc.legacy.card_checks import THRESHOLDS
+    from techdoc_core.qc.legacy.doc_metrics import SIZE_THRESHOLDS
+    cfg = default_config(root)
+    cfg.extra = {"check_quality": {"size_thresholds": dict(SIZE_THRESHOLDS)},
+                 "verify_cards": {"thresholds": dict(THRESHOLDS)}}
+    return build_model(root, cfg), cfg
+
+
 def _count(gid: str, model) -> int:
     return len(REGISTRY[gid](model).findings)
 
@@ -30,7 +43,7 @@ def test_self_model_gates_match_check_quality_and_verify_cards(tmp_path):
     from scripts import check_quality, verify_cards
 
     out = self_model_fixture(tmp_path)
-    model = _model(tmp_path)
+    model, _cfg = _cli_table_model(tmp_path)
     cli = check_quality.run_quality_check(out)
     cards = [c for c in cli["cards"] if not c["path"].endswith("broken_card.json")]
     fmt = Counter(i["metric"] for c in cards for i in c["issues"] if i.get("metric"))
@@ -84,10 +97,10 @@ def test_size_lower_bounds_are_warnings_in_core():
 
 def test_qc_run_counts_size_shortfall_as_warning(tmp_path):
     self_model_fixture(tmp_path)
-    model = _model(tmp_path)
+    model, cfg = _cli_table_model(tmp_path)  # 시리즈 층이 큰 하한을 실어도 경고일 뿐
     specs = load_gate_specs([("본체", core_bundle_dir())])
     sub = {g: specs[g] for g in ("PLG-CQ-self_model_length", "VC-C", "VC-A", "VC-E")}
-    rep = run_qc(model, sub, dict(REGISTRY), default_config(tmp_path))
+    rep = run_qc(model, sub, dict(REGISTRY), cfg)
     rows = {r["gate"]: r for r in rep["results"]}
     assert rows["PLG-CQ-self_model_length"]["verdict"] == "fail"
     assert rep["summary"]["blocking_total"] == 2  # VC-A 깨진 카드 1 + VC-E citation_count=0 1

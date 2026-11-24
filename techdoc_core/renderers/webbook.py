@@ -6,7 +6,8 @@ routing_config(F21)로 Part 버킷팅, split 카드는 parent_id로 병합(F13),
 (수식 F38·mermaid F48 보호 포함).
 
 디자인: 테마 선택식(`--theme`) — 구조(사이드바·표지·지면 시트·검색·pager)는 공유,
-색 팔레트만 테마로 교체. premium(다크 에디토리얼)·light(정갈 라이트)·slate(다크) 3종.
+색 팔레트만 테마로 교체. light(정갈 라이트, 기본)·green(그린 리포트, 옛 classic)·
+premium(다크 에디토리얼)·slate(다크) 4종.
 
 출력: output_dir/
   ├── index.html                (표지 + 전체 목차)
@@ -42,8 +43,8 @@ from techdoc_core.routing_config import DEFAULT_ROUTING
 _RADIAL_HERO = ("radial-gradient(1200px 500px at 78% -10%,var(--accent-soft),transparent 60%),"
                 "radial-gradient(900px 500px at 0% 110%,rgba(199,154,61,.12),transparent 55%),var(--ink)")
 _THEMES: dict[str, str] = {
-    # 기존 웹북 결과물 디자인 — 의성 스마트농업 CI 그린 리포트 (기본)
-    "classic": """:root{
+    # 그린 리포트 (짙은 녹색 + 밝은 녹색 + 골드) — 옛 이름 classic(별칭으로 받음)
+    "green": """:root{
   --ink:#0e3a26;--ink-2:#164a32;--ink-line:#1e5238;--ink-fg:#d7e8dd;--ink-mut:#9fc0ae;
   --page:#fafcfc;--sheet:#fff;--soft:#f0f6f3;--line:#dde7e6;
   --fg:#3c3c3b;--mut:#6e6e6c;--heading:#0e3a26;
@@ -77,7 +78,16 @@ _THEMES: dict[str, str] = {
   --pre-bg:#0c0e12;--pre-fg:#dfe6f0;--code-fg:#e0956f;--hero-bg:%RADIAL%;}""",
 }
 _THEMES = {k: v.replace("%RADIAL%", _RADIAL_HERO) for k, v in _THEMES.items()}
-_DEFAULT_THEME = "classic"
+_DEFAULT_THEME = "light"  # 중립 기본 — 한 기관의 색을 모든 문서의 기본으로 두지 않음(E18 6)
+# 옛 이름 → 지금 이름 (하위 호환). classic은 v1.10.1~v1.10.2의 기본 그린 테마였다.
+THEME_ALIASES: dict[str, str] = {"classic": "green"}
+THEME_NAMES: tuple[str, ...] = tuple(_THEMES)
+
+
+def resolve_theme(theme: str) -> str:
+    """테마 이름 → 실제 테마(별칭 풀기, 모르는 이름은 기본 테마)."""
+    name = THEME_ALIASES.get(theme, theme)
+    return name if name in _THEMES else _DEFAULT_THEME
 
 # 구조·컴포넌트 CSS (색은 전부 var()) — 모든 테마 공유
 _STRUCT = """\
@@ -241,7 +251,7 @@ pre.mermaid{background:var(--soft);color:inherit;text-align:center;padding:1.6re
 
 
 def _css(theme: str) -> str:
-    return _THEMES.get(theme, _THEMES[_DEFAULT_THEME]) + "\n" + _STRUCT
+    return _THEMES[resolve_theme(theme)] + "\n" + _STRUCT
 
 
 _JS = """\
@@ -431,7 +441,7 @@ class WebbookExporter:
             _cover_html(title, nav, version, edition, logo_src, subtitle, institutions),
             encoding="utf-8",
         )
-        return {"parts": len(nav), "pages": len(records), "theme": theme}
+        return {"parts": len(nav), "pages": len(records), "theme": resolve_theme(theme)}
 
     def export(self, cards_dir: Path | str, output_dir: Path | str,
                title: str = "기술보고서", variant: str = "full",
@@ -442,7 +452,7 @@ class WebbookExporter:
 
         variant: "full"(전체) | "general"(일반용 — formal_section 카드 제외, F36·F43).
         version·edition: 표지 버전·판본 배지 (F43).
-        theme: classic(기본)·premium·light·slate.
+        theme: light(기본, 중립)·green·premium·slate. 옛 이름 classic은 green 별칭.
         logo·subtitle·institutions: 표지 브랜딩(로고 이미지·영문 부제·기관 배지) — 전 테마 공통.
         """
         cards_dir = Path(cards_dir)

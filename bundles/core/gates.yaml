@@ -28,7 +28,7 @@
   rules: [Q1-036, Q1-037, Q8-014, Q8-015]
   layer: 문서종류
   core: [품질]
-  level: 막음
+  level: 경고  # E18 13 — 「… Team」 단체 지은이 오탐 소지, 막음은 시리즈·문서 종류 층이
   inputs: [reference_md, references]
 # ── v1.11-b Task 2: 구조·상호참조 12종 (시리즈 check_v2·prose_gates 이식) ──
 - id: V2

@@ -37,7 +37,7 @@ _INT_MAP = "{이름: 0 이상 정수} 표"
 _DICT = "표(dict)"
 EXTRA_SHAPES: dict[str, dict[str, str]] = {
     "citation": {"internal_files": _STR_LIST, "nonprimary_ok": _DICT,
-                 "card_ref_list_pattern": _STR},
+                 "card_ref_list_pattern": _STR, "group_authors_ok": _STR_LIST},
     "code_namespace": {"pattern": _STR, "allow": _STR_LIST},
     "leak": {"file_patterns": _STR_LIST, "allow": _STR_LIST},
     "check_quality": {"size_thresholds": _INT_MAP},

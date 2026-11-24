@@ -2,7 +2,9 @@
 
 원본 로직을 그대로 옮기고 입력만 DocModel로 바꿨다. 시리즈 고유 값(내부 작업 파일 이름,
 백과사전 면제 목록)은 `extra.citation`에서 받는다. 의도된 차이는 하나 — V68이 영문 단체
-지은이 「… Team」을 자리표시로 잡는다(시리즈 다음판 3).
+지은이 「… Team」을 자리표시로 잡는다(시리즈 다음판 3). 「R Core Team」처럼 정당한 단체 지은이는
+`extra.citation.group_authors_ok`로 허용하고, V68 본체 수준은 경고다 — 막음은 시리즈·문서 종류
+층이 올린다(E18 13).
 """
 from __future__ import annotations
 
@@ -187,8 +189,16 @@ def _internal_re(model: DocModel) -> re.Pattern:
     return re.compile("(?:" + "|".join([_REF_INTERNAL_BUILTIN, *names]) + ")")
 
 
-def ref_list_issues(text: str, internal: re.Pattern) -> list[str]:
-    """참고문헌 md 한 벌의 문제 — 내부 파일·지은이 자리표시·국문/영문 묶음·정렬."""
+def _author_key(s: str) -> str:
+    return s.strip().rstrip(". ").casefold()
+
+
+def ref_list_issues(text: str, internal: re.Pattern,
+                    group_ok: frozenset[str] = frozenset()) -> list[str]:
+    """참고문헌 md 한 벌의 문제 — 내부 파일·지은이 자리표시·국문/영문 묶음·정렬.
+
+    group_ok: 정당한 단체 지은이(「R Core Team」 등, `_author_key`로 맞춤) — 자리표시로 안 잡는다.
+    """
     out: list[str] = []
     sec, prev = "", None
     for ln in text.split("\n"):
@@ -203,7 +213,7 @@ def ref_list_issues(text: str, internal: re.Pattern) -> list[str]:
         lead = re.split(r"\s\(\d{4}[a-z]?\)|\s\(n\.d\.\)", e, maxsplit=1)[0].strip()
         if internal.search(e):
             out.append(f"내부 작업 파일 — {rid} {e[:40]}")
-        if _REF_PLACEHOLDER.search(lead):
+        if _REF_PLACEHOLDER.search(lead) and _author_key(lead) not in group_ok:
             out.append(f"지은이 자리표시 — {rid} {lead[:40]}")
         first = next((c for c in lead if c.isalpha()), "")
         if ("국문" in sec and not re.match(r"[가-힣]", first)) or \
@@ -229,9 +239,11 @@ def _entries(tf: TreeFile) -> int:
 def v68_reference_list(model: DocModel) -> GateOutput:
     """참고문헌 목록: 독자가 볼 수 없는 내부 파일 · 지은이 자리표시·빈칸 · 묶음과 정렬."""
     internal = _internal_re(model)
+    group_ok = frozenset(_author_key(str(a))
+                         for a in _citation_cfg(model).get("group_authors_ok") or [])
     out: list[Finding] = []
     for tf in model.reference_md:
-        out += [Finding(tf.rel, msg) for msg in ref_list_issues(tf.text, internal)]
+        out += [Finding(tf.rel, msg) for msg in ref_list_issues(tf.text, internal, group_ok)]
     for r in model.references:
         authors = [a for a in (r.get("authors") or []) if str(a).strip()]
         authors = [a for a in authors if not _AUTHOR_PLACEHOLDER.match(str(a).strip())]

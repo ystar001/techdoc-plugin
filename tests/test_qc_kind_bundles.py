@@ -184,7 +184,27 @@ def test_tech_report_floor_applies_in_qc(tmp_path):
     cfg = load_config(tmp_path)
     m = sample_model(cards=cards, extra=cfg.extra)
     assert _msgs("PLG-CQ-self_model_length", m) == []
-    assert _msgs("PLG-CQ-self_model_length", sample_model(cards=cards))
+    series = {"check_quality": {"size_thresholds": {"S": 14000}}}  # 시리즈 층이 싣는 값
+    assert _msgs("PLG-CQ-self_model_length", sample_model(cards=cards, extra=series))
+
+
+@pytest.mark.parametrize("gid", ["PLG-CQ-self_model_length", "VC-C"])
+def test_kind_without_bundle_uses_generic_floor_not_series_table(tmp_path, gid):
+    """묶음 없는 kind(policy_report)의 qc 분량 하한은 범용 카드 바닥(800자) — 시리즈 14,000 등이 아님."""
+    cfg = load_config(_write(tmp_path, "kind: policy_report\n"))
+    assert "check_quality" not in cfg.extra and "verify_cards" not in cfg.extra
+    ok = {"1.1": {"card_id": "1.1", "sections": {"s1": {"title": "정의", "body": "가" * 1000 + "다."}}}}
+    assert _msgs(gid, sample_model(cards=ok, extra=cfg.extra)) == []
+    short = {"1.1": {"card_id": "1.1", "sections": {"s1": {"title": "정의", "body": "가" * 500 + "다."}}}}
+    msgs = _msgs(gid, sample_model(cards=short, extra=cfg.extra))
+    assert msgs and all(str(CARD_FLOOR) in x and "14000" not in x for x in msgs)
+
+
+def test_cli_size_tables_keep_series_contract():
+    """CLI 래퍼(check_quality·verify_cards)의 기본표는 옮기기 전 값 그대로(계약)."""
+    from scripts.check_quality import SIZE_THRESHOLDS
+    from scripts.verify_cards import THRESHOLDS
+    assert SIZE_THRESHOLDS["S"] == 14000 and THRESHOLDS["S"] == 14000
 
 
 # ── 5. extra 형식 검증 ──

@@ -46,7 +46,7 @@ APA 7th 저자 양식. 성 뒤 콤마, 이니셜 마침표.
 
 ```
 - Park, J., & Kim, S. (2024). Smart agriculture in Korea: A national strategy review. Agricultural Systems, 219, 104012. https://doi.org/10.1016/j.agsy.2024.104012  [REF-004]
-- 농촌진흥청 (2024). 노지스마트농업 시범사업 1차년도 성과 분석. https://www.rda.go.kr/...  [REF-012]
+- OO연구원 (2024). 스마트팩토리 시범사업 1차년도 성과 분석. https://www.example.go.kr/...  [REF-012]
 ```
 
 - **DOI 우선**(`https://doi.org/...`). 없으면 publisher / preprint URL. 한국 자료는 RDA·KMA·NTIS 등 도메인 URL.
@@ -56,7 +56,7 @@ APA 7th 저자 양식. 성 뒤 콤마, 이니셜 마침표.
 
 - 기관 보고서는 저자 = 기관명:
   - `USDA. (2024). National agricultural statistics service crop production. https://...  [REF-018]`
-  - `농촌진흥청 (2024). 노지스마트농업 표준모델 구축 보고서. https://...  [REF-012]`
+  - `OO연구원 (2024). 스마트팩토리 표준모델 구축 보고서. https://...  [REF-012]`
 - 웹자료는 가능하면 발행 기관·연도를 채우고, 접근일은 끊김 우려 시에만 부기.
 
 ## 5. venue 정규화 (출처 표기 통일)

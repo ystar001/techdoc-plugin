@@ -13,12 +13,15 @@ WARNING → 경고. 단 **절대 분량 하한**(self-model 사이즈 임계·VC
   없다). 측정만 하는 지표(pattern_counts·render_nesting·sections_without_analysis_block)는 게이트가 아니다.
 
 설정: `extra.check_quality.size_thresholds`(self-model 사이즈 임계 덮어쓰기 — 예 `{"S": 3000}`),
-`extra.verify_cards.thresholds`(VC 분량 임계 덮어쓰기). 캡션 번호 꼴은 `numbering.section`(F82).
+`extra.verify_cards.thresholds`(VC 분량 임계 덮어쓰기). 덮어쓰기가 없으면 qc는 범용 바닥
+`GENERIC_FLOOR`(800자, 카드 규칙의 가장 낮은 하한)를 쓴다 — CLI 래퍼의 기본표(14,000 등)는 그대로.
+캡션 번호 꼴은 `numbering.section`(F82).
 """
 from __future__ import annotations
 
 from collections.abc import Callable
 
+from techdoc_core.constants import CARD_LENGTH_BY_IMPORTANCE
 from techdoc_core.models import Document
 from techdoc_core.qc.adapters import CARD_JSON_ERROR
 from techdoc_core.qc.legacy.card_checks import THRESHOLDS as VC_THRESHOLDS
@@ -49,12 +52,25 @@ def _extra(model: DocModel, name: str) -> dict:
     return v if isinstance(v, dict) else {}
 
 
-def _table(base: dict, override) -> dict | None:
-    """임계 덮어쓰기 — 정수 값만. 없으면 None(모듈 기본표)."""
+# qc 게이트의 범용 분량 하한 — 플러그인 카드 규칙(prompts/card_length_rules.md)의 가장 낮은 하한
+# (기술 카드 low 800자). 모듈 기본표(SIZE_THRESHOLDS·VC THRESHOLDS 14,000 등)는 시리즈 방법론 편
+# 값이고 CLI 계약이라 CLI 래퍼만 쓴다. qc에서는 문서 종류 묶음·시리즈 설정이 extra로 표를 실을 때만
+# 그 값을 쓰고, 아무도 싣지 않으면(묶음 없는 kind) 이 범용 바닥으로 본다(E18 1·2).
+GENERIC_FLOOR = CARD_LENGTH_BY_IMPORTANCE["low"]["tech"][0]
+GENERIC_SIZE_THRESHOLDS = dict.fromkeys(SIZE_THRESHOLDS, GENERIC_FLOOR)
+
+
+def _generic_vc_table() -> dict:
+    # VC 표는 CLI가 verify_thresholds.json으로 키를 더할 수 있어 부를 때마다 키를 맞춘다
+    return dict.fromkeys(VC_THRESHOLDS, GENERIC_FLOOR)
+
+
+def _table(base: dict, override) -> dict:
+    """임계 덮어쓰기 — 정수 값만 base 위에 겹친다. 덮어쓰기가 없으면 base(범용 바닥) 그대로."""
     if not isinstance(override, dict):
-        return None
+        return dict(base)
     ov = {k: v for k, v in override.items() if isinstance(v, int)}
-    return {**base, **ov} if ov else None
+    return {**base, **ov}
 
 
 def _style(model: DocModel) -> str | None:
@@ -71,7 +87,8 @@ def _sm_cards(model: DocModel) -> dict[str, dict]:
 def _sm_rows(model: DocModel) -> list[tuple[str, list[dict], dict, str]]:
     """(카드 id, 사이즈 지적, 서식 결과, 본문) — check_quality self-model과 같은 측정(strict·baseline 없음)."""
     def build():
-        table = _table(SIZE_THRESHOLDS, _extra(model, "check_quality").get("size_thresholds"))
+        table = _table(GENERIC_SIZE_THRESHOLDS,
+                       _extra(model, "check_quality").get("size_thresholds"))
         rows = []
         for cid, card in _sm_cards(model).items():
             _size, _chars, issues = self_model_size_issues(card, cid, table)
@@ -161,7 +178,7 @@ def _cap(kind: str, standard_too: bool) -> Callable[[DocModel], GateOutput]:
 
 def _vc_rows(model: DocModel) -> list[tuple[str, dict]]:
     def build():
-        table = _table(VC_THRESHOLDS, _extra(model, "verify_cards").get("thresholds"))
+        table = _table(_generic_vc_table(), _extra(model, "verify_cards").get("thresholds"))
         return [(cid, check_card_data(card, cid, table)) for cid, card in _sm_cards(model).items()]
     return _memo(model, "vc_rows", build)
 
@@ -212,7 +229,8 @@ for _m in FG_METRICS:
     ])(_fg(_m))
 
 gate("PLG-CQ-self_model_length", samples=[
-    Sample(sample_model(cards={"1.1": _card("짧다."), "1.2.L2": _card("가" * 6000)}), 2),
+    # 범용 바닥 800자: 1.1 절반 미만 + 1.2.L2 바닥 미만(500자)
+    Sample(sample_model(cards={"1.1": _card("짧다."), "1.2.L2": _card("가" * 500)}), 2),
     Sample(sample_model(cards={"1.1": _card("짧다.")},
                         extra={"check_quality": {"size_thresholds": {"S": 3}}}), 0),
 ])(_sm_size)

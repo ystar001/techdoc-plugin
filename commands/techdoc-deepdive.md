@@ -83,8 +83,8 @@ Style: (document metadata에서)
               + tech_depth.md + _shared/{citation_rules,no_ai_inference,style_*}.md
 
 작업:
-  기술 별첨: 10블록, 15k~40k자 (권장 20k~25k)
-  프로젝트 별첨: 11블록, 20k~50k자 (권장 25k~30k)
+  기술 별첨: 10블록, 15k자 이상 (권장 20k~25k, 길면 하위 절로 나눔 — 줄이지 않음)
+  프로젝트 별첨: 11블록, 20k자 이상 (권장 25k~30k, 길면 하위 절로 나눔 — 줄이지 않음)
   MathJax 수식, Mermaid 다이어그램, matplotlib 차트 포함
   writer_state.appendices 엔트리 업데이트
   출력: ./output/appendices/appendix_<ID>.json

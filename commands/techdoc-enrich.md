@@ -58,8 +58,9 @@ cp "$OUTPUT_DIR/cards/${CARD_ID}_card.json" "$OUTPUT_DIR/cards/_backup/${CARD_ID
 ### 3. 서식 게이트 재검증
 
 ```bash
-python -m scripts.check_quality "$OUTPUT_DIR/cards" 2>&1 | tail -20
+python -m scripts.check_quality -i "$OUTPUT_DIR" -o "$OUTPUT_DIR/quality_report_after_enrich.json" 2>&1 | tail -20
 # format_gate: inline_enumeration·visual_density WARNING이 줄었는지 확인
+# (-i는 output 폴더 — cards/를 자동 판별한다. 게이트 전체로 보려면 /techdoc-qc <project_root>)
 ```
 
 ## 무손실 검증 (필수)

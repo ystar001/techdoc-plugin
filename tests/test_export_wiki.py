@@ -201,8 +201,8 @@ def test_copy_figures(tmp_path: Path, fake_vault_dir: Path):
     (src / "fig_1_1.png").write_bytes(b"fake png")
     (src / "fig_1_2.svg").write_bytes(b"<svg/>")
 
-    copied = copy_figures(src, fake_vault_dir, report_slug="노지스마트농업")
-    target = fake_vault_dir / "Assets" / "figures" / "노지스마트농업"
+    copied = copy_figures(src, fake_vault_dir, report_slug="스마트팩토리")
+    target = fake_vault_dir / "Assets" / "figures" / "스마트팩토리"
     assert target.exists()
     assert (target / "fig_1_1.png").read_bytes() == b"fake png"
     assert (target / "fig_1_2.svg").read_bytes() == b"<svg/>"

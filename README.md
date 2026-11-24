@@ -487,7 +487,7 @@ LLM 호출 0회. 결정론적 흐름. 자세한 사용은 [26절](#26-자체-업
 | 3 | 단계별 기술 접근 (Phase 1/2/3) | 5,000~6,000자 |
 | 4 | **실험 설계 상세** | 4,500~5,500자 |
 | 5 | 데이터셋·리소스 | 1,500~2,000자 |
-| 6 | **핵심 결과 심층** (통계 유의성) | 5,500~6,500자 |
+| 6 | **핵심 결과 심층** (통계적 유의 수준) | 5,500~6,500자 |
 | 7 | 파생·후속 연구 | 2,500~3,000자 |
 | 8 | 경쟁·보완 프로젝트 비교 | 2,500~3,000자 |
 | 9 | 상업화·산업 응용 | 1,500~2,000자 |
@@ -884,7 +884,7 @@ name_en: Drip Irrigation
 importance: high
 source_card_ids: ["1.1.1"]
 ref_ids: ["REF-001", "REF-002"]
-reports: ["[[Reports/노지스마트농업분석]]"]
+reports: ["[[Reports/스마트팩토리분석]]"]
 appendix: "[[Tech/점적관개_appendix]]"
 techdoc_auto: true
 ---
@@ -1092,7 +1092,7 @@ unzip techdoc-plugin-v1.10.2-wrapped.zip -d ~/.claude/plugins/
 | 버전 | 주요 변경 | 파일 수 | 코드 |
 |---|---|---|---|
 | **v1.10.2** (2026-11-24) | 묶음 0 버그 수정·도구 승격: `verify_cards` 플러그인 승격 + 카드 ID 파서 일원화(`techdoc_core/card_id`, `2.A.7`·`G-`·`D-N`·`C3` 인식, F101·F58·F64·F69·F70·F73·F79·F81) · KeyRef 정규화(`techdoc_core/keyref_normalize` — key_numbers dict·reliability·category 별칭, 모르는 값은 강등해 보존, F55·F61·F78) · `merge_research` 라운드 꼴 정규화·KeyRef 대조·경고 종료 코드 3(F54·F57·F60·F77) · `build_reflist` skip 시 종료 코드 2(`--allow-skip`) · 신규 `dedupe_keyref`(중복 후보·필드 단위 병합·이월 보고, F63·F72) · TOC HTML 주석 무시(F56·F59) · 차트 SVG 바이트 결정성(F67) | +4 모듈 | 493 tests |
-| **v1.10.1** (2026-07-13) | 웹북 디자인 대개편: **테마 4종**(`--theme` classic 기본=의성 CI 그린 리포트·premium·light·slate) + 좌측 트리 사이드바·정식 표지(로고·통계 타일·CTA)·전문 검색·pager + **표지 브랜딩**(`--logo`·`--subtitle`·`--institutions` 전 테마 공통). export 로직 무변경 (F52). SCHEMA 유지. | (변동 없음) | 약 23.5k줄 |
+| **v1.10.1** (2026-07-13) | 웹북 디자인 대개편: **테마 4종**(`--theme` classic 기본=그린 리포트·premium·light·slate — v1.11.0에서 classic은 green으로, 기본은 light로) + 좌측 트리 사이드바·정식 표지(로고·통계 타일·CTA)·전문 검색·pager + **표지 브랜딩**(`--logo`·`--subtitle`·`--institutions` 전 테마 공통). export 로직 무변경 (F52). SCHEMA 유지. | (변동 없음) | 약 23.5k줄 |
 | **v1.10.0** (2026-07-13) | 정형 카드·한글화·소급 서식: `/techdoc-enrich`(서식 소급 개선, 내용 보존, F25), `formal_blocks`(함수명세·상태벡터·파라미터표 구조화+CSV/JSON 추출, F32), `localize`(용어 한글화 토큰맵 `--term-map`, F29). 명령 19종·프롬프트 26종 (findings F25·F32·F29). SCHEMA 유지. | (변동 없음) | 약 23k줄 |
 | **v1.9.1** (2026-07-13) | 웹북 폴리시: 판본(`--variant general`, formal_section 제외)+버전·판본 배지(F43·F36), **md 왕복 편집**(`--webbook --from-md`, `--tree` md 편집→웹북 재렌더, F51) (findings F43·F36·F51). SCHEMA 유지. | (변동 없음) | 약 22.6k줄 |
 | **v1.9.0** (2026-07-13) | **웹북 렌더러 plugin 승격(키스톤)**: 자식 `build_webbook.py`를 `techdoc_core/renderers/webbook.py`(`WebbookExporter`)+`webbook_md2html.py`로 승격. `/techdoc-render --webbook`로 카드→file:// 다중 페이지 HTML 웹북(index+Part 페이지+assets). 수식 `$…$` 보호(F38)·fenced mermaid `<br/>` 보존(F48)·2단 중첩 리스트(F26) (findings F52·F38·F48·F26). SCHEMA 유지. | (변동 없음) | 약 22.5k줄 |

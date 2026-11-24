@@ -185,12 +185,14 @@ def main() -> int:
     ap.add_argument("--doc-version", default="", help="--webbook 표지 버전 배지 (F43)")
     ap.add_argument("--edition", default="", help="--webbook 표지 판본 배지 (F43)")
     ap.add_argument("--term-map", dest="term_map", help="--webbook 용어 한글화 토큰맵 JSON (F29)")
-    ap.add_argument("--theme", choices=["classic", "premium", "light", "slate"], default="classic",
-                    help="--webbook 디자인 테마 (classic 기본=그린 리포트·premium·light·slate)")
+    ap.add_argument("--theme", choices=["light", "green", "premium", "slate", "classic"],
+                    default="light",
+                    help="--webbook 디자인 테마 (light 기본=중립 라이트·green 그린 리포트·premium·"
+                         "slate). classic은 green의 옛 이름(별칭, 곧 green으로 바꿔 쓰기 권장)")
     ap.add_argument("--logo", default="", help="--webbook 표지 로고 이미지 경로 (전 테마 공통)")
     ap.add_argument("--subtitle", default="", help="--webbook 표지 영문 부제")
     ap.add_argument("--institutions", default="",
-                    help="--webbook 표지 기관 배지 (콤마 구분, 예: 의성군,의성농업기술센터)")
+                    help="--webbook 표지 기관 배지 (콤마 구분, 예: OO시청,OO기술센터)")
     args = ap.parse_args()
 
     # ── 웹북 모드: 단일파일 render 경로와 독립 (non-breaking) ──
