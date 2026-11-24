@@ -9,7 +9,9 @@ def test_core_gate_specs_load():
     specs = load_gate_specs([("core", core_bundle_dir())])
     assert set(specs) == {"V8", "V13", "V45", "V68",  # v1.11-a
                           "V2", "V21", "V26", "V30", "V31", "V34", "V39", "V44",  # v1.11-b 구조
-                          "V57", "V59", "V72", "V78"}
+                          "V57", "V59", "V72", "V78",
+                          "V23", "V24", "V25", "V27", "V28", "V29", "V35", "V36",  # v1.11-b 문장
+                          "V41", "V41W", "V43", "V50", "V53", "V54", "V56", "V69", "V76", "V81"}
     assert specs["V59"].exemptable is False and specs["V78"].level == "시범"
     assert specs["V57"].expects == {"methodology": ">=1"}
     assert specs["V8"].level == "막음"

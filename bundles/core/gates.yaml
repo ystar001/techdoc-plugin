@@ -117,3 +117,132 @@
   core: [쉬운 말, 일관성, 품질]
   level: 시범
   inputs: [tree]
+# ── v1.11-b Task 3: 문장(산문) 18종 (시리즈 check_v2·prose_gates 이식) ──
+# E18 11번 — 가독성·문체 게이트의 플러그인 기본 수준은 「경고」(처음 쓰는 문서가 수백 건 막음에 멈추지 않게).
+# 막음은 명백한 결함(붙은 문장 V23·집필 흔적 누수 V24·겹친 말 V50)만. 시리즈 설정이 원본 막음으로 되돌린다.
+- id: V23
+  title: 문장 접합
+  rules: []
+  layer: 본체
+  core: [쉬운 말]
+  level: 막음
+  inputs: [cards]
+- id: V24
+  title: 메타 서술 누수
+  rules: [Q5-007]
+  layer: 문서종류
+  core: [쉬운 말]
+  level: 막음
+  inputs: [tree]
+- id: V25
+  title: 도표 되읽기
+  rules: [Q7-029]
+  layer: 문서종류
+  core: [품질]
+  level: 경고
+  inputs: [tree]
+- id: V27
+  title: 문장 길이 160자 초과
+  rules: [Q3-010, Q5-004, Q5-045]
+  layer: 본체
+  core: [쉬운 말, 일관성]
+  level: 경고
+  inputs: [tree]
+- id: V28
+  title: 줄표 남용
+  rules: [Q3-011, Q5-010, Q5-017]
+  layer: 본체
+  core: [쉬운 말, 일관성]
+  level: 경고
+  inputs: [tree]
+- id: V29
+  title: 강조 밀도
+  rules: [Q5-012, Q5-058, Q5-059]
+  layer: 본체
+  core: [쉬운 말]
+  level: 경고
+  inputs: [tree]
+- id: V35
+  title: 낯선 표현
+  rules: [P-005, Q5-021]
+  layer: 본체
+  core: [쉬운 말]
+  level: 경고
+  inputs: [tree]
+- id: V36
+  title: 구성 설명
+  rules: [Q5-022, Q7-018, Q7-029]
+  layer: 본체
+  core: [쉬운 말, 품질]
+  level: 경고
+  inputs: [tree]
+- id: V41
+  title: 서수 나열 문단
+  rules: [Q5-027]
+  layer: 본체
+  core: [쉬운 말]
+  level: 경고
+  inputs: [tree]
+- id: V41W
+  title: 흩어진 서수 나열(V41 넓힘)
+  rules: [Q5-027]
+  layer: 본체
+  core: [쉬운 말]
+  level: 시범   # 원본은 편 설정 pilot_strict일 때만 V41에 더함
+  inputs: [tree]
+- id: V43
+  title: 문서 주어 결손
+  rules: [Q5-029, Q5-031]
+  layer: 본체
+  core: [쉬운 말]
+  level: 경고
+  inputs: [tree]
+- id: V50
+  title: 겹친 말
+  rules: [Q5-040]
+  layer: 본체
+  core: [쉬운 말]
+  level: 막음
+  inputs: [tree]
+- id: V53
+  title: 그림 구성 설명
+  rules: [Q7-018]
+  layer: 본체
+  core: [품질]
+  level: 경고
+  inputs: [tree]
+- id: V54
+  title: 안내·제목 되풀이
+  rules: [Q6-021, Q7-019]
+  layer: 문서종류
+  core: [품질]
+  level: 경고
+  inputs: [tree]
+- id: V56
+  title: 문서 자기 선언
+  rules: [Q2-007, Q5-042]
+  layer: 문서종류
+  core: [쉬운 말, 품질]
+  level: 경고
+  inputs: [tree]
+- id: V69
+  title: 표 읽어 주기
+  rules: [Q7-029]
+  layer: 본체
+  core: [품질]
+  level: 경고
+  inputs: [tree]
+- id: V76
+  title: 띄어쓰기
+  rules: [Q5-079, Q5-028]
+  layer: 본체
+  core: [쉬운 말, 일관성, 품질]
+  level: 시범
+  inputs: [tree]
+- id: V81
+  title: 굵은 글씨
+  rules: [Q5-028, Q5-058, Q5-059, Q8-029]
+  layer: 본체
+  core: [쉬운 말, 일관성, 품질]
+  level: 시범
+  inputs: [tree]
