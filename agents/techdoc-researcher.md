@@ -149,6 +149,10 @@ projects:
 }
 ```
 
+**라운드 JSON 계약 (v1.10.2, F54·F57·F60·F77)** — 세 그룹이 같은 꼴을 쓴다.
+- `refs_found`: **REF id 문자열 리스트, 필수**. 정수 금지 — 건수는 `new_refs`(정수)에 쓴다.
+- 다른 키 이름(`refs`·`ref_ids_used`·중첩 `rounds`)을 새로 만들지 않는다. 병합기(`merge_research`)는 이런 변형도 받아 주지만 경고로 보고하고 종료 코드 3을 낸다.
+
 ### Empty Result 처리
 라운드 N에서 < 3 건 확보 시:
 - WARN 출력 (`TECHDOC-E020`)

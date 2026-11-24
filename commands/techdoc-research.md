@@ -86,8 +86,11 @@ python -m scripts.preflight "$OUTPUT_DIR"
 ### 4. 병합
 3개 `research_round_{A,B,C}.json` 완료 후:
 ```bash
-python -m scripts.merge_research -i "$OUTPUT_DIR" -o "$OUTPUT_DIR/merged_research.json"
+python -m scripts.merge_research -i "$OUTPUT_DIR" -o "$OUTPUT_DIR/merged_research.json" \
+  --keyref "$OUTPUT_DIR/KeyRef"
 ```
+
+종료 코드 3 = 경고(빈 라운드 파일·refs 꼴 불명·KeyRef에 있는데 병합에 빠진 REF). 결과 파일은 쓰여 있으니 `[WARN]` 줄을 보고 해당 그룹을 다시 확인한다. 조용히 건수가 줄어든 채 다음 단계로 넘어가지 않게 하려는 것이다.
 
 ### 5. Reference List 생성
 ```bash

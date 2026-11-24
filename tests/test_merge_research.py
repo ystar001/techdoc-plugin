@@ -3,7 +3,11 @@
 researcher round JSON의 refs_found는 스키마상 list[str](REF id)이나,
 기존 dedupe_refs는 dict(url·title)를 가정해 str 원소에서 .get() 크래시했다.
 """
-from scripts.merge_research import dedupe_refs
+import json as _json
+import sys as _sys
+
+from scripts.merge_research import dedupe_refs, merge_research
+from scripts.merge_research import main as _merge_main
 
 
 def test_dedupe_handles_str_id_list():
@@ -34,3 +38,52 @@ def test_dedupe_dict_url_still_works():
     ])
     assert len(kept) == 1
     assert removed == 1
+
+
+# ── F54·F57·F60·F77: 라운드 산출 꼴 정규화 · 무음 손실 금지 ──
+
+
+def _w(d, name, obj):
+    (d / name).write_text(_json.dumps(obj, ensure_ascii=False), encoding="utf-8")
+
+
+def test_ref_ids_used_schema_is_merged(tmp_path):
+    _w(tmp_path, "research_round_A.json", {"refs_found": ["REF-001", "REF-002"]})
+    _w(tmp_path, "research_round_B.json", {"ref_ids_used": ["REF-003"], "total_refs": 1})
+    r = merge_research(tmp_path)
+    assert r["total_after_dedup"] == 3
+    assert r["warnings"] == []
+
+
+def test_nested_rounds_are_flattened(tmp_path):
+    _w(tmp_path, "research_round_A.json",
+       {"rounds": [{"refs_found": ["REF-001"]}, {"refs_found": ["REF-002"]}]})
+    assert merge_research(tmp_path)["total_after_dedup"] == 2
+
+
+def test_refs_found_int_is_count_not_list(tmp_path):
+    _w(tmp_path, "research_round_A.json", {"refs_found": 45, "new_refs": 12})
+    _w(tmp_path, "research_round_B.json", {"refs_found": ["REF-010"]})
+    r = merge_research(tmp_path)
+    assert r["empty_files"] == ["research_round_A.json"]
+    assert r["total_after_dedup"] == 1
+
+
+def test_main_exit_3_when_a_file_is_empty(tmp_path, monkeypatch):
+    _w(tmp_path, "research_round_A.json", {"refs_found": 45})
+    _w(tmp_path, "research_round_B.json", {"refs_found": ["REF-010"]})
+    out = tmp_path / "merged.json"
+    monkeypatch.setattr(_sys, "argv", ["merge_research", "-i", str(tmp_path), "-o", str(out)])
+    assert _merge_main() == 3
+    assert out.exists()
+
+
+def test_keyref_crosscheck_reports_missing(tmp_path):
+    kr = tmp_path / "KeyRef"
+    kr.mkdir()
+    for i in (1, 2, 3):
+        (kr / f"REF-00{i}.md").write_text(f"---\nid: REF-00{i}\n---\n본문\n", encoding="utf-8")
+    _w(tmp_path, "research_round_A.json", {"refs_found": ["REF-001", "REF-002"]})
+    r = merge_research(tmp_path, keyref_dir=kr)
+    assert r["keyref_crosscheck"]["missing_in_merge"] == ["REF-003"]
+    assert r["warnings"]
