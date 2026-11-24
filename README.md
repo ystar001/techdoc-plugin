@@ -222,7 +222,8 @@ techdoc-plugin/                                  # 플러그인 루트 (v1.1.0)
 │   ├── __init__.py  constants.py  models.py  schemas.py
 │   ├── routing_config.py  formal_blocks.py  localize.py   # F21·F32·F29
 │   ├── card_id.py  keyref_normalize.py                    # v1.10.2 (F101·F78)
-│   ├── qc/       config · model · adapters · card_text · registry · engine · gates/   # v1.11 게이트 엔진
+│   ├── qc/       config · model · adapters · card_text · registry · engine · numbering · prose · dicts · math_hangul   # v1.11 게이트 엔진
+│   │   └── gates/  citation · structure · sentences · captions · notation · leak · repeat   # 게이트 59종
 │   ├── bundles/  schema · loader                          # v1.11 묶음 명세·층 겹침 로더
 │   ├── renderers/                               # 출력 렌더러
 │   │   ├── html_renderer.py  card_renderer.py
@@ -924,7 +925,7 @@ techdoc_auto: true
 | **재실행** | `/techdoc-resume` | 단계 단위 | 가변 |
 | | `/techdoc-rewrite` | **카드 단위** ⭐ | 2~3분 |
 | | `/techdoc-enrich` | **서식 소급 개선** (내용 보존, F25) ⭐ | 1~2분 |
-| 품질 | `/techdoc-qc` | **품질 게이트** — 경로만 받아 게이트 실행, 결과마다 규칙 번호·대상 수·판정·집행 수준 (v1.11) | 수 초~1분 |
+| 품질 | `/techdoc-qc` | **품질 게이트** — 경로만 받아 게이트 실행, 결과마다 규칙 번호·대상 수·판정·집행 수준, 게이트 59종 (v1.11) | 수 초~1분 |
 | | `/techdoc-deepdive` | **별첨 개별** ⭐ | 10~15분 |
 | **Wiki** ⭐ | `/techdoc-export-wiki` | LLM Wiki 변환·누적 | 1~2분 |
 | **Notion** ⭐ | `/techdoc-export-notion` (v1.2.0) | TechDoc 보고서 → Notion publish (페이지 계층 + KeyRef DB) | 30초~3분 |
