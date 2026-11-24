@@ -39,3 +39,13 @@ def test_allow_skip_flag_returns_0(tmp_path, monkeypatch):
     monkeypatch.setattr(sys, "argv", ["build_reflist", "--keyref", str(tmp_path),
                                       "-o", str(tmp_path / "out"), "--allow-skip"])
     assert reflist_main() == 0
+
+
+def test_main_warnings_survive_cp949_stderr(tmp_path, monkeypatch):
+    import io
+    _ref(tmp_path, "REF-001")
+    (tmp_path / "REF-002.md").write_text("---\nid: [깨짐\n---\n", encoding="utf-8")  # WARN에 '—'
+    monkeypatch.setattr(sys, "stderr", io.TextIOWrapper(io.BytesIO(), encoding="cp949"))
+    monkeypatch.setattr(sys, "argv", ["build_reflist", "--keyref", str(tmp_path),
+                                      "-o", str(tmp_path / "out")])
+    assert reflist_main() == 2

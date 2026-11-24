@@ -168,8 +168,9 @@ def build_reflist(keyref_dir: Path, document_type: str = "기술보고서") -> d
 
 def main() -> int:
     """종료 코드: 0 · 1 입력 없음 · 2 KeyRef가 빠짐(F78, --allow-skip이면 0)."""
-    with contextlib.suppress(Exception):
-        sys.stdout.reconfigure(encoding="utf-8")
+    for stream in (sys.stdout, sys.stderr):  # F53 계열: 경고(stderr)도 cp949 콘솔에서 안전하게
+        with contextlib.suppress(Exception):
+            stream.reconfigure(encoding="utf-8", errors="replace")
     ap = argparse.ArgumentParser(description="Build reference_list.json from KeyRef/")
     ap.add_argument("--keyref", default="./output/KeyRef", help="KeyRef 디렉토리")
     ap.add_argument("--type", dest="document_type", default="기술보고서", help="문서 유형")

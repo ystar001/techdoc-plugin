@@ -87,3 +87,20 @@ def test_keyref_crosscheck_reports_missing(tmp_path):
     r = merge_research(tmp_path, keyref_dir=kr)
     assert r["keyref_crosscheck"]["missing_in_merge"] == ["REF-003"]
     assert r["warnings"]
+
+
+def test_ref_ids_key_is_read(tmp_path):                       # 실데이터 회귀(M4 appB_G): ref_ids
+    _w(tmp_path, "research_round_A.json", {"ref_ids": ["REF-001", "REF-002"]})
+    r = merge_research(tmp_path)
+    assert r["total_after_dedup"] == 2 and r["warnings"] == []
+
+
+def test_main_warning_survives_cp949_stderr(tmp_path, monkeypatch):
+    # F53 계열: WARN이 stderr로 나갈 때 cp949 콘솔에서 UnicodeEncodeError가 나면 안 된다
+    import io
+    _w(tmp_path, "research_round_A.json", {"refs_found": 45})
+    raw = io.BytesIO()
+    monkeypatch.setattr(_sys, "stderr", io.TextIOWrapper(raw, encoding="cp949"))
+    monkeypatch.setattr(_sys, "argv", ["merge_research", "-i", str(tmp_path),
+                                       "-o", str(tmp_path / "m.json")])
+    assert _merge_main() == 3

@@ -268,8 +268,9 @@ def natural_key(s: str) -> tuple:
 
 
 def main() -> int:
-    with contextlib.suppress(Exception):
-        sys.stdout.reconfigure(encoding="utf-8")
+    for stream in (sys.stdout, sys.stderr):  # F53 계열: 경고(stderr)도 cp949 콘솔에서 안전하게
+        with contextlib.suppress(Exception):
+            stream.reconfigure(encoding="utf-8", errors="replace")
     ap = argparse.ArgumentParser(
         description="techdoc-plugin 카드 완결성 일괄 점검"
     )

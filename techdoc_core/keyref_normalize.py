@@ -9,9 +9,10 @@ from __future__ import annotations
 import copy
 from typing import get_args
 
-from techdoc_core.schemas import Reliability
+from techdoc_core.schemas import Category, Reliability
 
 ALLOWED_RELIABILITY: tuple[str, ...] = get_args(Reliability)
+ALLOWED_CATEGORY: tuple[str, ...] = get_args(Category)
 
 # 자연어 표현 → 허용값. 허용값도 별칭도 아니면 「미확인」으로 강등 (버리지 않음).
 RELIABILITY_ALIASES: dict[str, str] = {
@@ -21,6 +22,23 @@ RELIABILITY_ALIASES: dict[str, str] = {
     "검증됨": "확인됨",
 }
 _DEMOTED = "미확인"
+
+# category 자연어 표현 → 허용값. 모르는 값은 「기타」로 (버리지 않음). 실데이터 회귀(M4·M8·S3) 37건.
+CATEGORY_ALIASES: dict[str, str] = {
+    "정부보고서": "정부공공",
+    "정부": "정부공공",
+    "공공기관": "정부공공",
+    "법령·고시": "정부공공",
+    "법령": "정부공공",
+    "고시": "정부공공",
+    "논문": "학술",
+    "학술논문": "학술",
+    "기업": "기업R&D",
+    "연구기관": "전문연구기관",
+    "시장보고서": "산업시장",
+    "언론": "뉴스",
+}
+_CATEGORY_FALLBACK = "기타"
 
 
 def _stringify(item: object) -> str:
@@ -39,6 +57,19 @@ def normalize_keyref(data: dict) -> tuple[dict, list[str]]:
         out["key_numbers"] = [x if isinstance(x, str) else _stringify(x) for x in kn]
         n = sum(1 for x in kn if not isinstance(x, str))
         notes.append(f"key_numbers 비문자열 {n}건을 문자열로 바꿈")
+
+    if "key_numbers" in out and out["key_numbers"] is None:
+        out["key_numbers"] = []
+        notes.append("key_numbers가 비어 있음(None) → 빈 리스트")
+
+    cat = out.get("category")
+    if isinstance(cat, str) and cat not in ALLOWED_CATEGORY:
+        if cat in CATEGORY_ALIASES:
+            out["category"] = CATEGORY_ALIASES[cat]
+            notes.append(f"category '{cat}' → '{out['category']}' (별칭)")
+        else:
+            out["category"] = _CATEGORY_FALLBACK
+            notes.append(f"category '{cat}'는 허용값이 아님 → '{_CATEGORY_FALLBACK}'")
 
     rel = out.get("reliability")
     if isinstance(rel, str) and rel not in ALLOWED_RELIABILITY:

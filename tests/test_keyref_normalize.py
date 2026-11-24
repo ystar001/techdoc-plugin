@@ -43,3 +43,28 @@ def test_year_numeric_string_coerced():
 
 def test_keyref_accepts_pre_1990_year():
     KeyRefSchema(**_minimal(year=1985))
+
+
+# 실데이터 회귀(M4·M8·S3)에서 남은 skip: category 이탈값 37건 · key_numbers None 8건
+def test_category_alias_mapped():
+    d, _ = normalize_keyref({"category": "정부보고서"})
+    assert d["category"] == "정부공공"
+    d, _ = normalize_keyref({"category": "법령·고시"})
+    assert d["category"] == "정부공공"
+
+
+def test_unknown_category_demoted_to_other():
+    d, notes = normalize_keyref({"category": "블로그"})
+    assert d["category"] == "기타"
+    assert "블로그" in notes[0]
+
+
+def test_key_numbers_none_becomes_empty_list():
+    d, notes = normalize_keyref({"key_numbers": None})
+    assert d["key_numbers"] == []
+    assert notes
+
+
+def test_year_nd_is_not_invented():
+    d, _ = normalize_keyref({"year": "n.d."})
+    assert d["year"] == "n.d."  # 연도를 지어내지 않는다 — 검증 실패로 skip·종료 코드 2

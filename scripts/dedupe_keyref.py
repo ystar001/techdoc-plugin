@@ -210,8 +210,9 @@ def check_aliases(keyref_dir: Path) -> list[str]:
 
 
 def main() -> int:
-    with contextlib.suppress(Exception):
-        sys.stdout.reconfigure(encoding="utf-8")
+    for stream in (sys.stdout, sys.stderr):  # F53 계열: 경고(stderr)도 cp949 콘솔에서 안전하게
+        with contextlib.suppress(Exception):
+            stream.reconfigure(encoding="utf-8", errors="replace")
     ap = argparse.ArgumentParser(description="KeyRef 중복 후보·병합·이월 보고")
     ap.add_argument("keyref", help="KeyRef 디렉토리")
     ap.add_argument("--report", action="store_true", help="중복 후보 표 (기본)")

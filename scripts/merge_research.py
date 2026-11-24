@@ -90,14 +90,14 @@ def dedupe_refs(all_refs: list[dict]) -> tuple[list[dict], int]:
     return kept, removed
 
 
-_REF_LIST_KEYS = ("refs", "refs_found", "ref_ids_used", "new_refs")
+_REF_LIST_KEYS = ("refs", "refs_found", "ref_ids_used", "ref_ids", "new_refs")
 _KEYREF_ID_RE = re.compile(r"^id:\s*(REF-\d+)", re.M)
 
 
 def extract_round_refs(data: dict, name: str) -> tuple[list[str | dict], list[str]]:
     """라운드 JSON 한 개에서 refs를 꺼낸다 (F54·F57·F60·F77).
 
-    researcher 병렬 산출은 꼴이 갈린다: `refs`·`refs_found`(list)·`ref_ids_used`·
+    researcher 병렬 산출은 꼴이 갈린다: `refs`·`refs_found`(list)·`ref_ids_used`·`ref_ids`·
     `new_refs`(list일 때)·중첩 `rounds`. 처음 맞는 list 키를 쓴다. `refs_found`가
     정수면 건수로 보고 무시한다. 아무 꼴도 없으면 빈 list와 note를 돌려준다.
     """
@@ -211,8 +211,9 @@ def merge_research(input_dir: Path, keyref_dir: Path | None = None) -> dict:
 
 def main() -> int:
     """종료 코드: 0 정상 · 1 라운드 파일 없음 · 3 경고(빈 파일·꼴 불명·KeyRef 대조 누락)."""
-    with contextlib.suppress(Exception):
-        sys.stdout.reconfigure(encoding="utf-8")
+    for stream in (sys.stdout, sys.stderr):  # F53 계열: 경고(stderr)도 cp949 콘솔에서 안전하게
+        with contextlib.suppress(Exception):
+            stream.reconfigure(encoding="utf-8", errors="replace")
     ap = argparse.ArgumentParser(description="Merge 3 researcher parallel outputs")
     ap.add_argument("-i", "--input", default="./output", help="research_round_*.json 디렉토리")
     ap.add_argument("-o", "--output", default="./output/merged_research.json", help="병합 결과 파일")
