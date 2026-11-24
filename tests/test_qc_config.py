@@ -20,14 +20,15 @@ def test_series_style_paths_and_numbering(tmp_path):
         "schema: techdoc-project/1\nkind: methodology\nnumbering: {section: roman}\n"
         "paths: {cards: output_v2/cards, render_tree: output_v2/render/tree,"
         " references: output_v2/reference_list.json}\n"
-        "gates: {off: [V8], exempt: {'1.1': [V13]}, level: {V45: 경고}}\n"
+        "gates: {off: [V8], exempt: {'1.1|sec2': {gates: [V13], why: 이력 인용}}, level: {V45: 경고}}\n"
         "extra: {citation: {internal_files: [PLAN.md]}}\n",
         encoding="utf-8")
     cfg = load_config(tmp_path)
     assert cfg.kind == "methodology"
     assert cfg.numbering["section"] == "roman"
     assert cfg.paths.render_tree.parts[-3:] == ("output_v2", "render", "tree")
-    assert cfg.gates_off == ["V8"] and cfg.exempt == {"1.1": ["V13"]}
+    assert cfg.gates_off == ["V8"]
+    assert cfg.exempt == {"1.1|sec2": {"gates": ["V13"], "why": "이력 인용"}}
     assert cfg.level_overrides == {"V45": "경고"}
     assert cfg.extra["citation"]["internal_files"] == ["PLAN.md"]
 
@@ -70,7 +71,7 @@ def test_layer_dirs_order(tmp_path):
 
 def test_numeric_exempt_key_rejected(tmp_path):
     (tmp_path / "techdoc.project.yaml").write_text(
-        "gates: {exempt: {1.10: [V13], 1.1: [V13]}}\n", encoding="utf-8")
+        "gates: {exempt: {1.10: {gates: [V13], why: x}}}\n", encoding="utf-8")
     with pytest.raises(ValueError, match="따옴표"):
         load_config(tmp_path)
 
@@ -81,3 +82,10 @@ def test_missing_layer_paths_and_unknown_kind_warn(tmp_path):
     cfg = load_config(tmp_path)
     joined = " | ".join(cfg.warnings)
     assert "tech_reprot" in joined and "series" in joined and "domain" in joined
+
+
+def test_exempt_requires_why(tmp_path):
+    (tmp_path / "techdoc.project.yaml").write_text(
+        "gates: {exempt: {'1.1|sec2': {gates: [V13]}}}\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="why"):
+        load_config(tmp_path)

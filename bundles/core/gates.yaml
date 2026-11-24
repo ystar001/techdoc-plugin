@@ -7,8 +7,10 @@
   level: 막음
   inputs: [cards, tree, references]
   expects: {tech_report: ">=1", methodology: ">=1"}   # 참고문헌 목록이 없으면 인용 검사가 사라지므로 실패로
+  exemptable: false   # 원본은 면제를 적용하지 않음(지적이 카드 위치가 아님)
 - id: V13
   title: 참고문헌 중복 등록·백과사전·말미 목록
+  exemptable: false
   rules: [Q1-004, Q1-005, Q1-026]
   layer: 본체
   core: [품질, 일관성]

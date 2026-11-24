@@ -10,7 +10,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 Level = Literal["막음", "경고", "기록만", "시범", "구조"]
-Layer = Literal["본체", "문서종류", "분야", "시리즈"]
+Layer = Literal["본체", "문서종류", "분야", "시리즈", "프로젝트"]
 Core = Literal["품질", "일관성", "쉬운 말"]
 Scope = Literal["문서 안", "문서 사이", "산출물"]
 Input = Literal["cards", "tree", "references", "reference_md"]
@@ -44,3 +44,5 @@ class GateSpec(BaseModel):
     expects: dict[str, str] = Field(default_factory=dict)
     promotion: dict | None = None
     override: bool = False
+    # 원본이 hit()를 거치지 않아 면제가 먹지 않던 게이트(V6·V7·V8·V12 일부·V13·V59)는 false
+    exemptable: bool = True

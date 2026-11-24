@@ -50,8 +50,17 @@ def _expected(spec: GateSpec, kind: str) -> bool:
     return spec.expects.get(kind, "").replace(" ", "") == ">=1"
 
 
-def _exempted(gid: str, loc: str, exempt: dict[str, list[str]]) -> bool:
-    return any(gid in gates and loc.startswith(f"{cid}:") for cid, gates in exempt.items())
+def _exempted(gid: str, loc: str, exempt: dict[str, dict]) -> bool:
+    """원본 면제: 키 "cid|sec"는 그 섹션 지적만, 키 "cid"는 그 카드의 지적 전부."""
+    for key, ent in exempt.items():
+        if gid not in ent.get("gates", []):
+            continue
+        if "|" in key:
+            if loc.startswith(f"{key}:"):
+                return True
+        elif loc.startswith(f"{key}:") or loc.startswith(f"{key}|"):
+            return True
+    return False
 
 
 def run_qc(model: DocModel, specs: dict[str, GateSpec], funcs: dict[str, Callable],
@@ -61,7 +70,7 @@ def run_qc(model: DocModel, specs: dict[str, GateSpec], funcs: dict[str, Callabl
     report = {"schema": "techdoc-qc/1", "plugin": __version__, "root": str(model.root),
               "kind": model.kind, "config_hash": _config_hash(cfg),
               "warnings": list(cfg.warnings) + list(model.load_errors),
-              "selftest_errors": [], "gate_errors": [], "input_empty": False,
+              "selftest_errors": [], "gate_errors": [], "exempted": {}, "input_empty": False,
               "summary": summary, "results": []}
     if model.is_empty():
         report["input_empty"] = True
@@ -94,7 +103,12 @@ def run_qc(model: DocModel, specs: dict[str, GateSpec], funcs: dict[str, Callabl
                 summary["skip"] += 1
                 report["results"].append(row)
                 continue
-            items = [f for f in out.findings if not _exempted(gid, f.loc, model.exempt)]
+            if spec.exemptable and model.exempt:
+                items = [f for f in out.findings if not _exempted(gid, f.loc, model.exempt)]
+                if len(items) < len(out.findings):
+                    report["exempted"][gid] = len(out.findings) - len(items)
+            else:
+                items = list(out.findings)
             row["targets_read"] = out.targets_read
             row["count"] = len(items)
             row["items"] = [{"loc": f.loc, "msg": f.msg} for f in items]
@@ -128,6 +142,7 @@ def format_report(report: dict, top: int = 8) -> str:
     lines += [f"  [WARN] {w}" for w in report["warnings"]]
     lines += [f"  [SELFTEST] {e}" for e in report.get("selftest_errors", [])]
     lines += [f"  [GATE ERROR] {e}" for e in report.get("gate_errors", [])]
+    lines += [f"  [면제] {g} {n}건" for g, n in sorted(report.get("exempted", {}).items())]
     lines.append(f"{'ID':<8}{'검사':<34}{'대상':>6}{'건수':>7}  상태")
     for r in report["results"]:
         mark = _FAIL_MARK[r["level"]] if r["verdict"] == "fail" else _MARK[r["verdict"]]

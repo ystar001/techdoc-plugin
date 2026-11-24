@@ -38,7 +38,7 @@ class ProjectConfig:
     series: Path | None = None
     numbering: dict = field(default_factory=lambda: {"section": "arabic", "appendix": "letter"})
     gates_off: list[str] = field(default_factory=list)
-    exempt: dict[str, list[str]] = field(default_factory=dict)
+    exempt: dict[str, dict] = field(default_factory=dict)  # "<cid>|<sec>" → {gates, why}
     level_overrides: dict[str, str] = field(default_factory=dict)
     extra: dict = field(default_factory=dict)
     warnings: list[str] = field(default_factory=list)
@@ -91,8 +91,14 @@ def load_config(root: Path, path: Path | None = None) -> ProjectConfig:
     bad_keys = [k for k in exempt if not isinstance(k, str)]
     if bad_keys:
         # YAML은 1.10·1.1을 숫자 1.1 하나로 접는다 — 카드 id는 따옴표로 감싸야 한다
-        raise ValueError(f"gates.exempt의 카드 id는 따옴표로 감싸야 함(\"1.10\"): {bad_keys}")
-    cfg.exempt = {k: [str(g) for g in v] for k, v in exempt.items()}
+        raise ValueError(f"gates.exempt의 카드 id는 따옴표로 감싸야 함(\"1.10|sec2\"): {bad_keys}")
+    cfg.exempt = {}
+    for key, val in exempt.items():
+        # 원본 형식: "<카드id>|<섹션키>" 또는 "<카드id>": {gates: [...], why: "사유"}
+        if not isinstance(val, dict) or not str(val.get("why") or "").strip():
+            raise ValueError(f"gates.exempt[{key}]: 면제 사유(why) 필요 — 면제는 침묵이 아니라 기록")
+        cfg.exempt[key] = {"gates": [str(g) for g in val.get("gates") or []],
+                           "why": str(val["why"])}
     levels = {str(k): str(v) for k, v in (gates.get("level") or {}).items()}
     bad = {k: v for k, v in levels.items() if v not in _LEVELS}
     if bad:
@@ -112,8 +118,8 @@ def validate_gate_ids(cfg: ProjectConfig, known: set[str]) -> None:
     """설정이 부르는 게이트 id 중 모르는 것을 cfg.warnings에 더한다(조용한 무시 금지)."""
     seen: list[str] = []
     named = [*cfg.gates_off, *cfg.level_overrides]
-    for ids in cfg.exempt.values():
-        named.extend(ids)
+    for ent in cfg.exempt.values():
+        named.extend(ent["gates"])
     for gid in named:
         if gid not in known and gid not in seen:
             seen.append(gid)

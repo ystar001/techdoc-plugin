@@ -15,6 +15,7 @@ Kind = Literal["front", "body", "appendix", "unknown"]
 _SPLIT_RE = re.compile(r"^(?:L|XL)\d+$")
 _APPENDIX_HEAD_RE = re.compile(r"^[A-Z]+-?\d*$")
 _BODY_SEG_RE = re.compile(r"^(?:\d+|[A-Z])$")
+_ROMAN_RE = re.compile(r"^[IVXLC]+$")
 
 
 @dataclass(frozen=True)
@@ -24,8 +25,12 @@ class CardId:
     segments: tuple[str, ...]
 
 
-def parse_card_id_parts(stem: str) -> CardId:
-    """카드 파일 stem(`_card` 꼬리 허용) → CardId."""
+def parse_card_id_parts(stem: str, numbering: dict | None = None) -> CardId:
+    """카드 파일 stem(`_card` 꼬리 허용) → CardId.
+
+    `numbering.section == "roman"`이면 첫 마디가 로마 숫자인 ID(`I.1`·`II.6.L2`)를 본문으로 본다.
+    기본값(None·arabic)에서는 지금처럼 접두 문자를 별첨으로 본다.
+    """
     s = stem.removesuffix("_card").strip()
     segs = [x for x in s.split(".") if x]
     split: str | None = None
@@ -39,7 +44,8 @@ def parse_card_id_parts(stem: str) -> CardId:
     seg_t = tuple(segs)
     if head == "0" and rest and all(x.isdigit() for x in rest):
         return CardId("front", split, seg_t)
-    if head.isdigit() and all(_BODY_SEG_RE.match(x) for x in rest):
+    roman_body = (numbering or {}).get("section") == "roman" and _ROMAN_RE.match(head)
+    if (head.isdigit() or roman_body) and all(_BODY_SEG_RE.match(x) for x in rest):
         return CardId("body", split, seg_t)
     if _APPENDIX_HEAD_RE.match(head) and all(x.isdigit() for x in rest):
         return CardId("appendix", split, seg_t)

@@ -51,7 +51,7 @@ def gate(gate_id: str, samples: list[Sample] | None = None):
 def sample_model(*, root: Path | None = None, kind: str = "tech_report",
                  cards: dict[str, dict] | None = None, tree: dict[str, str] | None = None,
                  references: list[dict] | None = None, reference_md: dict[str, str] | None = None,
-                 exempt: dict[str, list[str]] | None = None, extra: dict | None = None) -> DocModel:
+                 exempt: dict[str, dict] | None = None, extra: dict | None = None) -> DocModel:
     """자기검사·테스트용 작은 모델."""
     return DocModel(
         root=root or Path("."),

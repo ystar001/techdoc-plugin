@@ -97,7 +97,7 @@ def test_empty_project_exit_2(reg, tmp_path):
 
 def test_exempt_removes_card_findings(reg):
     _const("G1", 3, 2, loc="1.1")
-    m = sample_model(tree={"a.md": "x"}, exempt={"1.1": ["G1"]})
+    m = sample_model(tree={"a.md": "x"}, exempt={"1.1": {"gates": ["G1"], "why": "사유"}})
     rep = _run(m, [_spec("G1")])
     assert _res(rep, "G1")["count"] == 0 and _res(rep, "G1")["verdict"] == "pass"
 
@@ -148,3 +148,35 @@ def test_gate_exception_isolated(reg):
     assert _res(rep, "G1")["verdict"] == "skip" and "게이트 오류" in _res(rep, "G1")["reason"]
     assert _res(rep, "G2")["count"] == 1
     assert rep["gate_errors"] and exit_code(rep) == 3
+
+
+# ── v1.11-b: 원본식 면제 ──
+
+def _ex(gates, why="사유"):
+    return {"gates": gates, "why": why}
+
+
+def test_exempt_section_scope(reg):
+    @gate("G1")
+    def _g(model):
+        return GateOutput(3, [Finding("1.1|sec2: x", "m"), Finding("1.1|sec3: y", "m")])
+    m = sample_model(tree={"a.md": "x"}, exempt={"1.1|sec2": _ex(["G1"])})
+    rep = _run(m, [_spec("G1")])
+    assert _res(rep, "G1")["count"] == 1 and rep["exempted"] == {"G1": 1}
+
+
+def test_exempt_whole_card(reg):
+    @gate("G1")
+    def _g(model):
+        return GateOutput(3, [Finding("1.1|sec2: x", "m"), Finding("1.1: y", "m"), Finding("1.10: z", "m")])
+    rep = _run(sample_model(tree={"a.md": "x"}, exempt={"1.1": _ex(["G1"])}), [_spec("G1")])
+    assert _res(rep, "G1")["count"] == 1  # 1.10은 남는다
+
+
+def test_non_exemptable_gate_ignores_exempt(reg):
+    @gate("G1")
+    def _g(model):
+        return GateOutput(3, [Finding("1.1|sec2: x", "m")])
+    spec = _spec("G1").model_copy(update={"exemptable": False})
+    rep = _run(sample_model(tree={"a.md": "x"}, exempt={"1.1|sec2": _ex(["G1"])}), [spec])
+    assert _res(rep, "G1")["count"] == 1 and rep["exempted"] == {}
