@@ -53,6 +53,7 @@ EXCLUDE_PATTERNS = (
 
 # 명시적으로 포함할 경로 (패턴에 우선)
 INCLUDE_ROOTS = (
+    "bundles",
     ".claude-plugin",
     "agents",
     "commands",
