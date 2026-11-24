@@ -52,3 +52,22 @@ def test_broken_card_json_is_reported_not_crash(tmp_path):
 
 def test_missing_paths_give_empty_model(tmp_path):
     assert build_model(tmp_path, default_config(tmp_path)).is_empty()
+
+
+def test_draft_is_loaded_separately(tmp_path):
+    _w(tmp_path / "output" / "draft" / "part1.md", "본문 [REF-001]\n")
+    _w(tmp_path / "output" / "draft" / "_superseded_x.md", "빼기\n")
+    m = build_model(tmp_path, default_config(tmp_path))
+    assert [t.rel for t in m.draft] == ["part1.md"]
+
+
+def test_reference_md_by_name_contains_and_full_md_fallback(tmp_path):
+    _w(tmp_path / "output" / "render" / "tree" / "99_참고문헌.md", "- a\n")
+    m = build_model(tmp_path, default_config(tmp_path))
+    assert [t.rel for t in m.reference_md] == ["99_참고문헌.md"] and m.tree == []
+    t2 = tmp_path / "b"
+    _w(t2 / "output" / "render" / "tree" / "1.md", "# 1\n")
+    _w(t2 / "output" / "render" / "doc_full.md", "# 1\n본문\n# 참고문헌\n- x\n")
+    m2 = build_model(t2, default_config(t2))
+    assert m2.reference_md[0].rel == "doc_full.md 참고문헌"
+    assert m2.reference_md[0].text.startswith("\n# 참고문헌")

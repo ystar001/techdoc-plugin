@@ -24,6 +24,7 @@ class Paths:
     cards: Path
     render_tree: Path
     references: Path
+    draft: Path  # md 직접 저작 원고 — 있으면 산문 게이트가 렌더 트리 대신 본다(시리즈 규칙)
 
 
 @dataclass
@@ -44,7 +45,7 @@ class ProjectConfig:
 def _default_paths(root: Path) -> Paths:
     out = root / "output"
     return Paths(cards=out / "cards", render_tree=out / "render" / "tree",
-                 references=out / "reference_list.json")
+                 references=out / "reference_list.json", draft=out / "draft")
 
 
 def default_config(root: Path) -> ProjectConfig:
@@ -76,7 +77,7 @@ def load_config(root: Path, path: Path | None = None) -> ProjectConfig:
     cfg.numbering = numbering
 
     paths = data.get("paths") or {}
-    for key in ("cards", "render_tree", "references"):
+    for key in ("cards", "render_tree", "references", "draft"):
         if paths.get(key):
             setattr(cfg.paths, key, _opt_path(root, paths[key]))
 

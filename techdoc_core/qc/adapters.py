@@ -1,7 +1,8 @@
 """입력 어댑터 — 카드·렌더 트리·참고문헌을 DocModel로 (v1.11).
 
 경로는 설정(paths)에서 온다. 시리즈 규칙: `_`로 시작하는 폴더의 카드는 빼고,
-렌더 트리에서 `참고문헌*.md`는 reference_md로 따로, `_`로 시작하는 파일은 뺀다.
+렌더 트리에서 이름에 「참고문헌」이 든 md는 reference_md로 따로, `_`로 시작하는 파일은 뺀다.
+참고문헌 md가 없으면 `render/*_full.md`의 「# 참고문헌」 절을 쓴다. draft는 따로 읽는다.
 """
 from __future__ import annotations
 
@@ -41,8 +42,24 @@ def _load_tree(tree_dir: Path) -> tuple[list[TreeFile], list[TreeFile]]:
         if name.startswith("_"):
             continue
         tf = TreeFile(rel=rel, text=p.read_text(encoding="utf-8"))
-        (refs if name.startswith("참고문헌") else tree).append(tf)
+        (refs if "참고문헌" in name else tree).append(tf)
+    if not refs:
+        for full in sorted(tree_dir.parent.glob("*_full.md")):
+            text = full.read_text(encoding="utf-8")
+            k = text.find("\n# 참고문헌")
+            if k >= 0:
+                refs.append(TreeFile(rel=f"{full.name} 참고문헌", text=text[k:]))
     return tree, refs
+
+
+_DRAFT_SKIP = ("_superseded", "_merged", "_archive")
+
+
+def _load_draft(draft_dir: Path) -> list[TreeFile]:
+    if not draft_dir.is_dir():
+        return []
+    return [TreeFile(rel=p.name, text=p.read_text(encoding="utf-8"))
+            for p in sorted(draft_dir.glob("*.md")) if not p.name.startswith(_DRAFT_SKIP)]
 
 
 def _load_references(path: Path, errors: list[str]) -> list[dict]:
@@ -65,6 +82,7 @@ def build_model(root: Path, cfg: ProjectConfig) -> DocModel:
         kind=cfg.kind,
         cards=_load_cards(cfg.paths.cards, errors),
         tree=tree,
+        draft=_load_draft(cfg.paths.draft),
         references=_load_references(cfg.paths.references, errors),
         reference_md=ref_md,
         numbering=dict(cfg.numbering),

@@ -17,6 +17,7 @@ class DocModel:
     kind: str = "tech_report"
     cards: dict[str, dict] = field(default_factory=dict)
     tree: list[TreeFile] = field(default_factory=list)
+    draft: list[TreeFile] = field(default_factory=list)
     references: list[dict] = field(default_factory=list)
     reference_md: list[TreeFile] = field(default_factory=list)
     numbering: dict = field(default_factory=dict)
@@ -25,4 +26,10 @@ class DocModel:
     load_errors: list[str] = field(default_factory=list)
 
     def is_empty(self) -> bool:
-        return not self.cards and not self.tree
+        return not self.cards and not self.tree and not self.draft
+
+    def prose(self) -> list[TreeFile]:
+        """산문 게이트 입력 — draft가 있으면 draft(`_`로 시작하는 파일 제외), 없으면 렌더 트리."""
+        if self.draft:
+            return [t for t in self.draft if not t.rel.rsplit("/", 1)[-1].startswith("_")]
+        return list(self.tree)
