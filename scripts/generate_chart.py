@@ -44,6 +44,11 @@ def _configure_korean_font():
 
 
 _configure_korean_font()
+# F67: SVG clip-path id를 매 렌더 무작위가 아니라 고정 salt로 — 같은 입력이면 같은 바이트
+plt.rcParams["svg.hashsalt"] = "techdoc"
+
+# 출력 형식별 메타데이터 — 렌더 시각·버전 문자열을 넣지 않는다 (F67)
+_SAVE_METADATA = {"svg": {"Date": None}, "png": {"Software": None}}
 
 
 def render_bar(ax, spec: dict) -> None:
@@ -134,8 +139,14 @@ RENDERERS = {
 }
 
 
-def generate_figure(spec: dict, output_dir: Path) -> Path:
-    """명세 → PNG 파일 생성."""
+def generate_figure(spec: dict, output_dir: Path, fmt: str = "png") -> Path:
+    """명세 → 이미지 파일(png·svg). spec의 "format" 키가 있으면 그것을 따른다.
+
+    같은 명세면 같은 바이트를 낸다(F67) — 재빌드 diff가 의미 있는 변경만 남게.
+    """
+    fmt = spec.get("format", fmt)
+    if fmt not in _SAVE_METADATA:
+        raise ValueError(format_error("TECHDOC-E050", f"Unknown chart format: {fmt}"))
     chart_type = spec.get("type", "bar")
     renderer = RENDERERS.get(chart_type)
     if renderer is None:
@@ -158,8 +169,9 @@ def generate_figure(spec: dict, output_dir: Path) -> Path:
     plt.tight_layout()
 
     chart_id = spec.get("id", "fig_unnamed")
-    out_path = output_dir / f"{chart_id}.png"
-    fig.savefig(out_path, dpi=150, bbox_inches="tight")
+    out_path = output_dir / f"{chart_id}.{fmt}"
+    fig.savefig(out_path, dpi=150, bbox_inches="tight", format=fmt,
+                metadata=_SAVE_METADATA[fmt])
     plt.close(fig)
     return out_path
 
